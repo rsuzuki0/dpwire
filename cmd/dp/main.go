@@ -8,12 +8,15 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
+	"text/tabwriter"
 
 	"github.com/rsuzuki0/digitalpaper"
 	"github.com/rsuzuki0/digitalpaper/credentials"
 )
 
-const version = "0.1.0-p1"
+const version = "0.2.0-p2"
 
 func main() { os.Exit(run(os.Args[1:], os.Stdout, os.Stderr)) }
 
@@ -96,26 +99,43 @@ func run(arguments []string, stdout, stderr io.Writer) int {
 			Storage  digitalpaper.StorageStatus  `json:"storage"`
 		}{firmware, battery, storage})
 	case "ls":
-		if len(args) > 2 {
+		long, target, ok := parseListArguments(args[1:])
+		if !ok {
 			usage(stderr)
 			return 2
 		}
 		var entries []digitalpaper.Entry
-		if len(args) == 2 {
-			entries, err = client.Folders.List(ctx, args[1], digitalpaper.ListOptions{})
+		if target != "" {
+			path, pathErr := parseDevicePath(target)
+			if pathErr != nil {
+				return report(stderr, pathErr)
+			}
+			folder, resolveErr := client.Documents.Resolve(ctx, path)
+			if resolveErr != nil {
+				return report(stderr, resolveErr)
+			}
+			if folder.Type == digitalpaper.EntryDocument {
+				entries = []digitalpaper.Entry{folder}
+			} else {
+				entries, err = client.Folders.List(ctx, folder.ID, digitalpaper.ListOptions{})
+			}
 		} else {
-			entries, err = client.Documents.List(ctx, digitalpaper.ListOptions{})
+			root, resolveErr := client.Documents.Resolve(ctx, digitalpaper.MustRemotePath("Document"))
+			if resolveErr != nil {
+				return report(stderr, resolveErr)
+			}
+			entries, err = client.Folders.List(ctx, root.ID, digitalpaper.ListOptions{})
 		}
 		if err != nil {
 			return report(stderr, err)
 		}
-		return encode(stdout, entries)
-	case "stat":
+		return printEntries(stdout, entries, long)
+	case "stat", "file":
 		if len(args) != 2 {
 			usage(stderr)
 			return 2
 		}
-		path, err := digitalpaper.ParseRemotePath(args[1])
+		path, err := parseDevicePath(args[1])
 		if err != nil {
 			return report(stderr, err)
 		}
@@ -123,21 +143,272 @@ func run(arguments []string, stdout, stderr io.Writer) int {
 		if err != nil {
 			return report(stderr, err)
 		}
-		return encode(stdout, entry)
+		return encode(stdout, presentEntry(entry))
 	case "get":
+		if len(args) < 2 || len(args) > 3 {
+			usage(stderr)
+			return 2
+		}
+		local := ""
+		if len(args) == 3 {
+			local = args[2]
+		}
+		return get(ctx, client, args[1], local, stdout, stderr)
+	case "mkdir":
+		if len(args) != 2 {
+			usage(stderr)
+			return 2
+		}
+		parent, name, err := splitRemoteTarget(args[1])
+		if err != nil {
+			return report(stderr, err)
+		}
+		parentEntry, err := client.Documents.Resolve(ctx, parent)
+		if err != nil {
+			return report(stderr, err)
+		}
+		entry, err := client.Folders.Create(ctx, parentEntry.ID, name)
+		if err != nil {
+			return report(stderr, err)
+		}
+		return encode(stdout, presentEntry(entry))
+	case "put":
+		if len(args) < 2 || len(args) > 3 {
+			usage(stderr)
+			return 2
+		}
+		remote := filepath.Base(args[1])
+		if len(args) == 3 {
+			remote = args[2]
+		}
+		return put(ctx, client, args[1], remote, stdout, stderr)
+	case "cp", "mv":
 		if len(args) != 3 {
 			usage(stderr)
 			return 2
 		}
-		return get(ctx, client, args[1], args[2], stdout, stderr)
+		sourcePath, err := parseDevicePath(args[1])
+		if err != nil {
+			return report(stderr, err)
+		}
+		source, err := client.Documents.Resolve(ctx, sourcePath)
+		if err != nil {
+			return report(stderr, err)
+		}
+		if source.Type != digitalpaper.EntryDocument {
+			return report(stderr, errors.New("source path is not a PDF"))
+		}
+		parentEntry, name, err := resolveDestination(ctx, client, args[2], source.Name)
+		if err != nil {
+			return report(stderr, err)
+		}
+		var entry digitalpaper.Entry
+		if args[0] == "cp" {
+			entry, err = client.Documents.Copy(ctx, source.ID, parentEntry.ID, name)
+		} else {
+			entry, err = client.Documents.Update(ctx, source.ID, parentEntry.ID, name)
+		}
+		if err != nil {
+			return report(stderr, err)
+		}
+		return encode(stdout, presentEntry(entry))
+	case "open":
+		if len(args) < 2 || len(args) > 3 {
+			usage(stderr)
+			return 2
+		}
+		path, err := parseDevicePath(args[1])
+		if err != nil {
+			return report(stderr, err)
+		}
+		entry, err := client.Documents.Resolve(ctx, path)
+		if err != nil {
+			return report(stderr, err)
+		}
+		page := 0
+		if len(args) == 3 {
+			if _, err := fmt.Sscan(args[2], &page); err != nil || page < 1 {
+				return report(stderr, errors.New("page must be a positive integer"))
+			}
+		}
+		if err := client.Documents.Open(ctx, entry.ID, page); err != nil {
+			return report(stderr, err)
+		}
+		return encode(stdout, map[string]any{"opened": devicePathString(path), "page": page})
 	default:
 		usage(stderr)
 		return 2
 	}
 }
 
+func put(ctx context.Context, client *digitalpaper.Client, local, remote string, stdout, stderr io.Writer) int {
+	parentEntry, name, err := resolveDestination(ctx, client, remote, filepath.Base(local))
+	if err != nil {
+		return report(stderr, err)
+	}
+	file, err := os.Open(local)
+	if err != nil {
+		return report(stderr, err)
+	}
+	defer file.Close()
+	entry, result, err := client.Documents.CreateAndUpload(ctx, parentEntry.ID, name, file)
+	if err != nil {
+		return report(stderr, err)
+	}
+	return encode(stdout, map[string]any{"entry": presentEntry(entry), "upload": result})
+}
+
+func splitRemoteTarget(value string) (digitalpaper.RemotePath, string, error) {
+	path, err := parseDevicePath(value)
+	if err != nil {
+		return digitalpaper.RemotePath{}, "", err
+	}
+	index := strings.LastIndex(path.String(), "/")
+	if index < 0 {
+		return digitalpaper.RemotePath{}, "", errors.New("remote target must be below Document")
+	}
+	parent, err := digitalpaper.ParseRemotePath(path.String()[:index])
+	if err != nil {
+		return digitalpaper.RemotePath{}, "", err
+	}
+	return parent, path.String()[index+1:], nil
+}
+
+// parseDevicePath keeps the protocol's Document root out of the CLI.
+func parseDevicePath(value string) (digitalpaper.RemotePath, error) {
+	if value == "." {
+		return digitalpaper.MustRemotePath("Document"), nil
+	}
+	if value == "Document" || strings.HasPrefix(value, "Document/") {
+		return digitalpaper.RemotePath{}, errors.New("device paths must omit the internal Document/ prefix")
+	}
+	return digitalpaper.ParseRemotePath("Document/" + value)
+}
+
+func devicePathString(path digitalpaper.RemotePath) string {
+	if path.String() == "Document" {
+		return "."
+	}
+	return strings.TrimPrefix(path.String(), "Document/")
+}
+
+func resolveDestination(ctx context.Context, client *digitalpaper.Client, value, defaultName string) (digitalpaper.Entry, string, error) {
+	path, err := parseDevicePath(value)
+	if err != nil {
+		return digitalpaper.Entry{}, "", err
+	}
+	destination, err := client.Documents.Resolve(ctx, path)
+	if err == nil {
+		if destination.Type != digitalpaper.EntryFolder {
+			return digitalpaper.Entry{}, "", errors.New("destination already exists; overwrite is disabled")
+		}
+		return destination, defaultName, nil
+	}
+	var apiError *digitalpaper.APIError
+	if !errors.As(err, &apiError) || apiError.Code != "40401" {
+		return digitalpaper.Entry{}, "", err
+	}
+	parent, name, err := splitRemoteTarget(value)
+	if err != nil {
+		return digitalpaper.Entry{}, "", err
+	}
+	parentEntry, err := client.Documents.Resolve(ctx, parent)
+	if err != nil {
+		return digitalpaper.Entry{}, "", err
+	}
+	if parentEntry.Type != digitalpaper.EntryFolder {
+		return digitalpaper.Entry{}, "", errors.New("destination parent is not a folder")
+	}
+	return parentEntry, name, nil
+}
+
+type entryOutput struct {
+	ID             string                 `json:"id"`
+	Name           string                 `json:"name"`
+	Path           string                 `json:"path"`
+	Type           digitalpaper.EntryType `json:"type"`
+	Created        string                 `json:"created,omitempty"`
+	Modified       string                 `json:"modified,omitempty"`
+	MIMEType       string                 `json:"mime_type,omitempty"`
+	Size           string                 `json:"size,omitempty"`
+	DocumentType   string                 `json:"document_type,omitempty"`
+	Author         string                 `json:"author,omitempty"`
+	Title          string                 `json:"title,omitempty"`
+	TotalPages     string                 `json:"total_pages,omitempty"`
+	CurrentPage    string                 `json:"current_page,omitempty"`
+	ReadingDate    string                 `json:"reading_date,omitempty"`
+	ParentFolderID string                 `json:"parent_folder_id,omitempty"`
+	IsNew          string                 `json:"is_new,omitempty"`
+	DocumentSource string                 `json:"document_source,omitempty"`
+	ExternalID     string                 `json:"external_id,omitempty"`
+	FileHash       string                 `json:"file_hash,omitempty"`
+	Revision       string                 `json:"revision,omitempty"`
+}
+
+func presentEntry(entry digitalpaper.Entry) entryOutput {
+	return entryOutput{
+		ID: entry.ID, Name: entry.Name, Path: devicePathString(entry.Path), Type: entry.Type,
+		Created: entry.Created, Modified: entry.Modified, MIMEType: entry.MIMEType, Size: entry.Size,
+		DocumentType: entry.DocumentType, Author: entry.Author, Title: entry.Title,
+		TotalPages: entry.TotalPages, CurrentPage: entry.CurrentPage, ReadingDate: entry.ReadingDate,
+		ParentFolderID: entry.ParentFolderID, IsNew: entry.IsNew, DocumentSource: entry.DocumentSource,
+		ExternalID: entry.ExternalID, FileHash: entry.FileHash, Revision: entry.Revision,
+	}
+}
+
+func parseListArguments(arguments []string) (long bool, target string, ok bool) {
+	switch len(arguments) {
+	case 0:
+		return false, "", true
+	case 1:
+		if arguments[0] == "-l" {
+			return true, "", true
+		}
+		if strings.HasPrefix(arguments[0], "-") {
+			return false, "", false
+		}
+		return false, arguments[0], true
+	case 2:
+		if arguments[0] == "-l" {
+			return true, arguments[1], true
+		}
+	}
+	return false, "", false
+}
+
+func printEntries(output io.Writer, entries []digitalpaper.Entry, long bool) int {
+	if !long {
+		for _, entry := range entries {
+			name := entry.Name
+			if entry.Type == digitalpaper.EntryFolder {
+				name += "/"
+			}
+			fmt.Fprintln(output, name)
+		}
+		return 0
+	}
+	writer := tabwriter.NewWriter(output, 0, 4, 2, ' ', 0)
+	for _, entry := range entries {
+		kind, size, modified, name := "-", entry.Size, entry.Modified, entry.Name
+		if entry.Type == digitalpaper.EntryFolder {
+			kind, size, name = "d", "-", name+"/"
+		}
+		if size == "" {
+			size = "-"
+		}
+		if modified == "" {
+			modified = "-"
+		}
+		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\n", kind, size, modified, entry.ID, name)
+	}
+	if err := writer.Flush(); err != nil {
+		return 1
+	}
+	return 0
+}
+
 func get(ctx context.Context, client *digitalpaper.Client, remote, local string, stdout, stderr io.Writer) int {
-	path, err := digitalpaper.ParseRemotePath(remote)
+	path, err := parseDevicePath(remote)
 	if err != nil {
 		return report(stderr, err)
 	}
@@ -147,6 +418,9 @@ func get(ctx context.Context, client *digitalpaper.Client, remote, local string,
 	}
 	if entry.Type != digitalpaper.EntryDocument {
 		return report(stderr, errors.New("remote path is not a document"))
+	}
+	if local == "" {
+		local = entry.Name
 	}
 	file, err := os.OpenFile(local, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
@@ -186,7 +460,14 @@ func usage(output io.Writer) {
 	fmt.Fprintln(output, "  credentials find ROOT           list existing Sony credential pairs")
 	fmt.Fprintln(output, "  auth                            verify profile authentication")
 	fmt.Fprintln(output, "  device                          show firmware, battery, and storage")
-	fmt.Fprintln(output, "  ls [FOLDER_ID]                  list documents or direct folder entries")
-	fmt.Fprintln(output, "  stat REMOTE_PATH                resolve entry metadata")
-	fmt.Fprintln(output, "  get REMOTE_PATH LOCAL_FILE      download PDF without overwriting")
+	fmt.Fprintln(output, "  ls [-l] [DEVICE_PATH]           list the root, a folder, or one PDF")
+	fmt.Fprintln(output, "  stat DEVICE_PATH                show complete entry metadata")
+	fmt.Fprintln(output, "  file DEVICE_PATH                alias for stat")
+	fmt.Fprintln(output, "  get DEVICE_PATH [LOCAL_FILE]    download PDF without overwriting")
+	fmt.Fprintln(output, "  mkdir DEVICE_PATH               create one folder")
+	fmt.Fprintln(output, "  put LOCAL_PDF [DEVICE_PATH]     create and upload without overwriting")
+	fmt.Fprintln(output, "  cp SOURCE_PATH DEST_PATH        copy a PDF within the device")
+	fmt.Fprintln(output, "  mv SOURCE_PATH DEST_PATH        move or rename a PDF within the device")
+	fmt.Fprintln(output, "  open DEVICE_PATH [PAGE]         display a PDF on the device")
+	fmt.Fprintln(output, "device paths are root-relative; use . for the root, for example Codex_dp/paper.pdf")
 }

@@ -1,10 +1,13 @@
 package transport
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/pem"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -102,6 +105,30 @@ func TestHTTPErrorIsBoundedAndTyped(t *testing.T) {
 	}
 }
 
+func TestHTTPErrorAcceptsPolarisAndCompatibilityCodeKeys(t *testing.T) {
+	for _, body := range []string{
+		`{"error_code":"40017","message":"revision changed"}`,
+		`{"code":"40017","message":"revision changed"}`,
+	} {
+		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = io.WriteString(w, body)
+		}))
+		ca := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: server.Certificate().Raw})
+		client, err := New(server.URL, TrustConfig{CAPEM: ca}, time.Second)
+		if err != nil {
+			server.Close()
+			t.Fatal(err)
+		}
+		_, err = client.Do(context.Background(), http.MethodGet, "/problem", nil, nil, false)
+		server.Close()
+		var problem *HTTPError
+		if !errors.As(err, &problem) || problem.Code != "40017" || problem.Message != "revision changed" {
+			t.Fatalf("body %s: error = %#v", body, err)
+		}
+	}
+}
+
 func TestDoWithAccept(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if got := r.Header.Get("Accept"); got != "application/pdf" {
@@ -123,4 +150,33 @@ func TestDoWithAccept(t *testing.T) {
 	if _, err := client.DoWithAccept(context.Background(), http.MethodGet, "/file", nil, nil, false, "bad\r\nheader"); err == nil {
 		t.Fatal("invalid Accept header succeeded")
 	}
+}
+
+func TestDoMedia(t *testing.T) {
+	body := []byte("multipart fixture")
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Content-Type") != "multipart/form-data; boundary=test" || r.Header.Get("Accept") != "application/json" {
+			t.Errorf("headers = %#v", r.Header)
+		}
+		if r.ContentLength != int64(len(body)) {
+			t.Errorf("ContentLength = %d", r.ContentLength)
+		}
+		got, _ := io.ReadAll(r.Body)
+		if !bytes.Equal(got, body) {
+			t.Errorf("body = %q", got)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+	sum := sha256.Sum256(server.Certificate().Raw)
+	client, err := New(server.URL, TrustConfig{CertificateSHA256: hex.EncodeToString(sum[:])}, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := client.DoMedia(context.Background(), http.MethodPut, "/upload", nil, bytes.NewReader(body), false,
+		"multipart/form-data; boundary=test", "application/json", int64(len(body)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
 }

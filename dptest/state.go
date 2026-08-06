@@ -6,9 +6,13 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
+	"path"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -46,21 +50,38 @@ type State struct {
 	firmware    string
 	nextID      uint64
 	documents   map[string]Document
+	folders     map[string]Document
 	contents    map[string][]byte
 	faults      map[string]Fault
 	clients     map[string]*rsa.PublicKey
 	nonces      map[string]string
 	sessions    map[string]bool
 	requireAuth bool
+	rejectHash  bool
 }
 
 // NewState constructs an empty simulated device.
 func NewState(model, firmware string) *State {
 	return &State{
 		model: model, firmware: firmware, nextID: 1,
-		documents: make(map[string]Document), contents: make(map[string][]byte), faults: make(map[string]Fault),
+		documents: make(map[string]Document), folders: make(map[string]Document), contents: make(map[string][]byte), faults: make(map[string]Fault),
 		clients: make(map[string]*rsa.PublicKey), nonces: make(map[string]string), sessions: make(map[string]bool),
 	}
+}
+
+// AddFolder inserts a deterministic folder and returns its metadata.
+func (s *State) AddFolder(path, name, parent string, at time.Time) Document {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.addFolderLocked(path, name, parent, at)
+}
+
+func (s *State) addFolderLocked(path, name, parent string, at time.Time) Document {
+	id := fmt.Sprintf("folder-%06d", s.nextID)
+	s.nextID++
+	folder := Document{ID: id, Name: name, Path: path, Type: "folder", Created: at.UTC().Format(time.RFC3339), ParentID: parent, IsNew: "false", ExternalID: id}
+	s.folders[id] = folder
+	return folder
 }
 
 // Device reports the configured model and firmware.
@@ -95,6 +116,21 @@ func (s *State) RequireAuthentication(required bool) {
 	s.mu.Lock()
 	s.requireAuth = required
 	s.mu.Unlock()
+}
+
+// RejectUploadFileHash makes uploads fail if the optional file_hash query is
+// present. Polaris does not document its digest algorithm, so this mode guards
+// clients that intentionally omit the parameter.
+func (s *State) RejectUploadFileHash(reject bool) {
+	s.mu.Lock()
+	s.rejectHash = reject
+	s.mu.Unlock()
+}
+
+func (s *State) uploadFileHashRejected() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.rejectHash
 }
 
 // RegisterClient adds a pre-paired public key. Registration itself remains a
@@ -157,9 +193,17 @@ func (s *State) document(id string) (Document, []byte, bool) {
 func (s *State) documentByPath(path string) (Document, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	if path == "Document" {
+		return rootDocument(), true
+	}
 	for _, document := range s.documents {
 		if document.Path == path {
 			return document, true
+		}
+	}
+	for _, folder := range s.folders {
+		if folder.Path == path {
+			return folder, true
 		}
 	}
 	return Document{}, false
@@ -167,13 +211,191 @@ func (s *State) documentByPath(path string) (Document, bool) {
 
 func (s *State) folderEntries(parentID string) []Document {
 	documents := s.Documents()
-	entries := documents[:0]
+	entries := make([]Document, 0, len(documents))
+	s.mu.RLock()
+	for _, folder := range s.folders {
+		if folder.ParentID == parentID {
+			entries = append(entries, folder)
+		}
+	}
+	s.mu.RUnlock()
 	for _, document := range documents {
 		if document.ParentID == parentID {
 			entries = append(entries, document)
 		}
 	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].Path < entries[j].Path })
 	return entries
+}
+
+func (s *State) entry(id string) (Document, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if id == "root" {
+		return rootDocument(), true
+	}
+	if document, ok := s.documents[id]; ok {
+		return document, true
+	}
+	folder, ok := s.folders[id]
+	return folder, ok
+}
+
+func rootDocument() Document {
+	return Document{ID: "root", Name: ".", Path: "Document", Type: "folder", ExternalID: "root"}
+}
+
+func (s *State) createFolder(parentID, name string) (Document, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	parentPath, ok := s.folderPathLocked(parentID)
+	if !ok {
+		return Document{}, errors.New("parent not found")
+	}
+	path := parentPath + "/" + name
+	if s.pathExistsLocked(path) {
+		return Document{}, errors.New("duplicate")
+	}
+	return s.addFolderLocked(path, name, parentID, time.Now()), nil
+}
+
+func (s *State) createDocument(parentID, name string) (Document, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	parentPath, ok := s.folderPathLocked(parentID)
+	if !ok {
+		return Document{}, errors.New("parent not found")
+	}
+	path := parentPath + "/" + name
+	if s.pathExistsLocked(path) {
+		return Document{}, errors.New("duplicate")
+	}
+	id := fmt.Sprintf("doc-%06d", s.nextID)
+	s.nextID++
+	stamp := time.Now().UTC().Format(time.RFC3339)
+	document := Document{ID: id, Name: name, Path: path, Type: "document", Created: stamp, Modified: stamp,
+		MIMEType: "application/pdf", Size: "0", DocumentType: "normal", ParentID: parentID,
+		IsNew: "false", Source: "dp-sim", ExternalID: id, Revision: "0"}
+	s.documents[id] = document
+	s.contents[id] = nil
+	return document, nil
+}
+
+func (s *State) uploadDocument(id string, content []byte, fileHash, targetRevision string) (Document, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	document, ok := s.documents[id]
+	if !ok {
+		return Document{}, errors.New("not found")
+	}
+	if targetRevision != "" && targetRevision != document.Revision {
+		return Document{}, errors.New("conflict")
+	}
+	revision, _ := strconv.Atoi(document.Revision)
+	document.Revision = strconv.Itoa(revision + 1)
+	document.Size = strconv.Itoa(len(content))
+	document.FileHash = fileHash
+	document.Modified = time.Now().UTC().Format(time.RFC3339)
+	s.documents[id] = document
+	s.contents[id] = append([]byte(nil), content...)
+	return document, nil
+}
+
+func (s *State) updateEntry(id, parentID, name string, folder bool) (Document, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	collection := s.documents
+	if folder {
+		collection = s.folders
+	}
+	entry, ok := collection[id]
+	if !ok {
+		return Document{}, errors.New("not found")
+	}
+	oldPath := entry.Path
+	if parentID != "" {
+		if _, ok := s.folderPathLocked(parentID); !ok {
+			return Document{}, errors.New("parent not found")
+		}
+		entry.ParentID = parentID
+	}
+	if name != "" {
+		entry.Name = name
+	}
+	parentPath, _ := s.folderPathLocked(entry.ParentID)
+	entry.Path = parentPath + "/" + entry.Name
+	if entry.Path != oldPath && s.pathExistsExceptLocked(entry.Path, id) {
+		return Document{}, errors.New("duplicate")
+	}
+	collection[id] = entry
+	if folder && entry.Path != oldPath {
+		prefix := oldPath + "/"
+		for childID, child := range s.folders {
+			if strings.HasPrefix(child.Path, prefix) {
+				child.Path = entry.Path + strings.TrimPrefix(child.Path, oldPath)
+				s.folders[childID] = child
+			}
+		}
+		for childID, child := range s.documents {
+			if strings.HasPrefix(child.Path, prefix) {
+				child.Path = entry.Path + strings.TrimPrefix(child.Path, oldPath)
+				s.documents[childID] = child
+			}
+		}
+	}
+	return entry, nil
+}
+
+func (s *State) copyDocument(id, parentID, name string) (Document, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	source, ok := s.documents[id]
+	if !ok {
+		return Document{}, errors.New("not found")
+	}
+	parentPath, ok := s.folderPathLocked(parentID)
+	if !ok {
+		return Document{}, errors.New("parent not found")
+	}
+	if name == "" {
+		name = source.Name
+	}
+	path := parentPath + "/" + name
+	if s.pathExistsLocked(path) {
+		return Document{}, errors.New("duplicate")
+	}
+	newID := fmt.Sprintf("doc-%06d", s.nextID)
+	s.nextID++
+	copy := source
+	copy.ID, copy.ExternalID, copy.Name, copy.Path, copy.ParentID = newID, newID, name, path, parentID
+	copy.Created = time.Now().UTC().Format(time.RFC3339)
+	s.documents[newID] = copy
+	s.contents[newID] = append([]byte(nil), s.contents[id]...)
+	return copy, nil
+}
+
+func (s *State) folderPathLocked(id string) (string, bool) {
+	if id == "root" {
+		return "Document", true
+	}
+	folder, ok := s.folders[id]
+	return folder.Path, ok
+}
+
+func (s *State) pathExistsLocked(path string) bool { return s.pathExistsExceptLocked(path, "") }
+
+func (s *State) pathExistsExceptLocked(path, exceptID string) bool {
+	for id, document := range s.documents {
+		if id != exceptID && document.Path == path {
+			return true
+		}
+	}
+	for id, folder := range s.folders {
+		if id != exceptID && folder.Path == path {
+			return true
+		}
+	}
+	return false
 }
 
 // Documents returns a path-sorted snapshot.
@@ -199,8 +421,20 @@ func (s *State) takeFault(key string) (Fault, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	fault, ok := s.faults[key]
+	matchedKey := key
+	if !ok {
+		for pattern, candidate := range s.faults {
+			if strings.Contains(pattern, "*") {
+				matched, _ := path.Match(pattern, key)
+				if matched {
+					fault, ok, matchedKey = candidate, true, pattern
+					break
+				}
+			}
+		}
+	}
 	if ok && fault.Once {
-		delete(s.faults, key)
+		delete(s.faults, matchedKey)
 	}
 	return fault, ok
 }

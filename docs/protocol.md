@@ -33,6 +33,31 @@ The translated Swagger snapshot incorrectly names the battery `status` field
 `Settings - status`; the decoder accepts both spellings. Pairing and every
 write operation remain outside the P1 surface.
 
+## P2 safe-write surface
+
+P2 implements folder and document metadata creation, whole-file multipart PDF
+upload, revision-guarded replacement, rename/move, device-side document copy,
+and viewer open. Each multi-step create/upload verifies the resulting byte size
+and revision. A failure after metadata creation returns `PartialFailureError`
+with the surviving entry ID; it does not silently delete evidence of a partial
+operation.
+
+The optional upload `file_hash` query is not sent. The preserved Polaris
+snapshot calls it a client-calculated hash but does not specify an algorithm,
+and neither preserved reference client sends it. The library still calculates
+SHA-256 and returns it in `UploadResult` for local verification. Replacement
+requires `target_revision`; error `40017` maps to `ErrConflict`.
+
+The preserved error schema and the physical DPT-RP1 use `error_code`; early
+emulator fixtures used `code`. The decoder accepts both keys, preferring
+`error_code`, while the emulator now emits the specification form. This permits
+specification-conformant devices and older captured fixtures to behave alike.
+
+Deletion and split upload are not in P2. No destructive CLI command is exposed.
+Native notes (`document_type: note`) and annotated documents use the normal
+document transfer endpoints. Note-template management uses separate viewer
+endpoints and remains an optional later capability.
+
 ## Recorded compatibility differences
 
 Physical DPT-RP1 firmware `1.6.50.14130` returns HTTP 406 for the PDF download

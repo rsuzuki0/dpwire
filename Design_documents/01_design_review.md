@@ -282,15 +282,15 @@ Commit result
 通信CLIの中心commandを `dp send` とする。
 
 ```sh
-dp send notes.md --to "Document/Inbox" --open
+dp send notes.md --to "Inbox" --open
 ```
 
 ```sh
-dp send paper.tex --renderer latexmk --to "Document/Papers" --open=1
+dp send paper.tex --renderer latexmk --to "Papers" --open=1
 ```
 
 ```sh
-cat memo.md | dp send - --format markdown --name memo.pdf --to "Document/Received" --open
+cat memo.md | dp send - --format markdown --name memo.pdf --to "Received" --open
 ```
 
 内部は次のpipelineとする。

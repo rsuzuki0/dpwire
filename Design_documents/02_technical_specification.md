@@ -257,6 +257,10 @@ type RemotePath struct {
 - URL生成時はsegment単位escape
 - ローカルpath APIとの混用を禁止
 
+`RemotePath` はプロトコル内部の正規形として `Document` ルートを保持する。
+CLIはこれを公開せず、常にルート相対の `Codex_dp/paper.pdf` 形式を受け取る。
+`.` は端末ルートを表し、`Document/...` 形式は混乱防止のためCLIで拒否する。
+
 ## 7. Capability仕様
 
 ```go
@@ -482,19 +486,19 @@ dp ls "Document"
 ```
 
 ```sh
-dp put file.pdf "Document/Inbox/file.pdf"
+dp put file.pdf "Inbox/file.pdf"
 ```
 
 ```sh
-dp send notes.md --to "Document/Inbox" --open
+dp send notes.md --to "Inbox" --open
 ```
 
 ```sh
-dp send paper.tex --renderer latexmk --to "Document/Papers" --open=1
+dp send paper.tex --renderer latexmk --to "Papers" --open=1
 ```
 
 ```sh
-cat memo.md | dp send - --format markdown --name memo.pdf --to "Document/Received" --open
+cat memo.md | dp send - --format markdown --name memo.pdf --to "Received" --open
 ```
 
 ### 12.3 stdin

@@ -97,6 +97,32 @@
         "No document names, paths, IDs, contents, client IDs, keys, or certificate fingerprints were recorded."
       ],
       "quirks": ["sony-dpt-rp1-download-accept-pdf"]
+    },
+    {
+      "vendor": "Sony",
+      "model": "DPT-RP1",
+      "firmware": "1.6.50.14130",
+      "tested_at": "2026-08-06",
+      "transport": "Sony Digital Paper App loopback relay",
+      "mode": "safe-write-without-delete-or-viewer-open",
+      "verified_operations": [
+        "GET /folders2/{folder_id}",
+        "POST /folders2",
+        "POST /documents/{document_id}/copy",
+        "POST /documents2",
+        "PUT /documents/{document_id}/file",
+        "PUT /documents2/{document_id}",
+        "PUT /folders2/{folder_id}"
+      ],
+      "observations": [
+        "Folder creation, document copy, document rename and move, folder rename, whole-PDF upload, and revision-guarded replacement succeeded.",
+        "A deliberately incorrect target_revision was rejected with error_code 40017 and did not change the uploaded test document.",
+        "The optional file_hash upload query was omitted because the reference does not specify its algorithm; upload and replacement succeeded without it.",
+        "Downloaded SHA-256 values for the device copy and uploaded document matched the approved source PDF.",
+        "The approved source document retained its size, revision, and metadata hash; no delete or viewer-open operation was performed.",
+        "Test copies were retained in the approved namespace for recovery and inspection; no document names, paths, IDs, client IDs, keys, or certificate fingerprints were recorded."
+      ],
+      "quirks": []
     }
   ]
 }

@@ -11,7 +11,7 @@ import (
 
 const maxDocumentSize = int64(1 << 30)
 
-// DocumentsService exposes read-only document operations.
+// DocumentsService exposes document metadata, transfer, and safe-write operations.
 type DocumentsService struct{ client *Client }
 
 // List retrieves all documents using bounded, automatic pagination.

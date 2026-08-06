@@ -26,7 +26,7 @@ jobs:
         run: |
           go install honnef.co/go/tools/cmd/staticcheck@v0.6.1
           staticcheck ./...
-      - name: Evaluate P0
+      - name: Evaluate
         run: go run ./tools/eval -mode=ci
       - uses: actions/upload-artifact@v4
         if: always()

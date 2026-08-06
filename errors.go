@@ -11,6 +11,10 @@ import (
 // not implemented by this library version.
 var ErrUnsupported = errors.New("digitalpaper: capability unsupported")
 
+// ErrConflict is returned when a revision or destination-name precondition no
+// longer matches device state.
+var ErrConflict = errors.New("digitalpaper: write conflict")
+
 // UnsupportedError explains which capability could not be used.
 type UnsupportedError struct {
 	Capability Capability
@@ -41,7 +45,43 @@ func (e *APIError) Error() string {
 func publicError(err error) error {
 	var wireError *transport.HTTPError
 	if errors.As(err, &wireError) {
-		return &APIError{StatusCode: wireError.StatusCode, Code: wireError.Code, Message: wireError.Message}
+		apiError := &APIError{StatusCode: wireError.StatusCode, Code: wireError.Code, Message: wireError.Message}
+		if wireError.Code == "40007" || wireError.Code == "40017" || wireError.StatusCode == 409 {
+			return &ConflictError{Cause: apiError}
+		}
+		return apiError
 	}
 	return err
+}
+
+// ConflictError preserves the device response while supporting errors.Is.
+type ConflictError struct{ Cause *APIError }
+
+func (e *ConflictError) Error() string        { return fmt.Sprintf("%v: %v", ErrConflict, e.Cause) }
+func (e *ConflictError) Unwrap() error        { return e.Cause }
+func (e *ConflictError) Is(target error) bool { return target == ErrConflict }
+
+// PartialFailureError reports a multi-step write whose earlier step succeeded.
+// EntryID identifies the metadata entry that may need later cleanup.
+type PartialFailureError struct {
+	Operation string
+	EntryID   string
+	Cause     error
+}
+
+func (e *PartialFailureError) Error() string {
+	return fmt.Sprintf("digitalpaper: %s partially failed after creating %s: %v", e.Operation, e.EntryID, e.Cause)
+}
+func (e *PartialFailureError) Unwrap() error { return e.Cause }
+
+// VerificationError reports a successful request whose observed state did not
+// match the requested state.
+type VerificationError struct {
+	Field    string
+	Expected string
+	Actual   string
+}
+
+func (e *VerificationError) Error() string {
+	return fmt.Sprintf("digitalpaper: verification failed for %s: expected %q, got %q", e.Field, e.Expected, e.Actual)
 }

@@ -104,7 +104,7 @@ func (c *Client) DoJSON(ctx context.Context, method, endpoint string, query url.
 		}
 		body = bytes.NewReader(encoded)
 	}
-	response, err := c.do(ctx, method, endpoint, query, body, authenticated, "application/json")
+	response, err := c.do(ctx, method, endpoint, query, body, authenticated, "application/json", "application/json", -1)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func (c *Client) DoJSON(ctx context.Context, method, endpoint string, query url.
 
 // Do performs a request. The caller owns a successful response body.
 func (c *Client) Do(ctx context.Context, method, endpoint string, query url.Values, body io.Reader, authenticated bool) (*http.Response, error) {
-	return c.do(ctx, method, endpoint, query, body, authenticated, "")
+	return c.do(ctx, method, endpoint, query, body, authenticated, "application/json", "", -1)
 }
 
 // DoWithAccept performs a request with an explicit response media type.
@@ -143,10 +143,26 @@ func (c *Client) DoWithAccept(ctx context.Context, method, endpoint string, quer
 	if strings.ContainsAny(accept, "\r\n\x00") {
 		return nil, errors.New("digitalpaper: invalid Accept header")
 	}
-	return c.do(ctx, method, endpoint, query, body, authenticated, accept)
+	return c.do(ctx, method, endpoint, query, body, authenticated, "application/json", accept, -1)
 }
 
-func (c *Client) do(ctx context.Context, method, endpoint string, query url.Values, body io.Reader, authenticated bool, accept string) (*http.Response, error) {
+// DoMedia performs a request with explicit media types and content length. It
+// is used for bounded streaming bodies such as multipart PDF uploads.
+func (c *Client) DoMedia(ctx context.Context, method, endpoint string, query url.Values, body io.Reader, authenticated bool, contentType, accept string, contentLength int64) (*http.Response, error) {
+	if strings.ContainsAny(contentType+accept, "\r\n\x00") {
+		return nil, errors.New("digitalpaper: invalid media type header")
+	}
+	if contentLength < 0 {
+		return nil, errors.New("digitalpaper: negative content length")
+	}
+	response, err := c.do(ctx, method, endpoint, query, body, authenticated, contentType, accept, contentLength)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
+func (c *Client) do(ctx context.Context, method, endpoint string, query url.Values, body io.Reader, authenticated bool, contentType, accept string, contentLength int64) (*http.Response, error) {
 	requestURL, err := c.resolve(endpoint, query)
 	if err != nil {
 		return nil, err
@@ -159,7 +175,10 @@ func (c *Client) do(ctx context.Context, method, endpoint string, query url.Valu
 		request.Header.Set("Accept", accept)
 	}
 	if body != nil {
-		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Content-Type", contentType)
+		if contentLength >= 0 {
+			request.ContentLength = contentLength
+		}
 	}
 	if authenticated {
 		c.mu.RLock()
@@ -180,12 +199,15 @@ func (c *Client) do(ctx context.Context, method, endpoint string, query url.Valu
 	defer response.Body.Close()
 	raw, _ := io.ReadAll(io.LimitReader(response.Body, maxErrorBody))
 	var problem struct {
-		Code    any    `json:"code"`
-		Message string `json:"message"`
+		Code      any    `json:"code"`
+		ErrorCode any    `json:"error_code"`
+		Message   string `json:"message"`
 	}
 	_ = json.Unmarshal(raw, &problem)
 	code := ""
-	if problem.Code != nil {
+	if problem.ErrorCode != nil {
+		code = fmt.Sprint(problem.ErrorCode)
+	} else if problem.Code != nil {
 		code = fmt.Sprint(problem.Code)
 	}
 	return nil, &HTTPError{StatusCode: response.StatusCode, Code: code, Message: problem.Message}

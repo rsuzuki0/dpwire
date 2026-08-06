@@ -5,7 +5,7 @@ import (
 	"net/url"
 )
 
-// FoldersService exposes read-only folder operations.
+// FoldersService exposes folder listing and safe-write operations.
 type FoldersService struct{ client *Client }
 
 // List retrieves all direct entries in one folder using bounded pagination.

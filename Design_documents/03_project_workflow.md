@@ -20,7 +20,7 @@
 |---|---|---|---|
 | P0 | 仕様・試験基盤 | references固定、API catalog、emulator、CI | 実機なしでeval可能 |
 | P1 | read-only利用 | auth、status、list、stat、download | 実機から安全に取得可能 |
-| P2 | safe-write | upload、update、mkdir、move、delete、open | conflictと部分失敗を処理 |
+| P2 | safe-write | upload、update、mkdir、copy、move、open | conflictと部分失敗を処理 |
 | P3 | pairing | 新規登録、CA保存、multi-profile | 新しいMacから登録可能 |
 | P4 | workflow | `dp send`、Markdown、LaTeX、stdin | 一行でPDF生成・転送可能 |
 | P5 | backup/sync | snapshot、plan/apply、watch | 注釈PDFを安全に保全 |
@@ -125,17 +125,18 @@ read-onlyのみ。
 7. move
 8. copy
 9. open/display
-10. delete
-11. partial failure cleanup
-12. split upload
+10. partial failure reporting
+
+delete、split upload、部分失敗の自動cleanupはP2に含めない。削除は独立した
+安全設計と明示承認を要し、split uploadは実機根拠を得てから追加する。
 
 ### 5.2 安全策
 
-- 実機試験は `Document/.digitalpaper-test/<run-id>/` 内だけ
+- 実機試験は利用者が承認した試験フォルダー内だけ
 - destructive operation前にmanifest保存
 - upload後にsize/hash/revision確認
 - updateはrevision指定必須
-- deleteは明示確認または `--force`
+- delete commandはP2では公開しない
 - metadata作成後upload失敗時はPartialFailureError
 - cleanupは実施結果を返す
 
@@ -189,15 +190,15 @@ read-onlyのみ。
 ### 7.1 CLI設計
 
 ```sh
-dp send notes.md --to "Document/Inbox" --open
+dp send notes.md --to "Inbox" --open
 ```
 
 ```sh
-dp send paper.tex --renderer latexmk --to "Document/Papers" --open=1
+dp send paper.tex --renderer latexmk --to "Papers" --open=1
 ```
 
 ```sh
-cat memo.md | dp send - --format markdown --name memo.pdf --to "Document/Received" --open
+cat memo.md | dp send - --format markdown --name memo.pdf --to "Received" --open
 ```
 
 ### 7.2 Renderer実装順
@@ -228,12 +229,12 @@ cat memo.md | dp send - --format markdown --name memo.pdf --to "Document/Receive
 
 ```sh
 dp render notes.md --output notes.pdf
-dp put notes.pdf "Document/Inbox/notes.pdf"
-dp open "Document/Inbox/notes.pdf"
+dp put notes.pdf "Inbox/notes.pdf"
+dp open "Inbox/notes.pdf"
 ```
 
 ```sh
-dp render notes.md --output - | dp put - "Document/Inbox/notes.pdf" --open
+dp render notes.md --output - | dp put - "Inbox/notes.pdf" --open
 ```
 
 ## 8. Phase P5：backupとsync
@@ -251,7 +252,7 @@ dp render notes.md --output - | dp put - "Document/Inbox/notes.pdf" --open
 ### 8.2 Sync
 
 ```sh
-dp sync plan ~/DigitalPaper "Document"
+dp sync plan ~/DigitalPaper .
 dp sync apply <plan-id>
 ```
 

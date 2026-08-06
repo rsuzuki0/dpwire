@@ -1,6 +1,6 @@
 # Testing
 
-P0 and P1 are evaluated without a physical device:
+P0 through P2 are evaluated without a physical device:
 
 ```sh
 go run ./tools/eval -mode=developer
@@ -24,6 +24,20 @@ consistency, not physical-device compatibility.
 
 Pairing is intentionally unavailable. Registration paths return HTTP 501
 with `P0_PAIRING_RESERVED` until P3 implements and tests the complete protocol.
+
+The P2 integration test covers root and folder resolution, duplicate names,
+folder creation and rename, device-side copy, document move/rename, multipart
+PDF upload without the unspecified `file_hash` query, local SHA-256, guarded
+replacement, viewer open, capacity errors, malformed and incomplete success
+responses, server errors, partial failure, and revision conflict. The simulator
+supports deterministic wildcard fault injection. Automated success means
+internal consistency, not physical-device compatibility.
+
+The 2026-08-06 physical P2 check used one explicitly approved source PDF and a
+new child folder in an approved namespace. It exercised create, copy, rename,
+move, upload, conflict rejection, guarded replacement, and download verification.
+It performed no delete and no viewer-open operation. Test copies were retained
+on the device so the run was recoverable and inspectable.
 
 ## Physical-device P1 check
 

@@ -5,9 +5,12 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
+	"net/http"
 	"testing"
 	"time"
 
@@ -87,5 +90,131 @@ func TestAuthenticatedReadOnlyClient(t *testing.T) {
 	var apiError *digitalpaper.APIError
 	if !errors.As(err, &apiError) || apiError.Code != "40401" {
 		t.Fatalf("missing document error = %#v", err)
+	}
+}
+
+func TestSafeWriteLifecycle(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := dptest.NewState("DPT-RP1", "1.6.50")
+	state.RegisterClient("write-client", &key.PublicKey)
+	state.RequireAuthentication(true)
+	state.RejectUploadFileHash(true)
+	root := state.AddFolder("Document/Codex_dp", "Codex_dp", "root", time.Now())
+	baselineContent := []byte("%PDF-1.4\nbaseline\n")
+	baseline := state.AddDocument("Document/Codex_dp/baseline.pdf", "baseline.pdf", root.ID, baselineContent, time.Now())
+	simulator := dptest.Start(state)
+	defer simulator.Close()
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	client, err := digitalpaper.NewClient(digitalpaper.DeviceProfile{
+		Name: "write-integration", Address: simulator.URL(), ClientID: "write-client",
+		CertificateSHA256: simulator.CertificateSHA256(),
+	}, digitalpaper.WithCredentials(credentials.Credentials{ClientID: "write-client", PrivateKeyPEM: keyPEM}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	if err := client.Authenticate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	deviceRoot, err := client.Documents.Resolve(ctx, digitalpaper.MustRemotePath("Document"))
+	if err != nil || deviceRoot.Type != digitalpaper.EntryFolder {
+		t.Fatalf("device root = %#v, err = %v", deviceRoot, err)
+	}
+	rootEntries, err := client.Folders.List(ctx, deviceRoot.ID, digitalpaper.ListOptions{})
+	if err != nil || len(rootEntries) != 1 || rootEntries[0].ID != root.ID {
+		t.Fatalf("root entries = %#v, err = %v", rootEntries, err)
+	}
+
+	runFolder, err := client.Folders.Create(ctx, root.ID, "p2-run")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.Folders.Create(ctx, root.ID, "p2-run"); err == nil {
+		t.Fatal("duplicate folder creation succeeded")
+	} else {
+		var apiError *digitalpaper.APIError
+		if !errors.As(err, &apiError) || apiError.Code != "40007" {
+			t.Fatalf("duplicate error = %#v", err)
+		}
+	}
+	state.InjectFault("GET /folders2/*", dptest.Fault{Status: http.StatusInternalServerError, Body: `{"error_code":"TEST_VERIFY","message":"verification failed"}`, Once: true})
+	partiallyCreated, err := client.Folders.Create(ctx, root.ID, "verification-fails")
+	var createPartial *digitalpaper.PartialFailureError
+	if !errors.As(err, &createPartial) || partiallyCreated.ID == "" || createPartial.EntryID != partiallyCreated.ID {
+		t.Fatalf("partially verified folder = %#v, error = %#v", partiallyCreated, err)
+	}
+	copy, err := client.Documents.Copy(ctx, baseline.ID, runFolder.ID, "copy.pdf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	copy, err = client.Documents.Update(ctx, copy.ID, "", "renamed.pdf")
+	if err != nil || copy.Name != "renamed.pdf" {
+		t.Fatalf("renamed copy = %#v, err = %v", copy, err)
+	}
+
+	uploadContent := []byte("%PDF-1.7\ncreated\n")
+	uploaded, upload, err := client.Documents.CreateAndUpload(ctx, runFolder.ID, "uploaded.pdf", bytes.NewReader(uploadContent))
+	if err != nil || upload.Revision == "" || uploaded.Size == "0" {
+		t.Fatalf("uploaded = %#v, result = %#v, err = %v", uploaded, upload, err)
+	}
+	wantHash := sha256.Sum256(uploadContent)
+	if upload.SHA256 != hex.EncodeToString(wantHash[:]) {
+		t.Fatalf("upload SHA-256 = %q", upload.SHA256)
+	}
+	if _, _, err := client.Documents.Replace(ctx, uploaded.ID, uploaded.Name, "wrong-revision", bytes.NewReader([]byte("%PDF-1.7\nreplacement\n"))); !errors.Is(err, digitalpaper.ErrConflict) {
+		t.Fatalf("replacement conflict = %#v", err)
+	}
+	replaced, replacement, err := client.Documents.Replace(ctx, uploaded.ID, uploaded.Name, uploaded.Revision, bytes.NewReader([]byte("%PDF-1.7\nreplacement\n")))
+	if err != nil || replaced.Revision != replacement.Revision {
+		t.Fatalf("replaced = %#v, result = %#v, err = %v", replaced, replacement, err)
+	}
+	if err := client.Documents.Open(ctx, replaced.ID, 1); err != nil {
+		t.Fatal(err)
+	}
+
+	renamedFolder, err := client.Folders.Update(ctx, runFolder.ID, "", "p2-renamed")
+	if err != nil || renamedFolder.Name != "p2-renamed" {
+		t.Fatalf("renamed folder = %#v, err = %v", renamedFolder, err)
+	}
+	resolved, err := client.Documents.Resolve(ctx, digitalpaper.MustRemotePath("Document/Codex_dp/p2-renamed/renamed.pdf"))
+	if err != nil || resolved.ID != copy.ID {
+		t.Fatalf("resolved moved child = %#v, err = %v", resolved, err)
+	}
+
+	state.InjectFault("PUT /documents/*/file", dptest.Fault{Status: http.StatusInternalServerError, Body: `{"code":"TEST_UPLOAD_FAILURE"}`, Once: true})
+	partialEntry, _, err := client.Documents.CreateAndUpload(ctx, renamedFolder.ID, "partial.pdf", bytes.NewReader([]byte("%PDF-1.4\npartial\n")))
+	var partial *digitalpaper.PartialFailureError
+	if !errors.As(err, &partial) || partial.EntryID == "" || partialEntry.ID != partial.EntryID {
+		t.Fatalf("partial entry = %#v, error = %#v", partialEntry, err)
+	}
+
+	state.InjectFault("POST /documents2", dptest.Fault{Status: http.StatusInsufficientStorage, Body: `{"code":"50701","message":"storage full"}`, Once: true})
+	if _, _, err := client.Documents.CreateAndUpload(ctx, renamedFolder.ID, "full.pdf", bytes.NewReader([]byte("%PDF-1.4\nfull\n"))); err == nil {
+		t.Fatal("storage-full upload succeeded")
+	} else {
+		var apiError *digitalpaper.APIError
+		if !errors.As(err, &apiError) || apiError.StatusCode != http.StatusInsufficientStorage || apiError.Code != "50701" {
+			t.Fatalf("storage-full error = %#v", err)
+		}
+	}
+
+	state.InjectFault("PUT /documents/*/file", dptest.Fault{Status: http.StatusOK, Body: `{not-json`, Once: true})
+	if entry, _, err := client.Documents.CreateAndUpload(ctx, renamedFolder.ID, "malformed.pdf", bytes.NewReader([]byte("%PDF-1.4\nmalformed\n"))); err == nil {
+		t.Fatal("malformed upload response succeeded")
+	} else if !errors.As(err, &partial) || partial.EntryID != entry.ID {
+		t.Fatalf("malformed response entry = %#v, error = %#v", entry, err)
+	}
+
+	state.InjectFault("PUT /documents/*/file", dptest.Fault{Status: http.StatusOK, Body: `{"received_bytes":"1","current_bytes":"1","completed":"no","file_revision":"1"}`, Once: true})
+	if entry, _, err := client.Documents.CreateAndUpload(ctx, renamedFolder.ID, "incomplete.pdf", bytes.NewReader([]byte("%PDF-1.4\nincomplete\n"))); err == nil {
+		t.Fatal("incomplete upload response succeeded")
+	} else {
+		var verification *digitalpaper.VerificationError
+		if !errors.As(err, &partial) || partial.EntryID != entry.ID || !errors.As(err, &verification) {
+			t.Fatalf("incomplete response entry = %#v, error = %#v", entry, err)
+		}
 	}
 }

@@ -7,11 +7,19 @@
     "GET /documents2": "device-verified",
     "GET /documents2/{document_id}": "device-verified",
     "GET /folders/{folder_id}/entries2": "device-verified",
+    "GET /folders2/{folder_id}": "device-verified",
     "GET /ping": "emulated",
     "GET /resolve/entry/path/{path}": "device-verified",
     "GET /system/status/battery": "device-verified",
     "GET /system/status/firmware_version": "device-verified",
     "GET /system/status/storage": "device-verified",
-    "PUT /auth": "device-verified"
+    "POST /documents/{document_id}/copy": "device-verified",
+    "POST /documents2": "device-verified",
+    "POST /folders2": "device-verified",
+    "PUT /auth": "device-verified",
+    "PUT /documents/{document_id}/file": "device-verified",
+    "PUT /documents2/{document_id}": "device-verified",
+    "PUT /folders2/{folder_id}": "device-verified",
+    "PUT /viewer/controls/open2": "emulated"
   }
 }
