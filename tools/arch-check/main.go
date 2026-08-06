@@ -76,6 +76,10 @@ func check(root string) ([]violation, error) {
 
 func forbidden(rel, imported string) string {
 	path := filepath.ToSlash(rel)
+	// External integration tests may depend on dptest; production packages may not.
+	if strings.HasSuffix(path, "_test.go") {
+		return ""
+	}
 	suffix := strings.TrimPrefix(imported, module)
 	importsAny := func(prefixes ...string) bool {
 		for _, prefix := range prefixes {

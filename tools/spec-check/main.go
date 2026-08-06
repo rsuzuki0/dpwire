@@ -113,6 +113,9 @@ func run(root string, update bool) error {
 	if err := applyImplementation(filepath.Join(root, "spec/compat/implementation.json"), &operations); err != nil {
 		return err
 	}
+	if err := checkQuirks(filepath.Join(root, "spec/compat/quirks.json"), operations); err != nil {
+		return err
+	}
 	checks := []struct {
 		path  string
 		value any
@@ -266,6 +269,12 @@ func checkModels(path string) error {
 			Models       []string          `json:"models"`
 			Capabilities map[string]string `json:"capabilities"`
 		} `json:"models"`
+		DeviceVerifications []struct {
+			Model              string   `json:"model"`
+			Firmware           string   `json:"firmware"`
+			TestedAt           string   `json:"tested_at"`
+			VerifiedOperations []string `json:"verified_operations"`
+		} `json:"device_verifications"`
 	}
 	if err := json.Unmarshal(raw, &data); err != nil {
 		return err
@@ -277,6 +286,49 @@ func checkModels(path string) error {
 		if len(model.Models) == 0 || len(model.Capabilities) == 0 {
 			return errors.New("model entry is missing identifiers or capabilities")
 		}
+	}
+	for _, verification := range data.DeviceVerifications {
+		if verification.Model == "" || verification.Firmware == "" || verification.TestedAt == "" || len(verification.VerifiedOperations) == 0 {
+			return errors.New("device verification is missing model, firmware, date, or operations")
+		}
+	}
+	return nil
+}
+
+func checkQuirks(path string, operations operationCatalog) error {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	var data struct {
+		SchemaVersion int `json:"schema_version"`
+		Quirks        []struct {
+			ID                    string   `json:"id"`
+			Models                []string `json:"models"`
+			Operation             string   `json:"operation"`
+			CompatibilityBehavior string   `json:"compatibility_behavior"`
+			RegressionTests       []string `json:"regression_tests"`
+		} `json:"quirks"`
+	}
+	if err := json.Unmarshal(raw, &data); err != nil {
+		return err
+	}
+	if data.SchemaVersion != 1 || len(data.Quirks) == 0 {
+		return errors.New("quirk catalog is empty or has an unsupported schema")
+	}
+	operationIDs := make(map[string]bool, len(operations.Operations))
+	for _, operation := range operations.Operations {
+		operationIDs[operation.ID] = true
+	}
+	seen := make(map[string]bool)
+	for _, quirk := range data.Quirks {
+		if quirk.ID == "" || seen[quirk.ID] || len(quirk.Models) == 0 || quirk.CompatibilityBehavior == "" || len(quirk.RegressionTests) == 0 {
+			return fmt.Errorf("invalid or duplicate quirk %q", quirk.ID)
+		}
+		if !operationIDs[quirk.Operation] {
+			return fmt.Errorf("quirk %s references unknown operation %s", quirk.ID, quirk.Operation)
+		}
+		seen[quirk.ID] = true
 	}
 	return nil
 }

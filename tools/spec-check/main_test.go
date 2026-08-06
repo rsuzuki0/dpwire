@@ -38,7 +38,7 @@ func TestDerivedCatalogCounts(t *testing.T) {
 	for _, operation := range operations.Operations {
 		statuses[operation.ID] = operation.Status
 	}
-	if statuses["GET /documents2"] != "emulated" {
+	if statuses["GET /documents2"] != "device-verified" {
 		t.Fatalf("GET /documents2 status = %q", statuses["GET /documents2"])
 	}
 }

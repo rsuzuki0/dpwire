@@ -2,12 +2,18 @@ package dptest
 
 import (
 	"bytes"
+	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/rsuzuki0/digitalpaper/internal/wire/auth"
+	"github.com/rsuzuki0/digitalpaper/internal/wire/transport"
 )
 
 func TestDocumentsGolden(t *testing.T) {
@@ -37,6 +43,57 @@ func TestDocumentsGolden(t *testing.T) {
 	}
 	if !bytes.Equal(got, want) {
 		t.Fatalf("protocol response differs from golden\nwant: %s\n got: %s", want, got)
+	}
+}
+
+func TestAuthenticatedP1Endpoints(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := NewState("DPT-RP1", "1.6.02")
+	state.RegisterClient("client", &key.PublicKey)
+	state.RequireAuthentication(true)
+	document := state.AddDocument("Document/Inbox/資料.pdf", "資料.pdf", "inbox", []byte("%PDF-fixture"), time.Now())
+	sim := Start(state)
+	defer sim.Close()
+
+	unauthenticated, err := sim.Client().Get(sim.URL() + "/system/status/battery")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unauthenticated.Body.Close()
+	if unauthenticated.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated status = %d", unauthenticated.StatusCode)
+	}
+
+	client, err := transport.New(sim.URL(), transport.TrustConfig{CertificateSHA256: sim.CertificateSHA256()}, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	if err := auth.Authenticate(ctx, client, "client", key); err != nil {
+		t.Fatal(err)
+	}
+	for _, endpoint := range []string{
+		"/system/status/firmware_version", "/system/status/battery", "/system/status/storage",
+		"/documents2?offset=0&limit=1", "/folders/inbox/entries2?offset=0&limit=1",
+		"/documents2/" + document.ID, "/resolve/entry/path/Document%2FInbox%2F%E8%B3%87%E6%96%99.pdf",
+	} {
+		response, err := client.Do(ctx, http.MethodGet, endpoint, nil, nil, true)
+		if err != nil {
+			t.Fatalf("GET %s: %v", endpoint, err)
+		}
+		response.Body.Close()
+	}
+	response, err := client.Do(ctx, http.MethodGet, "/documents/"+document.ID+"/file", nil, nil, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, err := io.ReadAll(response.Body)
+	response.Body.Close()
+	if err != nil || !bytes.Equal(content, []byte("%PDF-fixture")) || response.Header.Get("ETag") == "" {
+		t.Fatalf("content=%q etag=%q err=%v", content, response.Header.Get("ETag"), err)
 	}
 }
 

@@ -7,5 +7,20 @@ Machine-readable model status is stored in `spec/compat/models.json`.
 - QUADERNO Gen.2 is a priority validation target based on community reports.
 - QUADERNO Gen.3C is research-only until its protocol is probed safely.
 
+These targets do not imply confirmed compatibility. P1 is implemented and
+emulator-tested against the preserved Polaris interface, but no operation is
+marked `device-verified` until its model, firmware, result, and safe test record
+are captured from hardware. In particular, current Fujitsu generations must
+not be assumed protocol-compatible solely because they are called digital
+paper or digital note-taking devices.
+
 `documented`, `emulated`, and `device-verified` are separate states. Emulator
 success never promotes an operation to device-verified.
+
+## Verified hardware
+
+Sony DPT-RP1 firmware `1.6.50.14130` completed the P1 read-only verification on
+2026-08-06: RSA nonce authentication, firmware/battery/storage, pagination,
+folder listing, ID metadata, Unicode path resolution, and streamed PDF download
+with ETag and revision. The test used the Sony application's loopback relay and
+did not record document metadata or credential material.

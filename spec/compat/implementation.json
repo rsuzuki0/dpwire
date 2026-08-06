@@ -2,8 +2,16 @@
   "schema_version": 1,
   "operations": {
     "GET /api_version": "emulated",
-    "GET /documents2": "emulated",
+    "GET /auth/nonce/{client_id}": "device-verified",
+    "GET /documents/{document_id}/file": "device-verified",
+    "GET /documents2": "device-verified",
+    "GET /documents2/{document_id}": "device-verified",
+    "GET /folders/{folder_id}/entries2": "device-verified",
     "GET /ping": "emulated",
-    "GET /system/status/firmware_version": "emulated"
+    "GET /resolve/entry/path/{path}": "device-verified",
+    "GET /system/status/battery": "device-verified",
+    "GET /system/status/firmware_version": "device-verified",
+    "GET /system/status/storage": "device-verified",
+    "PUT /auth": "device-verified"
   }
 }

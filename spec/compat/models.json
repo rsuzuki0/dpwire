@@ -69,5 +69,34 @@
       },
       "notes": ["Do not assume Polaris 2 compatibility."]
     }
+  ],
+  "device_verifications": [
+    {
+      "vendor": "Sony",
+      "model": "DPT-RP1",
+      "firmware": "1.6.50.14130",
+      "tested_at": "2026-08-06",
+      "transport": "Sony Digital Paper App loopback relay",
+      "mode": "read-only",
+      "verified_operations": [
+        "GET /auth/nonce/{client_id}",
+        "PUT /auth",
+        "GET /system/status/firmware_version",
+        "GET /system/status/battery",
+        "GET /system/status/storage",
+        "GET /documents2",
+        "GET /folders/{folder_id}/entries2",
+        "GET /documents2/{document_id}",
+        "GET /resolve/entry/path/{path}",
+        "GET /documents/{document_id}/file"
+      ],
+      "observations": [
+        "Pagination verified with a page size of 10 across more than 100 entries.",
+        "Unicode path resolution succeeded.",
+        "PDF download returned ETag and metadata returned file_revision.",
+        "No document names, paths, IDs, contents, client IDs, keys, or certificate fingerprints were recorded."
+      ],
+      "quirks": ["sony-dpt-rp1-download-accept-pdf"]
+    }
   ]
 }

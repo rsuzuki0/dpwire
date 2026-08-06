@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "quirks": [
+    {
+      "id": "sony-dpt-rp1-download-accept-pdf",
+      "models": ["DPT-RP1"],
+      "firmware_verified": ["1.6.50.14130"],
+      "operation": "GET /documents/{document_id}/file",
+      "reference_behavior": "The Polaris 0.6.0 snapshot declares application/pdf as the produced media type.",
+      "observed_behavior": "The device returned HTTP 406 when the client sent Accept: application/json and succeeded with Accept: application/pdf.",
+      "compatibility_behavior": "Send endpoint-specific Accept headers: application/json for JSON operations and application/pdf for PDF download.",
+      "fallback": "No fallback is required because the compatibility behavior is also specification-conformant.",
+      "regression_tests": [
+        "internal/wire/transport.TestDoWithAccept",
+        "dptest authenticated PDF download",
+        "physical device-check"
+      ],
+      "first_verified": "2026-08-06"
+    },
+    {
+      "id": "polaris-translated-battery-status-key",
+      "models": ["DPT-RP1", "DPT-CP1"],
+      "firmware_verified": ["1.6.50.14130"],
+      "operation": "GET /system/status/battery",
+      "reference_behavior": "The translated Swagger property is named Settings - status, while the required-field list and observed device response use status.",
+      "observed_behavior": "The DPT-RP1 returned the status property.",
+      "compatibility_behavior": "Decode status first and accept Settings - status as a compatibility alias.",
+      "fallback": "The alias preserves compatibility with fixtures or firmware following the translated property name.",
+      "regression_tests": ["digitalpaper.BatteryStatus.UnmarshalJSON"],
+      "first_verified": "2026-08-06"
+    }
+  ]
+}
