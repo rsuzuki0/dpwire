@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "retrieved": "2026-08-06",
+  "sources": [
+    {
+      "publisher": "Sony",
+      "title": "DPT-RP1/DPT-CP1 Help Guide: Transferring a document from a computer",
+      "url": "https://helpguide.sony.net/dpt/rp1/v1/en/contents/TP0001178322.html",
+      "classification": "official product documentation",
+      "facts": [
+        "Only PDF files can be transferred.",
+        "Maximum transfer size is 1 GB per file."
+      ]
+    },
+    {
+      "publisher": "Sony",
+      "title": "DPT-RP1/DPT-CP1 Help Guide: Specifications",
+      "url": "https://helpguide.sony.net/dpt/rp1/v1/en/contents/TP0001178339.html",
+      "classification": "official product documentation",
+      "facts": [
+        "DPT-RP1 and DPT-CP1 support PDF documents.",
+        "The published guide describes firmware version 1.6."
+      ]
+    },
+    {
+      "publisher": "Fujitsu Client Computing",
+      "title": "QUADERNO support and manuals",
+      "url": "https://www.fmworld.net/digital-paper/support/",
+      "classification": "official product documentation",
+      "facts": [
+        "The support matrix lists Gen.1, Gen.2, and Gen.3C families.",
+        "Gen.3C protocol compatibility is not documented and remains unverified."
+      ]
+    }
+  ]
+}

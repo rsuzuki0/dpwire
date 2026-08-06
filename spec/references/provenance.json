@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "retrieved": "2026-08-06",
+  "references": [
+    {
+      "path": "spec/references/polaris-0.6.0.swagger.json",
+      "title": "Polaris 2.0 Digital Paper Control Interface 0.6.0",
+      "classification": "community-preserved translation of unavailable official endpoint documentation",
+      "source_url": "https://github.com/DPT-RP1/DigitalPaperApp/blob/e0aae9e68325caa2dc3f42e4e013d2e39dac4b1c/doc/endpoints.json",
+      "repository": "https://github.com/DPT-RP1/DigitalPaperApp",
+      "commit": "e0aae9e68325caa2dc3f42e4e013d2e39dac4b1c",
+      "sha256": "7f2e0f153d3fe927de902765f69737b139d5c0e568a71f32fb7274870eaf93de",
+      "license": "MIT repository; preserve provenance and see NOTICE",
+      "authoritative": false,
+      "notes": [
+        "The upstream README calls this a translation of official endpoint documentation.",
+        "URLs embedded in the snapshot point to non-public Sony infrastructure.",
+        "Compatibility decisions require emulator and physical-device verification."
+      ]
+    },
+    {
+      "title": "dpt-rp1-py reference implementation",
+      "classification": "community reference implementation",
+      "source_url": "https://github.com/janten/dpt-rp1-py/tree/9dda9d9a16c20477bd19374866e2095705765f96",
+      "repository": "https://github.com/janten/dpt-rp1-py",
+      "commit": "9dda9d9a16c20477bd19374866e2095705765f96",
+      "license": "MIT",
+      "authoritative": false
+    }
+  ]
+}

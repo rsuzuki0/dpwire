@@ -1,0 +1,911 @@
+{
+  "schema_version": 1,
+  "source": "spec/references/polaris-0.6.0.swagger.json",
+  "source_sha256": "7f2e0f153d3fe927de902765f69737b139d5c0e568a71f32fb7274870eaf93de",
+  "operations": [
+    {
+      "id": "DELETE /documents/{document_id}",
+      "method": "DELETE",
+      "path": "/documents/{document_id}",
+      "tag": "document",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "DELETE /documents/{document_id}/attribute",
+      "method": "DELETE",
+      "path": "/documents/{document_id}/attribute",
+      "tag": "document",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "DELETE /folders/{folder_id}",
+      "method": "DELETE",
+      "path": "/folders/{folder_id}",
+      "tag": "folder",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "DELETE /system/configs/certificates",
+      "method": "DELETE",
+      "path": "/system/configs/certificates",
+      "tag": "Settings - Wireless Settings",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "DELETE /system/configs/wifi_accesspoints/{ssid}/{security}",
+      "method": "DELETE",
+      "path": "/system/configs/wifi_accesspoints/{ssid}/{security}",
+      "tag": "Settings - Wireless Settings",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "DELETE /system/controls/indicate/{indication_id}",
+      "method": "DELETE",
+      "path": "/system/controls/indicate/{indication_id}",
+      "tag": "Settings - Device control",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "DELETE /testmode/assets/{path}",
+      "method": "DELETE",
+      "path": "/testmode/assets/{path}",
+      "tag": "Test mode",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "DELETE /viewer/configs/note_templates/{note_template_id}",
+      "method": "DELETE",
+      "path": "/viewer/configs/note_templates/{note_template_id}",
+      "tag": "note template",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /api_version",
+      "method": "GET",
+      "path": "/api_version",
+      "tag": "Miscellaneous",
+      "status": "emulated",
+      "deprecated": false
+    },
+    {
+      "id": "GET /auth/nonce/{client_id}",
+      "method": "GET",
+      "path": "/auth/nonce/{client_id}",
+      "tag": "Client authentication",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /documents",
+      "method": "GET",
+      "path": "/documents",
+      "tag": "document",
+      "status": "documented",
+      "deprecated": true
+    },
+    {
+      "id": "GET /documents/{document_id}",
+      "method": "GET",
+      "path": "/documents/{document_id}",
+      "tag": "document",
+      "status": "documented",
+      "deprecated": true
+    },
+    {
+      "id": "GET /documents/{document_id}/attribute",
+      "method": "GET",
+      "path": "/documents/{document_id}/attribute",
+      "tag": "document",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /documents/{document_id}/file",
+      "method": "GET",
+      "path": "/documents/{document_id}/file",
+      "tag": "document",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /documents2",
+      "method": "GET",
+      "path": "/documents2",
+      "tag": "document",
+      "status": "emulated",
+      "deprecated": false
+    },
+    {
+      "id": "GET /documents2/{document_id}",
+      "method": "GET",
+      "path": "/documents2/{document_id}",
+      "tag": "document",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /extensions/configs",
+      "method": "GET",
+      "path": "/extensions/configs",
+      "tag": "Extensions",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /extensions/configs/{item}",
+      "method": "GET",
+      "path": "/extensions/configs/{item}",
+      "tag": "Extensions",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /extensions/status",
+      "method": "GET",
+      "path": "/extensions/status",
+      "tag": "Extensions",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /extensions/status/{item}",
+      "method": "GET",
+      "path": "/extensions/status/{item}",
+      "tag": "Extensions",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /folders/{folder_id}",
+      "method": "GET",
+      "path": "/folders/{folder_id}",
+      "tag": "folder",
+      "status": "documented",
+      "deprecated": true
+    },
+    {
+      "id": "GET /folders/{folder_id}/entries",
+      "method": "GET",
+      "path": "/folders/{folder_id}/entries",
+      "tag": "folder",
+      "status": "documented",
+      "deprecated": true
+    },
+    {
+      "id": "GET /folders/{folder_id}/entries2",
+      "method": "GET",
+      "path": "/folders/{folder_id}/entries2",
+      "tag": "folder",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /folders2/{folder_id}",
+      "method": "GET",
+      "path": "/folders2/{folder_id}",
+      "tag": "folder",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /kitting/auth/nonce",
+      "method": "GET",
+      "path": "/kitting/auth/nonce",
+      "tag": "OEM (Kit-preparation)",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /ping",
+      "method": "GET",
+      "path": "/ping",
+      "tag": "Miscellaneous",
+      "status": "emulated",
+      "deprecated": false
+    },
+    {
+      "id": "GET /register/information",
+      "method": "GET",
+      "path": "/register/information",
+      "tag": "Client registration",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /register/serial_number",
+      "method": "GET",
+      "path": "/register/serial_number",
+      "tag": "Client registration",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /resolve/entry/ext_id/{ext_id}",
+      "method": "GET",
+      "path": "/resolve/entry/ext_id/{ext_id}",
+      "tag": "Miscellaneous",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /resolve/entry/path/{path}",
+      "method": "GET",
+      "path": "/resolve/entry/path/{path}",
+      "tag": "Miscellaneous",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /resolve/entry/{path}",
+      "method": "GET",
+      "path": "/resolve/entry/{path}",
+      "tag": "Miscellaneous",
+      "status": "documented",
+      "deprecated": true
+    },
+    {
+      "id": "GET /system/configs",
+      "method": "GET",
+      "path": "/system/configs",
+      "tag": "Settings management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/configs/certificates/ca",
+      "method": "GET",
+      "path": "/system/configs/certificates/ca",
+      "tag": "Settings - Wireless Settings",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/configs/certificates/client",
+      "method": "GET",
+      "path": "/system/configs/certificates/client",
+      "tag": "Settings - Wireless Settings",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/configs/date_format",
+      "method": "GET",
+      "path": "/system/configs/date_format",
+      "tag": "Settings management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/configs/initialized_flag",
+      "method": "GET",
+      "path": "/system/configs/initialized_flag",
+      "tag": "Settings management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/configs/owner",
+      "method": "GET",
+      "path": "/system/configs/owner",
+      "tag": "Settings management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/configs/time_format",
+      "method": "GET",
+      "path": "/system/configs/time_format",
+      "tag": "Settings management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/configs/timeout_to_standby",
+      "method": "GET",
+      "path": "/system/configs/timeout_to_standby",
+      "tag": "Settings management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/configs/timezone",
+      "method": "GET",
+      "path": "/system/configs/timezone",
+      "tag": "Settings management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/configs/wifi",
+      "method": "GET",
+      "path": "/system/configs/wifi",
+      "tag": "Settings - Wireless Settings",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/configs/wifi_accesspoints",
+      "method": "GET",
+      "path": "/system/configs/wifi_accesspoints",
+      "tag": "Settings - Wireless Settings",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/configs/wifi_accesspoints/{ssid}/{security}",
+      "method": "GET",
+      "path": "/system/configs/wifi_accesspoints/{ssid}/{security}",
+      "tag": "Settings - Wireless Settings",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/controls/pastlog",
+      "method": "GET",
+      "path": "/system/controls/pastlog",
+      "tag": "Settings - Device control",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/controls/screen_shot",
+      "method": "GET",
+      "path": "/system/controls/screen_shot",
+      "tag": "Settings - Device control",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/controls/update_firmware/precheck",
+      "method": "GET",
+      "path": "/system/controls/update_firmware/precheck",
+      "tag": "Settings - Device control",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/status/battery",
+      "method": "GET",
+      "path": "/system/status/battery",
+      "tag": "Settings - status",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/status/firmware_version",
+      "method": "GET",
+      "path": "/system/status/firmware_version",
+      "tag": "Settings - status",
+      "status": "emulated",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/status/mac_address",
+      "method": "GET",
+      "path": "/system/status/mac_address",
+      "tag": "Settings - status",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/status/storage",
+      "method": "GET",
+      "path": "/system/status/storage",
+      "tag": "Settings - status",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/status/wifi_state",
+      "method": "GET",
+      "path": "/system/status/wifi_state",
+      "tag": "Settings - Get Wireless Status",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /system/status/wps_state",
+      "method": "GET",
+      "path": "/system/status/wps_state",
+      "tag": "Settings - Get Wireless Status",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /testmode/assets/{path}",
+      "method": "GET",
+      "path": "/testmode/assets/{path}",
+      "tag": "Test mode",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /testmode/auth/nonce",
+      "method": "GET",
+      "path": "/testmode/auth/nonce",
+      "tag": "Test mode",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /viewer/configs/note_templates",
+      "method": "GET",
+      "path": "/viewer/configs/note_templates",
+      "tag": "note template",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /viewer/configs/note_templates/{note_template_id}",
+      "method": "GET",
+      "path": "/viewer/configs/note_templates/{note_template_id}",
+      "tag": "note template",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /viewer/status/current_viewing",
+      "method": "GET",
+      "path": "/viewer/status/current_viewing",
+      "tag": "viewer management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "GET /viewer/status/preset_marks",
+      "method": "GET",
+      "path": "/viewer/status/preset_marks",
+      "tag": "viewer management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /documents",
+      "method": "POST",
+      "path": "/documents",
+      "tag": "document",
+      "status": "documented",
+      "deprecated": true
+    },
+    {
+      "id": "POST /documents/{document_id}/copy",
+      "method": "POST",
+      "path": "/documents/{document_id}/copy",
+      "tag": "document",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /documents2",
+      "method": "POST",
+      "path": "/documents2",
+      "tag": "document",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /folders",
+      "method": "POST",
+      "path": "/folders",
+      "tag": "folder",
+      "status": "documented",
+      "deprecated": true
+    },
+    {
+      "id": "POST /folders2",
+      "method": "POST",
+      "path": "/folders2",
+      "tag": "folder",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /register",
+      "method": "POST",
+      "path": "/register",
+      "tag": "Client registration",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /register/ca",
+      "method": "POST",
+      "path": "/register/ca",
+      "tag": "Client registration",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /register/dcss1",
+      "method": "POST",
+      "path": "/register/dcss1",
+      "tag": "Client registration",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /register/dcss2",
+      "method": "POST",
+      "path": "/register/dcss2",
+      "tag": "Client registration",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /register/dcss3",
+      "method": "POST",
+      "path": "/register/dcss3",
+      "tag": "Client registration",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /register/dcss4",
+      "method": "POST",
+      "path": "/register/dcss4",
+      "tag": "Client registration",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /register/hash",
+      "method": "POST",
+      "path": "/register/hash",
+      "tag": "Client registration",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /register/pin",
+      "method": "POST",
+      "path": "/register/pin",
+      "tag": "Client registration",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /system/configs/certificates/ca",
+      "method": "POST",
+      "path": "/system/configs/certificates/ca",
+      "tag": "Settings - Wireless Settings",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /system/configs/certificates/client",
+      "method": "POST",
+      "path": "/system/configs/certificates/client",
+      "tag": "Settings - Wireless Settings",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /system/controls/indicate",
+      "method": "POST",
+      "path": "/system/controls/indicate",
+      "tag": "Settings - Device control",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /system/controls/wifi_accesspoints/scan",
+      "method": "POST",
+      "path": "/system/controls/wifi_accesspoints/scan",
+      "tag": "Settings - Wireless Control",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "POST /viewer/configs/note_templates",
+      "method": "POST",
+      "path": "/viewer/configs/note_templates",
+      "tag": "note template",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /auth",
+      "method": "PUT",
+      "path": "/auth",
+      "tag": "Client authentication",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /documents/{document_id}",
+      "method": "PUT",
+      "path": "/documents/{document_id}",
+      "tag": "document",
+      "status": "documented",
+      "deprecated": true
+    },
+    {
+      "id": "PUT /documents/{document_id}/attribute",
+      "method": "PUT",
+      "path": "/documents/{document_id}/attribute",
+      "tag": "document",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /documents/{document_id}/file",
+      "method": "PUT",
+      "path": "/documents/{document_id}/file",
+      "tag": "document",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /documents2/{document_id}",
+      "method": "PUT",
+      "path": "/documents2/{document_id}",
+      "tag": "document",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /extensions/configs/{item}",
+      "method": "PUT",
+      "path": "/extensions/configs/{item}",
+      "tag": "Extensions",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /folders/{folder_id}",
+      "method": "PUT",
+      "path": "/folders/{folder_id}",
+      "tag": "folder",
+      "status": "documented",
+      "deprecated": true
+    },
+    {
+      "id": "PUT /folders2/{folder_id}",
+      "method": "PUT",
+      "path": "/folders2/{folder_id}",
+      "tag": "folder",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /kitting/auth",
+      "method": "PUT",
+      "path": "/kitting/auth",
+      "tag": "OEM (Kit-preparation)",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /kitting/register/code",
+      "method": "PUT",
+      "path": "/kitting/register/code",
+      "tag": "OEM (Kit-preparation)",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /kitting/shutdown",
+      "method": "PUT",
+      "path": "/kitting/shutdown",
+      "tag": "OEM (Kit-preparation)",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /notify/login_result",
+      "method": "PUT",
+      "path": "/notify/login_result",
+      "tag": "Miscellaneous",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /notify/logout_result",
+      "method": "PUT",
+      "path": "/notify/logout_result",
+      "tag": "Miscellaneous",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /register/cleanup",
+      "method": "PUT",
+      "path": "/register/cleanup",
+      "tag": "Client registration",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /system/configs/date_format",
+      "method": "PUT",
+      "path": "/system/configs/date_format",
+      "tag": "Settings management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /system/configs/datetime",
+      "method": "PUT",
+      "path": "/system/configs/datetime",
+      "tag": "Settings management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /system/configs/initialized_flag",
+      "method": "PUT",
+      "path": "/system/configs/initialized_flag",
+      "tag": "Settings management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /system/configs/owner",
+      "method": "PUT",
+      "path": "/system/configs/owner",
+      "tag": "Settings management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /system/configs/time_format",
+      "method": "PUT",
+      "path": "/system/configs/time_format",
+      "tag": "Settings management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /system/configs/timeout_to_standby",
+      "method": "PUT",
+      "path": "/system/configs/timeout_to_standby",
+      "tag": "Settings management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /system/configs/timezone",
+      "method": "PUT",
+      "path": "/system/configs/timezone",
+      "tag": "Settings management",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /system/configs/wifi",
+      "method": "PUT",
+      "path": "/system/configs/wifi",
+      "tag": "Settings - Wireless Settings",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /system/controls/indicate/{indication_id}",
+      "method": "PUT",
+      "path": "/system/controls/indicate/{indication_id}",
+      "tag": "Settings - Device control",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /system/controls/update_firmware",
+      "method": "PUT",
+      "path": "/system/controls/update_firmware",
+      "tag": "Settings - Device control",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /system/controls/update_firmware/file",
+      "method": "PUT",
+      "path": "/system/controls/update_firmware/file",
+      "tag": "Settings - Device control",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /system/controls/wifi_accesspoints/register",
+      "method": "PUT",
+      "path": "/system/controls/wifi_accesspoints/register",
+      "tag": "Settings - Wireless Control",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /system/controls/wps_cancel",
+      "method": "PUT",
+      "path": "/system/controls/wps_cancel",
+      "tag": "Settings - Wireless Control",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /system/controls/wps_start/button",
+      "method": "PUT",
+      "path": "/system/controls/wps_start/button",
+      "tag": "Settings - Wireless Control",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /system/controls/wps_start/pin",
+      "method": "PUT",
+      "path": "/system/controls/wps_start/pin",
+      "tag": "Settings - Wireless Control",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /testmode/assets/{path}",
+      "method": "PUT",
+      "path": "/testmode/assets/{path}",
+      "tag": "Test mode",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /testmode/auth",
+      "method": "PUT",
+      "path": "/testmode/auth",
+      "tag": "Test mode",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /testmode/launch",
+      "method": "PUT",
+      "path": "/testmode/launch",
+      "tag": "Test mode",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /testmode/recovery_mode",
+      "method": "PUT",
+      "path": "/testmode/recovery_mode",
+      "tag": "Test mode",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /viewer/configs/note_templates/{note_template_id}",
+      "method": "PUT",
+      "path": "/viewer/configs/note_templates/{note_template_id}",
+      "tag": "note template",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /viewer/configs/note_templates/{note_template_id}/file",
+      "method": "PUT",
+      "path": "/viewer/configs/note_templates/{note_template_id}/file",
+      "tag": "note template",
+      "status": "documented",
+      "deprecated": false
+    },
+    {
+      "id": "PUT /viewer/controls/open",
+      "method": "PUT",
+      "path": "/viewer/controls/open",
+      "tag": "viewer management",
+      "status": "documented",
+      "deprecated": true
+    },
+    {
+      "id": "PUT /viewer/controls/open2",
+      "method": "PUT",
+      "path": "/viewer/controls/open2",
+      "tag": "viewer management",
+      "status": "documented",
+      "deprecated": false
+    }
+  ]
+}

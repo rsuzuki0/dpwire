@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "models": [
+    {
+      "vendor": "Sony",
+      "family": "Digital Paper",
+      "models": ["DPT-RP1", "DPT-CP1"],
+      "support": "initial-target",
+      "protocol_family": "polaris-2",
+      "verification": "device-required",
+      "capabilities": {
+        "documents": "target",
+        "pairing": "phase-p3",
+        "split-upload": "documented-unverified",
+        "screen-capture": "optional-unverified",
+        "whiteboard": "optional-unverified",
+        "wifi-config": "optional-unverified"
+      },
+      "notes": []
+    },
+    {
+      "vendor": "Fujitsu",
+      "family": "QUADERNO Gen.1",
+      "models": ["FMV-DPP01", "FMV-DPP02", "FMV-DPP03", "FMV-DPP04"],
+      "support": "initial-target",
+      "protocol_family": "polaris-2-compatible",
+      "verification": "device-required",
+      "capabilities": {
+        "documents": "target",
+        "pairing": "phase-p3",
+        "split-upload": "documented-unverified",
+        "screen-capture": "unknown",
+        "whiteboard": "unknown",
+        "wifi-config": "unknown"
+      },
+      "notes": ["Existing community client declares QUADERNO support."]
+    },
+    {
+      "vendor": "Fujitsu",
+      "family": "QUADERNO Gen.2",
+      "models": ["FMVDP41", "FMVDP51"],
+      "support": "priority-validation",
+      "protocol_family": "polaris-2-compatible-reported",
+      "verification": "community-reported",
+      "capabilities": {
+        "documents": "priority-validation",
+        "pairing": "priority-validation",
+        "split-upload": "unknown",
+        "screen-capture": "unknown",
+        "whiteboard": "unknown",
+        "wifi-config": "unknown"
+      },
+      "notes": ["Registration, listing, and upload have public user reports; stability requires direct verification."]
+    },
+    {
+      "vendor": "Fujitsu",
+      "family": "QUADERNO Gen.3C",
+      "models": ["FMVDP43CA4", "FMVDP53CA5"],
+      "support": "research",
+      "protocol_family": "unknown",
+      "verification": "unverified",
+      "capabilities": {
+        "documents": "unknown",
+        "pairing": "unknown",
+        "split-upload": "unknown",
+        "screen-capture": "unknown",
+        "whiteboard": "unknown",
+        "wifi-config": "unknown"
+      },
+      "notes": ["Do not assume Polaris 2 compatibility."]
+    }
+  ]
+}

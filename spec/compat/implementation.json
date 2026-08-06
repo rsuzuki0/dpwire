@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "operations": {
+    "GET /api_version": "emulated",
+    "GET /documents2": "emulated",
+    "GET /ping": "emulated",
+    "GET /system/status/firmware_version": "emulated"
+  }
+}

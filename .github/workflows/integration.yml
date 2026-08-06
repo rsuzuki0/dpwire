@@ -1,0 +1,25 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+      - run: go run ./tools/eval -mode=nightly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-eval
+          path: artifacts/eval/

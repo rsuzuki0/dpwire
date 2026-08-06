@@ -1,0 +1,580 @@
+{
+  "schema_version": 1,
+  "source": "spec/references/polaris-0.6.0.swagger.json",
+  "errors": [
+    {
+      "code": "40000",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "POST /register",
+        "POST /register/ca",
+        "POST /register/dcss2",
+        "POST /register/dcss3",
+        "POST /register/dcss4",
+        "POST /register/hash",
+        "POST /system/configs/certificates/ca",
+        "POST /system/configs/certificates/client",
+        "POST /system/controls/indicate",
+        "PUT /auth",
+        "PUT /documents/{document_id}/attribute",
+        "PUT /kitting/auth",
+        "PUT /kitting/register/code",
+        "PUT /notify/login_result",
+        "PUT /notify/logout_result",
+        "PUT /system/configs/date_format",
+        "PUT /system/configs/datetime",
+        "PUT /system/configs/initialized_flag",
+        "PUT /system/configs/owner",
+        "PUT /system/configs/time_format",
+        "PUT /system/configs/timeout_to_standby",
+        "PUT /system/configs/timezone",
+        "PUT /system/configs/wifi",
+        "PUT /system/controls/indicate/{indication_id}",
+        "PUT /system/controls/wifi_accesspoints/register",
+        "PUT /testmode/auth"
+      ]
+    },
+    {
+      "code": "40001",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "GET /documents",
+        "GET /documents2",
+        "POST /documents",
+        "POST /documents/{document_id}/copy",
+        "POST /documents2",
+        "POST /folders",
+        "POST /folders2",
+        "POST /register",
+        "POST /register/ca",
+        "POST /register/dcss2",
+        "POST /register/dcss3",
+        "POST /register/dcss4",
+        "POST /register/hash",
+        "POST /system/configs/certificates/ca",
+        "POST /system/configs/certificates/client",
+        "POST /system/controls/indicate",
+        "POST /viewer/configs/note_templates",
+        "PUT /auth",
+        "PUT /documents/{document_id}",
+        "PUT /documents/{document_id}/attribute",
+        "PUT /documents/{document_id}/file",
+        "PUT /documents2/{document_id}",
+        "PUT /folders/{folder_id}",
+        "PUT /folders2/{folder_id}",
+        "PUT /kitting/auth",
+        "PUT /kitting/register/code",
+        "PUT /notify/login_result",
+        "PUT /notify/logout_result",
+        "PUT /system/configs/date_format",
+        "PUT /system/configs/datetime",
+        "PUT /system/configs/initialized_flag",
+        "PUT /system/configs/owner",
+        "PUT /system/configs/time_format",
+        "PUT /system/configs/timeout_to_standby",
+        "PUT /system/configs/timezone",
+        "PUT /system/configs/wifi",
+        "PUT /system/controls/indicate/{indication_id}",
+        "PUT /system/controls/update_firmware/file",
+        "PUT /system/controls/wifi_accesspoints/register",
+        "PUT /testmode/auth",
+        "PUT /viewer/configs/note_templates/{note_template_id}",
+        "PUT /viewer/configs/note_templates/{note_template_id}/file",
+        "PUT /viewer/controls/open",
+        "PUT /viewer/controls/open2"
+      ]
+    },
+    {
+      "code": "40002",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "GET /documents",
+        "GET /documents2",
+        "GET /folders/{folder_id}/entries",
+        "GET /folders/{folder_id}/entries2",
+        "PUT /documents/{document_id}/attribute",
+        "PUT /documents/{document_id}/file",
+        "PUT /kitting/register/code",
+        "PUT /system/configs/timeout_to_standby",
+        "PUT /system/controls/update_firmware/file",
+        "PUT /system/controls/wifi_accesspoints/register",
+        "PUT /viewer/configs/note_templates/{note_template_id}/file",
+        "PUT /viewer/controls/open2"
+      ]
+    },
+    {
+      "code": "40003",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "POST /register",
+        "POST /register/ca",
+        "POST /register/dcss2",
+        "POST /register/dcss3",
+        "POST /register/dcss4",
+        "POST /register/hash",
+        "POST /system/configs/certificates/ca",
+        "POST /system/configs/certificates/client"
+      ]
+    },
+    {
+      "code": "40004",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "PUT /documents/{document_id}/attribute",
+        "PUT /system/configs/datetime"
+      ]
+    },
+    {
+      "code": "40005",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "GET /documents",
+        "GET /documents2",
+        "GET /folders/{folder_id}/entries",
+        "GET /folders/{folder_id}/entries2",
+        "PUT /documents/{document_id}/attribute",
+        "PUT /notify/login_result",
+        "PUT /notify/logout_result",
+        "PUT /system/configs/initialized_flag",
+        "PUT /system/configs/time_format",
+        "PUT /system/configs/timezone",
+        "PUT /system/configs/wifi",
+        "PUT /system/controls/wifi_accesspoints/register"
+      ]
+    },
+    {
+      "code": "40006",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "DELETE /system/controls/indicate/{indication_id}",
+        "DELETE /testmode/assets/{path}",
+        "GET /documents",
+        "GET /documents2",
+        "GET /testmode/assets/{path}",
+        "POST /documents",
+        "POST /documents/{document_id}/copy",
+        "POST /documents2",
+        "POST /folders",
+        "POST /folders2",
+        "POST /system/configs/certificates/ca",
+        "POST /system/configs/certificates/client",
+        "POST /viewer/configs/note_templates",
+        "PUT /documents/{document_id}",
+        "PUT /documents/{document_id}/attribute",
+        "PUT /documents2/{document_id}",
+        "PUT /folders/{folder_id}",
+        "PUT /folders2/{folder_id}",
+        "PUT /kitting/register/code",
+        "PUT /system/configs/date_format",
+        "PUT /system/configs/owner",
+        "PUT /system/configs/timeout_to_standby",
+        "PUT /system/controls/indicate/{indication_id}",
+        "PUT /system/controls/wifi_accesspoints/register",
+        "PUT /testmode/assets/{path}",
+        "PUT /viewer/configs/note_templates/{note_template_id}",
+        "PUT /viewer/controls/open2"
+      ]
+    },
+    {
+      "code": "40007",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "POST /documents",
+        "POST /documents/{document_id}/copy",
+        "POST /documents2",
+        "POST /folders",
+        "POST /folders2",
+        "POST /viewer/configs/note_templates",
+        "PUT /documents/{document_id}",
+        "PUT /documents2/{document_id}",
+        "PUT /folders/{folder_id}",
+        "PUT /folders2/{folder_id}",
+        "PUT /viewer/configs/note_templates/{note_template_id}"
+      ]
+    },
+    {
+      "code": "40008",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "POST /viewer/configs/note_templates",
+        "PUT /system/controls/wifi_accesspoints/register"
+      ]
+    },
+    {
+      "code": "40009",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "DELETE /viewer/configs/note_templates/{note_template_id}",
+        "PUT /viewer/configs/note_templates/{note_template_id}",
+        "PUT /viewer/configs/note_templates/{note_template_id}/file"
+      ]
+    },
+    {
+      "code": "40010",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "PUT /documents/{document_id}/file",
+        "PUT /system/controls/update_firmware/file",
+        "PUT /testmode/assets/{path}",
+        "PUT /viewer/configs/note_templates/{note_template_id}/file"
+      ]
+    },
+    {
+      "code": "40011",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "PUT /system/controls/update_firmware/file",
+        "PUT /viewer/configs/note_templates/{note_template_id}/file"
+      ]
+    },
+    {
+      "code": "40012",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "GET /documents",
+        "GET /documents2",
+        "POST /documents",
+        "POST /documents/{document_id}/copy",
+        "POST /documents2",
+        "POST /folders",
+        "POST /folders2",
+        "PUT /documents/{document_id}",
+        "PUT /documents2/{document_id}",
+        "PUT /folders/{folder_id}",
+        "PUT /folders2/{folder_id}"
+      ]
+    },
+    {
+      "code": "40013",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "POST /system/configs/certificates/ca",
+        "POST /system/configs/certificates/client",
+        "PUT /viewer/configs/note_templates/{note_template_id}/file"
+      ]
+    },
+    {
+      "code": "40014",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "POST /system/configs/certificates/ca",
+        "POST /system/configs/certificates/client",
+        "PUT /viewer/configs/note_templates/{note_template_id}/file"
+      ]
+    },
+    {
+      "code": "40015",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "PUT /viewer/configs/note_templates/{note_template_id}/file"
+      ]
+    },
+    {
+      "code": "40016",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "PUT /viewer/configs/note_templates/{note_template_id}/file"
+      ]
+    },
+    {
+      "code": "40017",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "DELETE /documents/{document_id}",
+        "PUT /documents/{document_id}/file"
+      ]
+    },
+    {
+      "code": "40018",
+      "http_statuses": [
+        "400"
+      ],
+      "operations": [
+        "DELETE /folders/{folder_id}"
+      ]
+    },
+    {
+      "code": "40100",
+      "http_statuses": [
+        "401"
+      ],
+      "operations": [
+        "PUT /auth",
+        "PUT /kitting/auth",
+        "PUT /testmode/auth"
+      ]
+    },
+    {
+      "code": "40300",
+      "http_statuses": [
+        "403"
+      ],
+      "operations": [
+        "DELETE /testmode/assets/{path}",
+        "GET /kitting/auth/nonce",
+        "GET /testmode/assets/{path}",
+        "GET /testmode/auth/nonce",
+        "PUT /kitting/auth",
+        "PUT /kitting/register/code",
+        "PUT /kitting/shutdown",
+        "PUT /testmode/assets/{path}",
+        "PUT /testmode/auth",
+        "PUT /testmode/launch",
+        "PUT /testmode/recovery_mode"
+      ]
+    },
+    {
+      "code": "40301",
+      "http_statuses": [
+        "403"
+      ],
+      "operations": [
+        "POST /register",
+        "POST /register/ca",
+        "POST /register/dcss1",
+        "POST /register/dcss2",
+        "POST /register/dcss3",
+        "POST /register/dcss4",
+        "POST /register/hash",
+        "POST /system/configs/certificates/client"
+      ]
+    },
+    {
+      "code": "40302",
+      "http_statuses": [
+        "403"
+      ],
+      "operations": [
+        "PUT /system/configs/wifi",
+        "PUT /system/controls/update_firmware"
+      ]
+    },
+    {
+      "code": "40303",
+      "http_statuses": [
+        "403"
+      ],
+      "operations": [
+        "PUT /system/controls/update_firmware"
+      ]
+    },
+    {
+      "code": "40304",
+      "http_statuses": [
+        "403"
+      ],
+      "operations": [
+        "DELETE /system/configs/wifi_accesspoints/{ssid}/{security}",
+        "GET /system/configs/wifi_accesspoints",
+        "GET /system/configs/wifi_accesspoints/{ssid}/{security}",
+        "GET /system/status/wifi_state",
+        "GET /system/status/wps_state",
+        "POST /system/controls/wifi_accesspoints/scan",
+        "PUT /system/controls/wifi_accesspoints/register",
+        "PUT /system/controls/wps_cancel",
+        "PUT /system/controls/wps_start/button",
+        "PUT /system/controls/wps_start/pin"
+      ]
+    },
+    {
+      "code": "40305",
+      "http_statuses": [
+        "403"
+      ],
+      "operations": [
+        "POST /register",
+        "POST /register/ca",
+        "POST /register/dcss1",
+        "POST /register/dcss2",
+        "POST /register/dcss3",
+        "POST /register/dcss4",
+        "POST /register/hash"
+      ]
+    },
+    {
+      "code": "40307",
+      "http_statuses": [
+        "403"
+      ],
+      "operations": [
+        "PUT /system/configs/wifi"
+      ]
+    },
+    {
+      "code": "40310",
+      "http_statuses": [
+        "403"
+      ],
+      "operations": [
+        "DELETE /documents/{document_id}/attribute",
+        "GET /documents/{document_id}/attribute",
+        "GET /documents2",
+        "GET /documents2/{document_id}",
+        "GET /folders/{folder_id}/entries2",
+        "GET /folders2/{folder_id}",
+        "GET /resolve/entry/path/{path}",
+        "GET /viewer/status/current_viewing",
+        "POST /documents2",
+        "POST /folders2",
+        "PUT /documents/{document_id}/attribute",
+        "PUT /documents2/{document_id}",
+        "PUT /folders2/{folder_id}",
+        "PUT /viewer/controls/open2"
+      ]
+    },
+    {
+      "code": "40401",
+      "http_statuses": [
+        "404"
+      ],
+      "operations": [
+        "DELETE /documents/{document_id}",
+        "DELETE /documents/{document_id}/attribute",
+        "DELETE /folders/{folder_id}",
+        "DELETE /system/configs/wifi_accesspoints/{ssid}/{security}",
+        "DELETE /testmode/assets/{path}",
+        "DELETE /viewer/configs/note_templates/{note_template_id}",
+        "GET /auth/nonce/{client_id}",
+        "GET /documents/{document_id}",
+        "GET /documents/{document_id}/attribute",
+        "GET /documents/{document_id}/file",
+        "GET /documents2/{document_id}",
+        "GET /extensions/configs/{item}",
+        "GET /extensions/status/{item}",
+        "GET /folders/{folder_id}",
+        "GET /folders/{folder_id}/entries",
+        "GET /folders/{folder_id}/entries2",
+        "GET /folders2/{folder_id}",
+        "GET /resolve/entry/path/{path}",
+        "GET /resolve/entry/{path}",
+        "GET /system/configs/wifi_accesspoints/{ssid}/{security}",
+        "GET /testmode/assets/{path}",
+        "GET /viewer/configs/note_templates/{note_template_id}",
+        "POST /documents/{document_id}/copy",
+        "PUT /documents/{document_id}",
+        "PUT /documents/{document_id}/attribute",
+        "PUT /documents/{document_id}/file",
+        "PUT /documents2/{document_id}",
+        "PUT /extensions/configs/{item}",
+        "PUT /folders/{folder_id}",
+        "PUT /folders2/{folder_id}",
+        "PUT /viewer/configs/note_templates/{note_template_id}",
+        "PUT /viewer/configs/note_templates/{note_template_id}/file",
+        "PUT /viewer/controls/open",
+        "PUT /viewer/controls/open2"
+      ]
+    },
+    {
+      "code": "40800",
+      "http_statuses": [
+        "408"
+      ],
+      "operations": [
+        "DELETE /documents/{document_id}",
+        "DELETE /documents/{document_id}/attribute",
+        "DELETE /folders/{folder_id}",
+        "DELETE /viewer/configs/note_templates/{note_template_id}",
+        "GET /documents",
+        "GET /documents/{document_id}",
+        "GET /documents/{document_id}/attribute",
+        "GET /documents/{document_id}/file",
+        "GET /documents2",
+        "GET /documents2/{document_id}",
+        "GET /folders/{folder_id}",
+        "GET /folders/{folder_id}/entries",
+        "GET /folders/{folder_id}/entries2",
+        "GET /folders2/{folder_id}",
+        "GET /viewer/configs/note_templates",
+        "GET /viewer/configs/note_templates/{note_template_id}",
+        "POST /documents",
+        "POST /documents/{document_id}/copy",
+        "POST /documents2",
+        "POST /folders",
+        "POST /folders2",
+        "POST /system/controls/wifi_accesspoints/scan",
+        "POST /viewer/configs/note_templates",
+        "PUT /documents/{document_id}",
+        "PUT /documents/{document_id}/attribute",
+        "PUT /documents/{document_id}/file",
+        "PUT /documents2/{document_id}",
+        "PUT /folders/{folder_id}",
+        "PUT /folders2/{folder_id}",
+        "PUT /system/configs/wifi",
+        "PUT /system/controls/wps_start/pin",
+        "PUT /viewer/configs/note_templates/{note_template_id}",
+        "PUT /viewer/configs/note_templates/{note_template_id}/file",
+        "PUT /viewer/controls/open",
+        "PUT /viewer/controls/open2"
+      ]
+    },
+    {
+      "code": "50301",
+      "http_statuses": [
+        "503"
+      ],
+      "operations": [
+        "POST /system/controls/wifi_accesspoints/scan",
+        "PUT /kitting/shutdown",
+        "PUT /system/configs/wifi",
+        "PUT /system/controls/update_firmware",
+        "PUT /system/controls/update_firmware/file",
+        "PUT /system/controls/wps_start/button",
+        "PUT /system/controls/wps_start/pin"
+      ]
+    },
+    {
+      "code": "50701",
+      "http_statuses": [
+        "507"
+      ],
+      "operations": [
+        "POST /documents",
+        "POST /documents/{document_id}/copy",
+        "POST /documents2",
+        "POST /viewer/configs/note_templates",
+        "PUT /documents/{document_id}",
+        "PUT /documents/{document_id}/attribute",
+        "PUT /documents/{document_id}/file",
+        "PUT /documents2/{document_id}",
+        "PUT /viewer/configs/note_templates/{note_template_id}",
+        "PUT /viewer/configs/note_templates/{note_template_id}/file"
+      ]
+    }
+  ]
+}

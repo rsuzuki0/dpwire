@@ -1,0 +1,14 @@
+Digital Paper
+Copyright (c) 2026 Ryuji Suzuki
+
+This project is an independent implementation and is not affiliated with,
+endorsed by, or sponsored by Sony Corporation or Fujitsu Client Computing
+Limited.
+
+The immutable protocol reference in spec/references was retrieved from the
+MIT-licensed DPT-RP1/DigitalPaperApp repository. It is described upstream as a
+community translation of official endpoint documentation. Its source,
+revision, checksum, and classification are recorded in provenance.json.
+
+Sony, Digital Paper, Fujitsu, and QUADERNO may be trademarks of their
+respective owners.

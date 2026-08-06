@@ -1,0 +1,6 @@
+/artifacts/eval/*
+!/artifacts/eval/.gitkeep
+/dist/
+/.DS_Store
+*.tmp
+*.out
