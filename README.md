@@ -11,6 +11,11 @@ adds verified folder creation, PDF upload, device-side copy, move/rename, and
 viewer control. Pairing and destructive deletion remain deliberately
 unavailable.
 
+P3 targets a complete PDF-only daily-use release: profile onboarding, fresh
+pairing, guarded deletion, packaging, installation, and recovery. Document
+renderers and Markdown/LaTeX/Tectonic workflows are deliberately deferred until
+after a real-use soak period.
+
 ## Names
 
 - Go module: `github.com/rsuzuki0/digitalpaper`

@@ -21,11 +21,12 @@
 | P0 | 仕様・試験基盤 | references固定、API catalog、emulator、CI | 実機なしでeval可能 |
 | P1 | read-only利用 | auth、status、list、stat、download | 実機から安全に取得可能 |
 | P2 | safe-write | upload、update、mkdir、copy、move、open | conflictと部分失敗を処理 |
-| P3 | pairing | 新規登録、CA保存、multi-profile | 新しいMacから登録可能 |
-| P4 | workflow | `dp send`、Markdown、LaTeX、stdin | 一行でPDF生成・転送可能 |
+| P3 | PDF-only実用版 | pairing、profile、safe delete、配布物 | PDF管理だけで日常使用可能 |
+| P4 | soak / hardening | 実使用、bug修正、互換性記録 | core CLIとpublic APIが安定 |
 | P5 | backup/sync | snapshot、plan/apply、watch | 注釈PDFを安全に保全 |
 | P6 | OS統合 | macOS PDF Service、CUPS、mDNS | coreを変更せず統合可能 |
 | P7 | optional機能 | screenshot、whiteboard、template、Wi-Fi | Capabilityごとに追加 |
+| P8 | render workflow | `dp send`、Markdown、LaTeX、Tectonic | 安定したPDF core上で変換可能 |
 
 ## 3. Phase P0：仕様保存と試験基盤
 
@@ -155,10 +156,18 @@ delete、split upload、部分失敗の自動cleanupはP2に含めない。削�
 - hash mismatch
 - revision mismatch
 
-## 6. Phase P3：新規pairing
+## 6. Phase P3：PDF-only実用版
+
+P3は機能拡張ではなく、PDFだけを長期間日常使用できる完成版を作る段階と
+する。Markdown、LaTeX、Pandoc、latexmk、Tectonic、HTML変換は含めない。
 
 ### 6.1 実装要素
 
+- `ls`、`ls -l`、`file/stat`、`get/put`、`cp/mv`、`mkdir`
+- revisionを確認するsafe deleteとempty-only `rmdir`
+- profile作成、既存Sony credentialの明示的import
+- direct connectionとrelay connectionの明確なprofile化
+- multi-profile
 - DH key exchange
 - Java BigInteger互換
 - PBKDF2
@@ -169,6 +178,8 @@ delete、split upload、部分失敗の自動cleanupはP2に含めない。削�
 - PIN input
 - device CA保存
 - credential atomic save
+- macOS arm64 / amd64およびLinux用binary
+- checksum、install、upgrade、recovery手順
 
 ### 6.2 試験
 
@@ -180,12 +191,26 @@ delete、split upload、部分失敗の自動cleanupはP2に含めない。削�
 - interrupted registration
 - invalid device response
 - corrupt credential store
+- delete対象のrevision変化
+- non-empty folderの`rmdir`拒否
+- CLI end-to-end
+- release archive再現性
 
 ### 6.3 完了条件
 
-純正Digital Paper Appを使わず、新しいMacから登録、認証、list、upload、downloadができる。
+純正Digital Paper Appを使わず、新しいMacから登録でき、PDFについて
+list、stat、upload、download、copy、move、deleteができる。配布binaryと
+checksumからinstallでき、実使用期間へ移行できる。
 
-## 7. Phase P4：`dp send` workflow
+## 7. Phase P4：soak / hardening
+
+P3 releaseをしばらく日常使用し、実機差、sleep/reconnect、競合、部分失敗、
+CLIの分かりにくさを記録して修正する。この期間はpublic APIとCLIの破壊的な
+機能追加を避ける。PDF coreが安定したと判断するまでrendererへ進まない。
+
+## 8. Phase P8：`dp send` workflow（最後に実施）
+
+このphaseはP3 releaseとP4 soakの完了後まで着手しない。
 
 ### 7.1 CLI設計
 
@@ -237,7 +262,7 @@ dp open "Inbox/notes.pdf"
 dp render notes.md --output - | dp put - "Inbox/notes.pdf" --open
 ```
 
-## 8. Phase P5：backupとsync
+## 9. Phase P5：backupとsync
 
 ### 8.1 Backup
 
@@ -277,7 +302,7 @@ apply時にはplan生成後の変更を再確認する。
 - local/device両方が変更された場合は双方保存
 - dry-run表示
 
-## 9. Phase P6：OS統合
+## 10. Phase P6：OS統合
 
 ### 9.1 macOS PDF Service
 
@@ -308,7 +333,7 @@ type Discovery interface {
 }
 ```
 
-## 10. Phase P7：optional機能
+## 11. Phase P7：optional機能
 
 候補：
 
@@ -330,7 +355,7 @@ type Discovery interface {
 - CLI help
 - documentation
 
-## 11. Git workflow
+## 12. Git workflow
 
 ### 11.1 Branch
 
@@ -363,7 +388,7 @@ cli: add dp stat
 - destructive operation有無
 -実機試験の要否
 
-## 12. ADR
+## 13. ADR
 
 設計判断は `docs/adr/` に保存する。
 
@@ -388,7 +413,7 @@ cli: add dp stat
 - Status
 - Date
 
-## 13. Compatibility workflow
+## 14. Compatibility workflow
 
 実機で確認した結果は `spec/compat/models.json` に追加する。
 
@@ -418,7 +443,7 @@ experimental
 unsupported
 ```
 
-## 14. CI workflow
+## 15. CI workflow
 
 ### 14.1 Pull request CI
 
@@ -454,7 +479,7 @@ unsupported
 - release notes
 - compatibility table
 
-## 15. Eval command
+## 16. Eval command
 
 ```sh
 go run ./tools/eval -mode=ci
@@ -491,7 +516,7 @@ reportには次を含める。
 - cross-build result
 - device profile（秘密情報を除く）
 
-## 16. 実機試験workflow
+## 17. 実機試験workflow
 
 実行例：
 
@@ -515,7 +540,7 @@ go test -tags=integration ./...
 -失敗時にcleanup commandを表示
 - root folderや既存文書を削除しない
 
-## 17. セキュリティworkflow
+## 18. セキュリティworkflow
 
 - credential、cookie、PIN、private keyをlog禁止
 - fixture保存前にscrub toolを通す
@@ -525,7 +550,7 @@ go test -tags=integration ./...
 - `--insecure` 使用時は明示警告
 - destructive commandにはprofile名とtarget pathを表示
 
-## 18. Release policy
+## 19. Release policy
 
 ### 18.1 Versioning
 
@@ -548,7 +573,7 @@ Semantic Versioningを使用する。
 - macOS arm64 binary
 - protocol、security、recovery documentation
 
-## 19. プロジェクトの初手
+## 20. プロジェクトの初手
 
 最初の実装作業は次の順とする。
 

@@ -457,6 +457,10 @@ type Artifact struct {
 
 ## 12. CLI仕様
 
+P3の完成対象はPDF操作、profile、pairing、safe deleteまでとする。`send`、
+`render`、Markdown、LaTeX、Pandoc、latexmk、TectonicはP3実使用期間の後へ
+延期し、P3 binaryへ未完成commandとして含めない。
+
 ### 12.1 基本command
 
 ```text
@@ -482,7 +486,7 @@ dp watch
 ### 12.2 例
 
 ```sh
-dp ls "Document"
+dp ls .
 ```
 
 ```sh
@@ -518,7 +522,7 @@ stdin入力は一時ファイルへspoolする。
 command：
 
 ```sh
-dp sync plan ~/DigitalPaper "Document"
+dp sync plan ~/DigitalPaper .
 dp sync apply <plan-id>
 ```
 

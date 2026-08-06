@@ -279,6 +279,10 @@ Commit result
 
 ## 8. ワークフロー統合の考え方
 
+以下は長期構想として保持するが、PDF-only P3の実用版とそのsoak期間が完了
+するまで実装しない。まず通信、pairing、PDF file operation、配布と復旧を
+安定させる。
+
 通信CLIの中心commandを `dp send` とする。
 
 ```sh
