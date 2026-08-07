@@ -104,7 +104,8 @@ keys and configuration files use owner-only permissions and are not overwritten.
 The CLI provides a filesystem-like UI with familiar Unix and FTP commands; it
 does not mount a filesystem. Device paths are always relative to the device
 root; `.` denotes that root and the protocol-internal `Document/` prefix is
-rejected. `ls` prints names, while `ls -l` includes type, byte size,
+rejected. A trailing `/` is accepted on directory paths. `ls` prints names,
+while `ls -l` includes type, byte size,
 modification time, device ID, and name. `cp` and `mv` operate within the device;
 `put` and `get` transfer between the host and device. Existing destinations are
 never overwritten. See `docs/cli.md`.

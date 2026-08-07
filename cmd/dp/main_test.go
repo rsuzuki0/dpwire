@@ -74,8 +74,22 @@ func TestDevicePathsHideProtocolRoot(t *testing.T) {
 	if got := devicePathString(path); got != "Documents/paper.pdf" {
 		t.Fatalf("devicePathString = %q", got)
 	}
+	directory, err := parseDevicePath("Documents///")
+	if err != nil || directory.String() != "Document/Documents" {
+		t.Fatalf("trailing slash path = %q, %v", directory.String(), err)
+	}
+	root, err := parseDevicePath("./")
+	if err != nil || root.String() != "Document" {
+		t.Fatalf("trailing slash root = %q, %v", root.String(), err)
+	}
+	if _, err := parseDevicePath("/"); err == nil {
+		t.Fatal("slash was accepted as the device root")
+	}
 	if _, err := parseDevicePath("Document/Documents/paper.pdf"); err == nil {
 		t.Fatal("protocol-internal Document prefix was accepted by CLI")
+	}
+	if _, err := parseDevicePath("Document/"); err == nil {
+		t.Fatal("protocol-internal Document root with slash was accepted by CLI")
 	}
 	parent, name, err := splitRemoteTarget("Documents/new.pdf")
 	if err != nil || parent.String() != "Document/Documents" || name != "new.pdf" {
@@ -149,13 +163,13 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	if output := invoke("ls"); !strings.Contains(output, "Documents/") {
 		t.Fatalf("root ls = %q", output)
 	}
-	if output := invoke("ls", "-l", "Documents"); !strings.Contains(output, "source.pdf") || !strings.Contains(output, "doc-") {
+	if output := invoke("ls", "-l", "Documents/"); !strings.Contains(output, "source.pdf") || !strings.Contains(output, "doc-") {
 		t.Fatalf("long ls = %q", output)
 	}
 	invoke("file", "Documents/source.pdf")
 	invoke("stat", "Documents/source.pdf")
 	invoke("mkdir", "Documents/Write")
-	invoke("cp", "Documents/source.pdf", "Documents/Write")
+	invoke("cp", "Documents/source.pdf", "Documents/Write/")
 	invoke("mv", "Documents/Write/source.pdf", "Documents/Write/renamed.pdf")
 
 	localUpload := filepath.Join(temporary, "local.pdf")
@@ -163,7 +177,7 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	if err := os.WriteFile(localUpload, uploadContent, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	invoke("put", localUpload, "Documents/Write")
+	invoke("put", localUpload, "Documents/Write/")
 	downloadPath := filepath.Join(temporary, "download.pdf")
 	invoke("get", "Documents/Write/local.pdf", downloadPath)
 	if downloaded, err := os.ReadFile(downloadPath); err != nil || !bytes.Equal(downloaded, uploadContent) {

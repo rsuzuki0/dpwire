@@ -3,7 +3,8 @@
 `dp` provides a filesystem-like CLI UI with familiar Unix and FTP commands; it
 does not mount a filesystem. The protocol's `Document` root and HTTP endpoint
 names are private implementation details. Device paths are always
-root-relative; `.` means the device root.
+root-relative; `.` means the device root. Directory paths accept a trailing
+slash, as in `dp ls Documents/`.
 
 The first imported profile becomes the default:
 
