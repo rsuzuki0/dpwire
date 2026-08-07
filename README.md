@@ -43,6 +43,11 @@ dp profile import-sony rp1 https://127.0.0.1:58443 VERIFIED_SHA256 /path/to/sony
 dp profile list
 ```
 
+Profiles record whether their address is a direct device connection or a local
+vendor-app relay. Loopback imports are classified as `relay`; addresses such as
+`https://digitalpaper.local:8443` are classified as `direct`. Legacy profiles
+without this field remain compatible and are classified from their address.
+
 The first imported profile becomes the default. Daily commands therefore need
 no profile flag:
 

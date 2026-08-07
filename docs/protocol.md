@@ -22,6 +22,13 @@ an exact SHA-256 leaf-certificate fingerprint. First-contact inspection makes
 only a TLS handshake and returns untrusted material for out-of-band review; it
 does not send an HTTP request or credentials.
 
+On the verified DPT-RP1 USB link, mDNS advertises
+`_digitalpaper._tcp.local` at `digitalpaper.local:8080` for registration, while
+the authenticated API is directly available at
+`https://digitalpaper.local:8443`. The TLS leaf fingerprint matches the one
+seen through the Sony application's loopback relay. Direct and relay addresses
+are recorded explicitly in new profiles.
+
 ## P1 read surface
 
 - firmware/model, battery, and storage status

@@ -143,6 +143,28 @@
         "The approved source PDF and retained P2 artifacts were read-only verified after the test and remained present."
       ],
       "quirks": []
+    },
+    {
+      "vendor": "Sony",
+      "model": "DPT-RP1",
+      "firmware": "1.6.50.14130",
+      "tested_at": "2026-08-06",
+      "transport": "direct USB Ethernet via digitalpaper.local:8443",
+      "mode": "existing-credential-direct-read",
+      "verified_operations": [
+        "GET /auth/nonce/{client_id}",
+        "PUT /auth",
+        "GET /system/status/firmware_version",
+        "GET /system/status/battery",
+        "GET /system/status/storage"
+      ],
+      "observations": [
+        "mDNS advertised Digital Paper DPT-RP1 on _digitalpaper._tcp.local at digitalpaper.local port 8080 on the USB link.",
+        "Existing credentials authenticated directly to HTTPS port 8443 without the Sony application loopback relay.",
+        "The direct TLS leaf fingerprint matched the certificate fingerprint observed through the relay.",
+        "The temporary direct-test credential copy was owner-only and removed after verification."
+      ],
+      "quirks": []
     }
   ]
 }

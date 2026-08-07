@@ -20,6 +20,13 @@ connection settings, copies them into an owner-private profile directory, and
 never overwrites an existing profile. `list` and `show` omit credential IDs and
 key paths.
 
+Each profile reports `direct` or `relay`. A direct Sony DPT-RP1 USB connection
+normally uses `https://digitalpaper.local:8443`; registration discovery is
+advertised separately on HTTP port 8080. A loopback address such as
+`https://127.0.0.1:58443` is a relay and requires the vendor application to keep
+running. Existing profiles without an explicit connection field are inferred
+from the address.
+
 ```sh
 dp ls
 dp ls -l Codex_dp

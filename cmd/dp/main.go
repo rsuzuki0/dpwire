@@ -324,7 +324,7 @@ func profileCommand(manager *profiles.Manager, args []string, stdout, stderr io.
 			if item.Current {
 				marker = "*"
 			}
-			fmt.Fprintf(writer, "%s\t%s\t%s\n", marker, item.Name, item.Address)
+			fmt.Fprintf(writer, "%s\t%s\t%s\t%s\n", marker, item.Name, item.Connection, item.Address)
 		}
 		if err := writer.Flush(); err != nil {
 			return 1
@@ -352,7 +352,7 @@ func profileCommand(manager *profiles.Manager, args []string, stdout, stderr io.
 			return report(stderr, err)
 		}
 		currentName, _, currentErr := manager.Current()
-		return encode(stdout, profiles.Summary{Name: name, Address: profile.Address, Current: currentErr == nil && currentName == name})
+		return encode(stdout, profiles.Summary{Name: name, Address: profile.Address, Connection: profile.EffectiveConnection(), Current: currentErr == nil && currentName == name})
 	}
 	if len(args) == 6 && args[1] == "import-sony" {
 		profile, err := manager.ImportSony(args[2], args[3], args[4], args[5])

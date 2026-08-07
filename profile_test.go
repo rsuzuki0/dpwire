@@ -27,8 +27,28 @@ func TestProfileRoundTripAndPermissions(t *testing.T) {
 	if got.Name != want.Name || got.Address != want.Address {
 		t.Fatalf("profile = %#v, want %#v", got, want)
 	}
+	if got.EffectiveConnection() != ConnectionDirect {
+		t.Fatalf("connection = %q", got.EffectiveConnection())
+	}
 	if err := SaveProfile(path, want); err == nil {
 		t.Fatal("SaveProfile overwrote existing file")
+	}
+}
+
+func TestConnectionModeInferenceAndValidation(t *testing.T) {
+	for address, want := range map[string]ConnectionMode{
+		"https://127.0.0.1:58443":         ConnectionRelay,
+		"https://[::1]:58443":             ConnectionRelay,
+		"https://localhost:58443":         ConnectionRelay,
+		"https://digitalpaper.local:8443": ConnectionDirect,
+	} {
+		if got := InferConnectionMode(address); got != want {
+			t.Fatalf("InferConnectionMode(%q) = %q, want %q", address, got, want)
+		}
+	}
+	profile := DeviceProfile{Name: "bad", Address: "https://host", Connection: "unknown", ClientID: "id", CertificateSHA256: strings.Repeat("a", 64)}
+	if err := profile.validate(); err == nil {
+		t.Fatal("invalid connection mode accepted")
 	}
 }
 

@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -14,17 +16,51 @@ import (
 
 const maxProfileSize = 1 << 20
 
+// ConnectionMode identifies whether a profile talks to a device directly or
+// through a local vendor-application relay.
+type ConnectionMode string
+
+const (
+	ConnectionDirect ConnectionMode = "direct"
+	ConnectionRelay  ConnectionMode = "relay"
+)
+
 // DeviceProfile contains non-session connection configuration. DeviceCAPEM is
 // encoded as base64 by JSON; private key material remains in a separate file.
 type DeviceProfile struct {
-	Name              string `json:"name"`
-	Address           string `json:"address"`
-	Model             string `json:"model,omitempty"`
-	Firmware          string `json:"firmware,omitempty"`
-	ClientID          string `json:"client_id"`
-	PrivateKeyRef     string `json:"private_key_ref"`
-	DeviceCAPEM       []byte `json:"device_ca_pem,omitempty"`
-	CertificateSHA256 string `json:"certificate_sha256,omitempty"`
+	Name              string         `json:"name"`
+	Address           string         `json:"address"`
+	Connection        ConnectionMode `json:"connection,omitempty"`
+	Model             string         `json:"model,omitempty"`
+	Firmware          string         `json:"firmware,omitempty"`
+	ClientID          string         `json:"client_id"`
+	PrivateKeyRef     string         `json:"private_key_ref"`
+	DeviceCAPEM       []byte         `json:"device_ca_pem,omitempty"`
+	CertificateSHA256 string         `json:"certificate_sha256,omitempty"`
+}
+
+// EffectiveConnection returns the explicit mode or infers it for legacy
+// profiles. Loopback addresses are relays; all other addresses are direct.
+func (p DeviceProfile) EffectiveConnection() ConnectionMode {
+	if p.Connection != "" {
+		return p.Connection
+	}
+	return InferConnectionMode(p.Address)
+}
+
+// InferConnectionMode classifies an address without opening a connection.
+func InferConnectionMode(address string) ConnectionMode {
+	parsed, err := url.Parse(address)
+	if err == nil {
+		host := parsed.Hostname()
+		if host == "localhost" {
+			return ConnectionRelay
+		}
+		if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+			return ConnectionRelay
+		}
+	}
+	return ConnectionDirect
 }
 
 // LoadProfile reads one strict JSON profile.
@@ -76,6 +112,9 @@ func SaveProfile(path string, profile DeviceProfile) error {
 func (p DeviceProfile) validate() error {
 	if p.Name == "" || p.Address == "" || p.ClientID == "" {
 		return errors.New("digitalpaper: profile name, address, and client_id are required")
+	}
+	if p.Connection != "" && p.Connection != ConnectionDirect && p.Connection != ConnectionRelay {
+		return errors.New("digitalpaper: profile connection must be direct or relay")
 	}
 	if len(p.DeviceCAPEM) == 0 && p.CertificateSHA256 == "" {
 		return errors.New("digitalpaper: profile requires a device CA or certificate fingerprint")

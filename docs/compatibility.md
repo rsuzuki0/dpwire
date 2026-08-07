@@ -40,3 +40,10 @@ document deletion succeeded, and empty-folder deletion with
 `force_delete_flag: "false"` succeeded for both generated folders. Post-delete
 lookups confirmed absence. The approved source PDF and retained P2 artifacts
 were read-only verified afterward and remained present.
+
+The same USB-connected device was also discovered on interface-scoped mDNS as
+`Digital Paper DPT-RP1._digitalpaper._tcp.local`, with registration at
+`digitalpaper.local:8080`. Existing credentials authenticated directly against
+`https://digitalpaper.local:8443`, and firmware, battery, and storage requests
+succeeded without using the loopback relay. The direct TLS certificate
+fingerprint matched the relay-visible device certificate.

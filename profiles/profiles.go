@@ -25,9 +25,10 @@ type Manager struct{ root string }
 
 // Summary is safe to display and excludes client IDs and key paths.
 type Summary struct {
-	Name    string `json:"name"`
-	Address string `json:"address"`
-	Current bool   `json:"current"`
+	Name       string                      `json:"name"`
+	Address    string                      `json:"address"`
+	Connection digitalpaper.ConnectionMode `json:"connection"`
+	Current    bool                        `json:"current"`
 }
 
 type configuration struct {
@@ -62,7 +63,7 @@ func (m *Manager) ImportSony(name, address, fingerprint, credentialDirectory str
 		return digitalpaper.DeviceProfile{}, err
 	}
 	profile := digitalpaper.DeviceProfile{
-		Name: name, Address: address, ClientID: creds.ClientID,
+		Name: name, Address: address, Connection: digitalpaper.InferConnectionMode(address), ClientID: creds.ClientID,
 		PrivateKeyRef: "privatekey.pem", CertificateSHA256: fingerprint,
 	}
 	if _, err := digitalpaper.NewClient(profile, digitalpaper.WithCredentials(creds)); err != nil {
@@ -153,7 +154,7 @@ func (m *Manager) List() ([]Summary, error) {
 		if err != nil {
 			return nil, fmt.Errorf("profiles: load %q: %w", entry.Name(), err)
 		}
-		items = append(items, Summary{Name: entry.Name(), Address: profile.Address, Current: entry.Name() == current})
+		items = append(items, Summary{Name: entry.Name(), Address: profile.Address, Connection: profile.EffectiveConnection(), Current: entry.Name() == current})
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i].Name < items[j].Name })
 	return items, nil

@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/rsuzuki0/digitalpaper"
 )
 
 func TestImportListUseAndCurrent(t *testing.T) {
@@ -25,6 +27,9 @@ func TestImportListUseAndCurrent(t *testing.T) {
 	if profile.Name != "first" || !filepath.IsAbs(profile.PrivateKeyRef) {
 		t.Fatalf("profile = %#v", profile)
 	}
+	if profile.Connection != digitalpaper.ConnectionRelay {
+		t.Fatalf("first connection = %q", profile.Connection)
+	}
 	second := sonyCredentials(t, "second-client")
 	if _, err := manager.ImportSony("second", "https://192.0.2.1:8443", strings.Repeat("b", 64), second); err != nil {
 		t.Fatal(err)
@@ -32,6 +37,9 @@ func TestImportListUseAndCurrent(t *testing.T) {
 	items, err := manager.List()
 	if err != nil || len(items) != 2 || !items[0].Current || items[0].Name != "first" {
 		t.Fatalf("items = %#v, err = %v", items, err)
+	}
+	if items[1].Connection != digitalpaper.ConnectionDirect {
+		t.Fatalf("second connection = %q", items[1].Connection)
 	}
 	if err := manager.Use("second"); err != nil {
 		t.Fatal(err)
