@@ -94,6 +94,7 @@ dp device
 dp ls
 dp ls -l /Documents
 dp ls -lt '/Documents/*.pdf' | head -n 20
+dp ls -lt --global / | head -n 20
 dp ls -lR /
 dp file /Documents/paper.pdf
 dp file --id 23
@@ -149,6 +150,14 @@ entry first; combine it with `-l`, a quoted PDF glob, and standard tools such as
 `dp ls -lt '/Documents/*.pdf' | head -n 20`. Entries without a valid device
 modification time sort after dated entries. Equal times retain the normalized
 name order.
+
+For one newest-first list across a complete subtree, use
+`dp ls -lt --global /Documents`. `--global` implies recursive traversal,
+collects documents only, flattens them into one list with full device paths,
+and then applies the selected name or time ordering. `-R` may still be supplied,
+so `dp ls -lRt --global /` is equivalent. For example, the newest 20 PDFs on
+the device are `dp ls -lt --global / | head -n 20`. Global ordering must collect
+the complete subtree before it can print its first result.
 
 Recursive listing is explicit: `dp ls -R /Documents` lists that tree, and
 `dp ls -lR /Documents` adds the long columns. `-lR`, `-Rl`, `-l -R`, and

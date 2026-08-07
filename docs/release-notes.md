@@ -21,6 +21,8 @@ library.
   bounded recursive listings through `ls -R` and `ls -lR`.
 - Unix-style `ls -t` modification-time sorting, including combined short,
   long, and recursive option forms.
+- Flat, documents-only `ls --global` traversal for globally sorted newest-file
+  listings with complete device paths.
 - Confirmation for suspicious metacharacter-free `--glob` values, sorted
   listings, memoized recursive reference assignment, strict page parsing, and
   case-insensitive rejection of the private protocol root.

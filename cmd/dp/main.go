@@ -146,6 +146,12 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 		if resolveErr != nil {
 			return report(stderr, resolveErr)
 		}
+		if listOptions.global {
+			if err := printGlobalEntries(ctx, client, store, resolved, listOptions, stdout); err != nil {
+				return report(stderr, err)
+			}
+			return 0
+		}
 		if listOptions.recursive {
 			if err := printRecursiveEntries(ctx, client, store, resolved, listOptions, stdout); err != nil {
 				return report(stderr, err)
@@ -626,11 +632,22 @@ type listCommandOptions struct {
 	long      bool
 	recursive bool
 	newest    bool
+	global    bool
 }
 
 func parseListArguments(arguments []string) (options listCommandOptions, selector objectSelector, ok bool) {
-	for len(arguments) > 0 && isListOption(arguments[0]) {
-		for _, flag := range arguments[0][1:] {
+	for len(arguments) > 0 {
+		argument := arguments[0]
+		if argument == "--global" {
+			options.global = true
+			options.recursive = true
+			arguments = arguments[1:]
+			continue
+		}
+		if !isListOption(argument) {
+			break
+		}
+		for _, flag := range argument[1:] {
 			switch flag {
 			case 'l':
 				options.long = true
@@ -662,7 +679,10 @@ func isListOption(argument string) bool {
 }
 
 func listArgumentCount(arguments []string) int {
-	for len(arguments) > 0 && isListOption(arguments[0]) {
+	for len(arguments) > 0 {
+		if arguments[0] != "--global" && !isListOption(arguments[0]) {
+			break
+		}
 		arguments = arguments[1:]
 	}
 	return len(arguments)
@@ -853,6 +873,98 @@ func printRecursiveEntries(ctx context.Context, client *dpwire.Client, store *pr
 	return nil
 }
 
+func printGlobalEntries(ctx context.Context, client *dpwire.Client, store *profiles.ObjectReferenceStore, roots []dpwire.Entry, options listCommandOptions, output io.Writer) error {
+	visitedFolders := make(map[string]bool)
+	seenDocuments := make(map[string]bool)
+	documents := make([]dpwire.Entry, 0)
+	observed := 0
+
+	addDocument := func(entry dpwire.Entry) error {
+		if seenDocuments[entry.ID] {
+			return nil
+		}
+		seenDocuments[entry.ID] = true
+		documents = append(documents, entry)
+		observed++
+		if observed > maximumGlobEntries {
+			return fmt.Errorf("global listing exceeds the %d-object safety limit", maximumGlobEntries)
+		}
+		return nil
+	}
+
+	var visit func(dpwire.Entry) error
+	visit = func(folder dpwire.Entry) error {
+		if visitedFolders[folder.ID] {
+			return nil
+		}
+		visitedFolders[folder.ID] = true
+		entries, err := client.Folders.List(ctx, folder.ID, dpwire.ListOptions{})
+		if err != nil {
+			return err
+		}
+		observed += len(entries)
+		if observed > maximumGlobEntries {
+			return fmt.Errorf("global listing exceeds the %d-object safety limit", maximumGlobEntries)
+		}
+		sortDeviceEntries(entries, false)
+		for _, entry := range entries {
+			if entry.Type == dpwire.EntryDocument {
+				if seenDocuments[entry.ID] {
+					continue
+				}
+				seenDocuments[entry.ID] = true
+				documents = append(documents, entry)
+			}
+		}
+		for _, entry := range entries {
+			if entry.Type == dpwire.EntryFolder {
+				if err := visit(entry); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+
+	sortDeviceEntries(roots, false)
+	for _, entry := range roots {
+		if entry.Type == dpwire.EntryDocument {
+			if err := addDocument(entry); err != nil {
+				return err
+			}
+		}
+	}
+	for _, entry := range roots {
+		if entry.Type == dpwire.EntryFolder {
+			if err := visit(entry); err != nil {
+				return err
+			}
+		}
+	}
+
+	var references map[string]profiles.ObjectReference
+	var err error
+	if options.long {
+		if store == nil {
+			return errors.New("object reference store is unavailable")
+		}
+		sortDeviceEntries(documents, false)
+		references, err = store.Assign(documents)
+		if err != nil {
+			return err
+		}
+	}
+	sortDeviceEntries(documents, options.newest)
+	flat := append([]dpwire.Entry(nil), documents...)
+	for index := range flat {
+		flat[index].Name = devicePathString(flat[index].Path)
+	}
+	if printEntries(output, flat, references, options.long) != 0 {
+		return errors.New("could not write global listing")
+	}
+	return nil
+}
+
 func get(ctx context.Context, client *dpwire.Client, entry dpwire.Entry, local string, stdout, stderr io.Writer) int {
 	if entry.Type != dpwire.EntryDocument {
 		return report(stderr, errors.New("remote path is not a document"))
@@ -896,7 +1008,7 @@ func usage(output io.Writer) {
 	fmt.Fprintln(output, "commands:")
 	fmt.Fprintln(output)
 	commands := [][2]string{
-		{"ls [-lRt] [OBJECT]", "list the root, a folder, or matching objects"},
+		{"ls [-lRt] [--global] [OBJECT]", "list the root, a folder, or matching objects"},
 		{"stat OBJECT", "show complete entry metadata"},
 		{"file OBJECT", "alias for stat"},
 		{"get OBJECT [LOCAL_FILE]", "download PDF without overwriting"},
@@ -931,4 +1043,5 @@ func usage(output io.Writer) {
 	fmt.Fprintln(output, "a trailing / on a glob matches folders only")
 	fmt.Fprintln(output, "ls -R recursively lists folders; glob matching itself is not recursive")
 	fmt.Fprintln(output, "ls -t sorts each listing by modification time, newest first")
+	fmt.Fprintln(output, "ls --global emits one recursive, flat, documents-only listing with full paths")
 }

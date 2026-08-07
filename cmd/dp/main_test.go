@@ -148,6 +148,14 @@ func TestUnixStyleListOutput(t *testing.T) {
 			t.Fatalf("parseListArguments(%q) = %+v, %q, %v", test.arguments, options, gotTarget, ok)
 		}
 	}
+	globalOptions, globalTarget, globalOK := parseListArguments([]string{"-lt", "--global", "/Documents"})
+	if !globalOK || !globalOptions.long || !globalOptions.newest || !globalOptions.recursive || !globalOptions.global || globalTarget.value != "/Documents" {
+		t.Fatalf("global list options = %+v, %q, %v", globalOptions, globalTarget.value, globalOK)
+	}
+	globalOptions, globalTarget, globalOK = parseListArguments([]string{"--global", "-tl", "/"})
+	if !globalOK || !globalOptions.long || !globalOptions.newest || !globalOptions.recursive || !globalOptions.global || globalTarget.value != "/" {
+		t.Fatalf("leading global list options = %+v, %q, %v", globalOptions, globalTarget.value, globalOK)
+	}
 	for _, value := range []string{"0", "-1", "1x", "1 2", ""} {
 		if _, err := parsePage(value); err == nil {
 			t.Fatalf("page %q was accepted", value)
@@ -387,6 +395,23 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 			}
 			previous = index
 		}
+	}
+	globalListing := invoke("ls", "-lt", "--global", "/")
+	previous := -1
+	for _, name := range []string{"/root.pdf", "/Documents/zenith.pdf", "/Documents/zebra.pdf", "/Documents/年次 報告 2026.pdf", "/Documents/source.pdf", "/Documents/literal*.pdf", "/Documents/Archive/old.pdf"} {
+		index := strings.Index(globalListing, name)
+		if index <= previous {
+			t.Fatalf("global time-sorted ls at %q: %q", name, globalListing)
+		}
+		previous = index
+	}
+	for _, line := range strings.Split(globalListing, "\n") {
+		if strings.HasSuffix(strings.TrimSpace(line), "/") {
+			t.Fatalf("global listing contains a folder entry: %q", globalListing)
+		}
+	}
+	if output := invoke("ls", "-lRt", "--global", "/"); output != globalListing {
+		t.Fatalf("explicit recursive global listing differs:\n%s\n%s", globalListing, output)
 	}
 	for _, flags := range [][]string{{"-R"}, {"-lR"}, {"-Rl"}, {"-l", "-R"}, {"-R", "-l"}, {"-ltR"}, {"-Rtl"}, {"-l", "-t", "-R"}} {
 		arguments := append(append([]string{"ls"}, flags...), "/Documents")

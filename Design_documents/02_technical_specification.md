@@ -285,6 +285,11 @@ deviceの `modified_date` をRFC 3339として解釈し、新しい順に並べ�
 処理はtree全体の収集を待たず、command内で検証済みstore stateをmemoizeする。
 他processによるatomic replacementを検出した場合はcacheを破棄し、file lockによる
 同時実行安全性を維持する。
+`ls --global` は指定folder以下を再帰走査し、documentだけを完全path付きのflatな
+一覧へ集約する。`-t` 指定時はtree全体をmodified time順にsortする。`--global` は
+`-R`を暗黙に有効化し、明示的な`-R`も受け付ける。global sortは全subtreeの収集後に
+出力を開始し、重複object IDは一度だけ出力、通常の再帰と同じ10,000 object上限を
+適用する。
 明示的 `--glob` にglob metacharacterがない場合は、host shellによる一件展開の疑いを
 示して `y/[N]` を要求する。通常pathとして渡された一件展開は識別不能であるため、
 globをquoteする規則は維持する。

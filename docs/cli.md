@@ -54,6 +54,7 @@ a valid strict profile is also an error.
 dp ls
 dp ls -l /Documents
 dp ls -lt '/Documents/*.pdf' | head -n 20
+dp ls -lt --global / | head -n 20
 dp ls -lR /
 dp file /Documents/paper.pdf
 dp file --id 23
@@ -98,6 +99,20 @@ invalid modification time follow dated entries; equal times use the normal name
 order. `-t`, `-l`, and `-R` may be grouped in any order or supplied as separate
 options. With `-R`, time ordering applies independently inside each listed
 directory rather than globally across the tree.
+
+`--global` provides the global form: it implies recursive traversal, collects
+documents only, and prints one flat list using complete device paths. The
+newest 20 PDFs anywhere on the device are therefore:
+
+```sh
+dp ls -lt --global / | head -n 20
+```
+
+An explicit `-R` is accepted, making `dp ls -lRt --global /` equivalent. Unlike
+ordinary recursive output, global output has no directory headings. It must
+read the complete selected subtree before sorting and printing, so initial
+latency and device requests scale with the tree size. The same 10,000-object
+safety limit applies, and duplicate object IDs are emitted once.
 
 Commands that accept an existing object accept any one of these forms:
 
