@@ -92,7 +92,7 @@ func forbidden(rel, imported string) string {
 
 	// Public library packages must never depend on workflows, renderers, CLI,
 	// simulator helpers, or commands.
-	public := !strings.Contains(path, "/") || strings.HasPrefix(path, "credentials/") || strings.HasPrefix(path, "discovery/") || strings.HasPrefix(path, "profiles/")
+	public := !strings.Contains(path, "/") || strings.HasPrefix(path, "credentials/") || strings.HasPrefix(path, "discovery/") || strings.HasPrefix(path, "pairing/") || strings.HasPrefix(path, "profiles/")
 	if public && importsAny("/workflow", "/render", "/internal/cli", "/cmd", "/dptest") {
 		return "public library cannot depend on workflow, rendering, CLI, command, or simulator layers"
 	}

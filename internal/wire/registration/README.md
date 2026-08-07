@@ -1,5 +1,8 @@
-# Registration wire protocol (reserved for P3)
+# Registration wire protocol
 
-P0 reserves the package location only. Complete pairing, including PIN, DH,
-PBKDF2, HMAC, AES-KW, RSA, certificate, and signed-byte compatibility, must be
-implemented and reviewed together in P3.
+This internal package implements complete P3 client registration: PIN, RFC 3526
+group 14 DH, PBKDF2-HMAC-SHA256, transcript HMACs, the protocol's AES-CBC
+wrapping format, RSA identity generation, device-certificate validation, and
+cleanup. It preserves the device's raw 256/257-byte Java BigInteger encoding in
+authenticated transcripts. Public callers use `pairing`; `dptest` uses the
+server-side emulator.

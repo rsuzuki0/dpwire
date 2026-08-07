@@ -1,6 +1,7 @@
 package profiles
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -50,6 +51,21 @@ func TestImportListUseAndCurrent(t *testing.T) {
 	}
 	if _, err := manager.ImportSony("second", "https://192.0.2.1:8443", strings.Repeat("b", 64), second); err == nil {
 		t.Fatal("existing profile was overwritten")
+	}
+	pinRequested := false
+	if _, err := manager.Pair(context.Background(), "first", "digitalpaper.local", func(context.Context) (string, error) {
+		pinRequested = true
+		return "123456", nil
+	}); err == nil || pinRequested {
+		t.Fatalf("existing profile pairing error=%v pinRequested=%v", err, pinRequested)
+	}
+	if _, err := manager.Pair(context.Background(), "failed-pair", "https://127.0.0.1:58443", func(context.Context) (string, error) {
+		return "123456", nil
+	}); err == nil {
+		t.Fatal("loopback pairing succeeded")
+	}
+	if _, err := os.Stat(filepath.Join(root, "profiles", "failed-pair")); !os.IsNotExist(err) {
+		t.Fatalf("failed pairing directory remains: %v", err)
 	}
 	for _, path := range []string{
 		filepath.Join(root, "config.json"),

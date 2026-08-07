@@ -8,8 +8,9 @@ The project is being built in phases. P0 preserves protocol references and
 provides reproducible checks, compatibility catalogs, crypto test vectors, and
 a stateful HTTPS simulator. P1 adds authenticated, read-only device access. P2
 adds verified folder creation, PDF upload, device-side copy, move/rename, and
-viewer control. P3 has added named profile onboarding and guarded deletion;
-fresh pairing and release packaging remain in progress.
+viewer control. P3 has added named profile onboarding, guarded deletion, direct
+connection, and fresh pairing. Physical pairing validation and release
+packaging remain in progress.
 
 P3 targets a complete PDF-only daily-use release: profile onboarding, fresh
 pairing, guarded deletion, packaging, installation, and recovery. Document
@@ -47,6 +48,16 @@ Profiles record whether their address is a direct device connection or a local
 vendor-app relay. Loopback imports are classified as `relay`; addresses such as
 `https://digitalpaper.local:8443` are classified as `direct`. Legacy profiles
 without this field remain compatible and are classified from their address.
+
+For a fresh direct identity, connect the device by USB and run:
+
+```sh
+dp profile pair rp1-direct digitalpaper.local
+```
+
+The device displays a PIN after the authenticated key exchange begins. Enter it
+at the prompt. The new RSA private key and profile are stored owner-only outside
+the Sony application directory; an existing profile is never overwritten.
 
 The first imported profile becomes the default. Daily commands therefore need
 no profile flag:

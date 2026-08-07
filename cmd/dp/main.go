@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -19,9 +20,13 @@ import (
 
 const version = "0.3.0-p3"
 
-func main() { os.Exit(run(os.Args[1:], os.Stdout, os.Stderr)) }
+func main() { os.Exit(runWithInput(os.Args[1:], os.Stdin, os.Stdout, os.Stderr)) }
 
 func run(arguments []string, stdout, stderr io.Writer) int {
+	return runWithInput(arguments, strings.NewReader(""), stdout, stderr)
+}
+
+func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("dp", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	profileSelection := flags.String("profile", "", "named profile or profile JSON file")
@@ -57,8 +62,9 @@ func run(arguments []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return report(stderr, err)
 	}
+	ctx := context.Background()
 	if args[0] == "profile" {
-		return profileCommand(manager, args, stdout, stderr)
+		return profileCommand(ctx, manager, args, stdin, stdout, stderr)
 	}
 	profile, err := selectedProfile(manager, *profileSelection)
 	if err != nil {
@@ -68,7 +74,6 @@ func run(arguments []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return report(stderr, err)
 	}
-	ctx := context.Background()
 	if err := client.Authenticate(ctx); err != nil {
 		return report(stderr, err)
 	}
@@ -312,7 +317,7 @@ func selectedProfile(manager *profiles.Manager, selection string) (digitalpaper.
 	return manager.Load(selection)
 }
 
-func profileCommand(manager *profiles.Manager, args []string, stdout, stderr io.Writer) int {
+func profileCommand(ctx context.Context, manager *profiles.Manager, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	if len(args) == 2 && args[1] == "list" {
 		items, err := manager.List()
 		if err != nil {
@@ -356,6 +361,22 @@ func profileCommand(manager *profiles.Manager, args []string, stdout, stderr io.
 	}
 	if len(args) == 6 && args[1] == "import-sony" {
 		profile, err := manager.ImportSony(args[2], args[3], args[4], args[5])
+		if err != nil {
+			return report(stderr, err)
+		}
+		fmt.Fprintln(stdout, profile.Name)
+		return 0
+	}
+	if len(args) == 4 && args[1] == "pair" {
+		reader := bufio.NewReader(io.LimitReader(stdin, 1024))
+		profile, err := manager.Pair(ctx, args[2], args[3], func(context.Context) (string, error) {
+			fmt.Fprint(stderr, "Enter the PIN displayed on the device: ")
+			value, readErr := reader.ReadString('\n')
+			if readErr != nil && !errors.Is(readErr, io.EOF) {
+				return "", readErr
+			}
+			return strings.TrimSpace(value), nil
+		})
 		if err != nil {
 			return report(stderr, err)
 		}
@@ -584,6 +605,7 @@ func usage(output io.Writer) {
 	fmt.Fprintln(output, "  inspect-cert ADDRESS            inspect untrusted first-contact certificate")
 	fmt.Fprintln(output, "  credentials find ROOT           list existing Sony credential pairs")
 	fmt.Fprintln(output, "  profile import-sony NAME ADDRESS SHA256 CREDENTIAL_DIR")
+	fmt.Fprintln(output, "  profile pair NAME DIRECT_ADDRESS  register a new direct client identity")
 	fmt.Fprintln(output, "  profile list                    list configured devices")
 	fmt.Fprintln(output, "  profile use NAME                select the default device")
 	fmt.Fprintln(output, "  profile show [NAME]             show safe connection details")

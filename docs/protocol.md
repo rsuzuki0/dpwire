@@ -29,6 +29,34 @@ the authenticated API is directly available at
 seen through the Sony application's loopback relay. Direct and relay addresses
 are recorded explicitly in new profiles.
 
+## P3 fresh registration
+
+Fresh registration uses the separate HTTP port 8080 and executes
+`PUT /register/cleanup`, then `POST /register/pin`, `/register/hash`,
+`/register/ca`, and `/register`, followed by cleanup. It uses RFC 3526 group 14
+DH, PBKDF2-HMAC-SHA256 with 10,000 iterations and a 48-byte result, transcript
+HMAC-SHA256, and the device protocol's AES-CBC/PKCS#7 wrapping with an
+eight-byte HMAC integrity value and trailing IV.
+
+The raw device DH contribution is retained exactly in every transcript HMAC.
+Known Java firmware can encode the positive BigInteger in 257 bytes by adding a
+leading zero when its high bit is set; normalizing this to 256 bytes breaks
+roughly half of registrations. Only modular exponentiation converts it to an
+unsigned integer. Device public keys are range- and subgroup-checked.
+
+The PIN is never accepted on the command line. After M3 verification the CLI
+reads it from standard input. Wrong PIN, nonce mismatch, HMAC mismatch,
+malformed Base64, invalid wrapping, invalid certificate, redirects, and
+oversized responses all fail closed. Cleanup is attempted after success,
+failure, or interruption. The returned device CA, new RSA-2048 private key, and
+UUID client ID are persisted only by the profile layer.
+
+The verified DPT-RP1 certificate has `CN=digitalpaper.local` but no Subject
+Alternative Name extension. CA-only hostname validation therefore fails under
+modern Go. Fresh pairing stores both the returned PEM certificate and the exact
+leaf DER SHA-256. Operational TLS uses the exact pin while retaining the PEM as
+device evidence; it never enables unverified trust-all TLS.
+
 ## P1 read surface
 
 - firmware/model, battery, and storage status

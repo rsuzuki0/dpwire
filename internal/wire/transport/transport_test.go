@@ -32,8 +32,8 @@ func testServer(t *testing.T) (*httptest.Server, string, []byte) {
 }
 
 func TestPinnedTransportAndCookie(t *testing.T) {
-	server, fingerprint, _ := testServer(t)
-	client, err := New(server.URL, TrustConfig{CertificateSHA256: fingerprint}, time.Second)
+	server, fingerprint, ca := testServer(t)
+	client, err := New(server.URL, TrustConfig{CAPEM: ca, CertificateSHA256: fingerprint}, time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}

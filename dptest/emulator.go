@@ -18,12 +18,16 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	wireregistration "github.com/rsuzuki0/digitalpaper/internal/wire/registration"
 )
 
 // Simulator is an in-process HTTPS Digital Paper protocol simulator.
 type Simulator struct {
-	State  *State
-	server *httptest.Server
+	State              *State
+	server             *httptest.Server
+	registration       *wireregistration.Emulator
+	registrationServer *httptest.Server
 }
 
 // Start starts a loopback TLS simulator.
@@ -33,11 +37,25 @@ func Start(state *State) *Simulator {
 	}
 	sim := &Simulator{State: state}
 	sim.server = httptest.NewTLSServer(http.HandlerFunc(sim.serveHTTP))
+	registration, err := wireregistration.NewEmulator("123456", sim.DeviceCAPEM(), rand.Reader, state.RegisterClient)
+	if err != nil {
+		sim.server.Close()
+		panic(err)
+	}
+	sim.registration = registration
+	sim.registrationServer = httptest.NewServer(registration)
 	return sim
 }
 
 // URL returns the simulator base URL.
 func (s *Simulator) URL() string { return s.server.URL }
+
+// RegistrationURL returns the simulator's separate plaintext registration
+// endpoint. It contains no existing credentials.
+func (s *Simulator) RegistrationURL() string { return s.registrationServer.URL }
+
+// SetRegistrationPIN changes the PIN for future emulator registrations.
+func (s *Simulator) SetRegistrationPIN(pin string) error { return s.registration.SetPIN(pin) }
 
 // Client returns an HTTP client that validates and trusts this simulator's
 // certificate only. It never enables InsecureSkipVerify.
@@ -66,7 +84,10 @@ func (s *Simulator) CertificateSHA256() string {
 }
 
 // Close stops the simulator.
-func (s *Simulator) Close() { s.server.Close() }
+func (s *Simulator) Close() {
+	s.registrationServer.Close()
+	s.server.Close()
+}
 
 func (s *Simulator) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	if fault, ok := s.State.takeFault(r.Method + " " + r.URL.Path); ok {

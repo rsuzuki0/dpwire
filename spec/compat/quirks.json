@@ -28,6 +28,18 @@
       "fallback": "The alias preserves compatibility with fixtures or firmware following the translated property name.",
       "regression_tests": ["digitalpaper.BatteryStatus.UnmarshalJSON"],
       "first_verified": "2026-08-06"
+    },
+    {
+      "id": "sony-dpt-rp1-certificate-without-san",
+      "models": ["DPT-RP1"],
+      "firmware_verified": ["1.6.50.14130"],
+      "operation": "PUT /auth",
+      "reference_behavior": "Modern TLS hostname verification requires a Subject Alternative Name extension; Common Name alone is insufficient.",
+      "observed_behavior": "The self-signed device certificate has CN=digitalpaper.local and no certificate extensions, including no Subject Alternative Name.",
+      "compatibility_behavior": "Retain the registration-returned certificate and pin its exact leaf DER SHA-256; do not disable verification or rely on legacy Common Name matching.",
+      "fallback": "Profiles with an explicit exact fingerprint use certificate pinning. CA-only profiles continue to use normal chain and hostname verification.",
+      "regression_tests": ["internal/wire/transport.TestPinnedTransportAndCookie"],
+      "first_verified": "2026-08-06"
     }
   ]
 }

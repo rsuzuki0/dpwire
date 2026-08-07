@@ -3,6 +3,7 @@ package profiles
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"github.com/rsuzuki0/digitalpaper"
 	"github.com/rsuzuki0/digitalpaper/credentials"
 	"github.com/rsuzuki0/digitalpaper/internal/atomicfile"
+	"github.com/rsuzuki0/digitalpaper/pairing"
 )
 
 const maxConfigSize = 1 << 20
@@ -83,6 +85,54 @@ func (m *Manager) ImportSony(name, address, fingerprint, credentialDirectory str
 		}
 	}()
 	if err := atomicfile.WriteNew(filepath.Join(profileDirectory, "privatekey.pem"), creds.PrivateKeyPEM, 0o600); err != nil {
+		return digitalpaper.DeviceProfile{}, err
+	}
+	if err := digitalpaper.SaveProfile(filepath.Join(profileDirectory, "profile.json"), profile); err != nil {
+		return digitalpaper.DeviceProfile{}, err
+	}
+	if _, err := m.defaultName(); errors.Is(err, os.ErrNotExist) {
+		if err := m.Use(name); err != nil {
+			return digitalpaper.DeviceProfile{}, err
+		}
+	} else if err != nil {
+		return digitalpaper.DeviceProfile{}, err
+	}
+	complete = true
+	return m.Load(name)
+}
+
+// Pair performs fresh direct registration and stores the resulting identity in
+// a new owner-private profile. An existing profile is never overwritten.
+func (m *Manager) Pair(ctx context.Context, name, address string, providePIN pairing.PINProvider) (digitalpaper.DeviceProfile, error) {
+	if err := validateName(name); err != nil {
+		return digitalpaper.DeviceProfile{}, err
+	}
+	if err := m.ensureRoot(); err != nil {
+		return digitalpaper.DeviceProfile{}, err
+	}
+	profileDirectory := m.profileDirectory(name)
+	if err := os.Mkdir(profileDirectory, 0o700); err != nil {
+		return digitalpaper.DeviceProfile{}, fmt.Errorf("profiles: create %q: %w", name, err)
+	}
+	complete := false
+	defer func() {
+		if !complete {
+			_ = os.RemoveAll(profileDirectory)
+		}
+	}()
+	result, err := pairing.Register(ctx, address, providePIN)
+	if err != nil {
+		return digitalpaper.DeviceProfile{}, err
+	}
+	profile := digitalpaper.DeviceProfile{
+		Name: name, Address: result.Address, Connection: digitalpaper.ConnectionDirect,
+		ClientID: result.Credentials.ClientID, PrivateKeyRef: "privatekey.pem", DeviceCAPEM: result.DeviceCAPEM,
+		CertificateSHA256: result.CertificateSHA256,
+	}
+	if _, err := digitalpaper.NewClient(profile, digitalpaper.WithCredentials(result.Credentials)); err != nil {
+		return digitalpaper.DeviceProfile{}, fmt.Errorf("profiles: validate paired identity: %w", err)
+	}
+	if err := atomicfile.WriteNew(filepath.Join(profileDirectory, "privatekey.pem"), result.Credentials.PrivateKeyPEM, 0o600); err != nil {
 		return digitalpaper.DeviceProfile{}, err
 	}
 	if err := digitalpaper.SaveProfile(filepath.Join(profileDirectory, "profile.json"), profile); err != nil {

@@ -17,6 +17,7 @@ import (
 	"github.com/rsuzuki0/digitalpaper"
 	"github.com/rsuzuki0/digitalpaper/credentials"
 	"github.com/rsuzuki0/digitalpaper/dptest"
+	wireregistration "github.com/rsuzuki0/digitalpaper/internal/wire/registration"
 )
 
 func TestAuthenticatedReadOnlyClient(t *testing.T) {
@@ -268,5 +269,53 @@ func TestSafeDeleteLifecycle(t *testing.T) {
 	}
 	if err := client.Folders.DeleteEmpty(ctx, "root"); err == nil {
 		t.Fatal("device root deletion succeeded")
+	}
+}
+
+func TestFreshPairingEmulatorLifecycle(t *testing.T) {
+	state := dptest.NewState("DPT-RP1", "test-p3-pairing")
+	state.RequireAuthentication(true)
+	simulator := dptest.Start(state)
+	defer simulator.Close()
+
+	registrationClient, err := wireregistration.NewExact(simulator.RegistrationURL(), 10*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := registrationClient.Register(context.Background(), func(context.Context) (string, error) {
+		return "000000", nil
+	}); err == nil {
+		t.Fatal("wrong-PIN registration succeeded")
+	}
+	if _, err := registrationClient.Register(context.Background(), func(context.Context) (string, error) {
+		return "", context.Canceled
+	}); !errors.Is(err, context.Canceled) {
+		t.Fatalf("interrupted registration error = %v", err)
+	}
+	registered, err := registrationClient.Register(context.Background(), func(context.Context) (string, error) {
+		return "123456", nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	client, err := digitalpaper.NewClient(digitalpaper.DeviceProfile{
+		Name: "fresh", Address: simulator.URL(), Connection: digitalpaper.ConnectionDirect,
+		ClientID: registered.ClientID, DeviceCAPEM: registered.DeviceCAPEM,
+	}, digitalpaper.WithCredentials(credentials.Credentials{ClientID: registered.ClientID, PrivateKeyPEM: registered.PrivateKeyPEM}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := client.Authenticate(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	firmware, err := client.Device.Firmware(context.Background())
+	if err != nil || firmware.Version != "test-p3-pairing" {
+		t.Fatalf("firmware=%#v err=%v", firmware, err)
+	}
+	repeated, err := registrationClient.Register(context.Background(), func(context.Context) (string, error) {
+		return "123456", nil
+	})
+	if err != nil || repeated.ClientID == registered.ClientID {
+		t.Fatalf("repeated registration result=%q err=%v", repeated.ClientID, err)
 	}
 }

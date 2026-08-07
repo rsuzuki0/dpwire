@@ -18,10 +18,15 @@
     "POST /documents/{document_id}/copy": "device-verified",
     "POST /documents2": "device-verified",
     "POST /folders2": "device-verified",
+    "POST /register": "emulated",
+    "POST /register/ca": "emulated",
+    "POST /register/hash": "emulated",
+    "POST /register/pin": "emulated",
     "PUT /auth": "device-verified",
     "PUT /documents/{document_id}/file": "device-verified",
     "PUT /documents2/{document_id}": "device-verified",
     "PUT /folders2/{folder_id}": "device-verified",
+    "PUT /register/cleanup": "emulated",
     "PUT /viewer/controls/open2": "emulated"
   }
 }

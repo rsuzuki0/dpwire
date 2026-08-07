@@ -22,8 +22,13 @@ forces one-item pagination, resolves a Unicode path, reads device status, and
 streams a PDF through the authenticated simulator. This proves internal
 consistency, not physical-device compatibility.
 
-Pairing is intentionally unavailable. Registration paths return HTTP 501
-with `P0_PAIRING_RESERVED` until P3 implements and tests the complete protocol.
+The P3 pairing emulator implements the complete registration server state
+machine on a separate HTTP endpoint. Tests cover RFC 3526 DH agreement,
+PBKDF2-HMAC-SHA256, the custom AES-CBC wrap integrity check, raw 256/257-byte
+Java BigInteger transcripts, wrong PIN, transcript corruption, interruption,
+cleanup, repeated registration, fresh RSA identity generation, and immediate
+nonce-signature authentication with the new identity. Emulator success does
+not promote registration to physical-device verified.
 
 The P2 integration test covers root and folder resolution, duplicate names,
 folder creation and rename, device-side copy, document move/rename, multipart

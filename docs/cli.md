@@ -12,6 +12,7 @@ dp profile import-sony rp1 https://127.0.0.1:58443 VERIFIED_SHA256 /path/to/sony
 dp profile list
 dp profile use rp1
 dp profile show
+dp profile pair rp1-direct digitalpaper.local
 ```
 
 `import-sony` requires the credential directory to contain the explicitly
@@ -26,6 +27,14 @@ advertised separately on HTTP port 8080. A loopback address such as
 `https://127.0.0.1:58443` is a relay and requires the vendor application to keep
 running. Existing profiles without an explicit connection field are inferred
 from the address.
+
+`profile pair` performs fresh registration without reading or changing Sony
+application credentials. It requests the PIN only after verifying the first
+authenticated registration transcript, validates every later transcript HMAC
+and the returned X.509 certificate, generates a new RSA-2048 identity, and
+stores it atomically with owner-only permissions. Pairing is direct-only;
+loopback relay addresses are rejected. If a profile name already exists, the
+command stops before contacting the device.
 
 ```sh
 dp ls

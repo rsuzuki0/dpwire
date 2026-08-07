@@ -251,16 +251,20 @@ func tlsConfig(trust TrustConfig) (*tls.Config, error) {
 		return nil, err
 	}
 	config := &tls.Config{MinVersion: tls.VersionTLS12}
+	var roots *x509.CertPool
 	if len(trust.CAPEM) > 0 {
-		pool := x509.NewCertPool()
-		if !pool.AppendCertsFromPEM(trust.CAPEM) {
+		roots = x509.NewCertPool()
+		if !roots.AppendCertsFromPEM(trust.CAPEM) {
 			return nil, errors.New("digitalpaper: invalid device CA PEM")
 		}
-		config.RootCAs = pool
-	} else if len(fingerprint) > 0 {
-		// Normal chain verification cannot be used without a CA. Verification is
-		// replaced, not skipped: VerifyConnection below requires the exact leaf.
+	}
+	if len(fingerprint) > 0 {
+		// Verification is replaced, not skipped: VerifyConnection below requires
+		// the exact leaf. This also supports legacy device certificates that have
+		// a matching Common Name but no Subject Alternative Name extension.
 		config.InsecureSkipVerify = true
+	} else if roots != nil {
+		config.RootCAs = roots
 	} else {
 		return nil, errors.New("digitalpaper: no TLS trust anchor")
 	}
