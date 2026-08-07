@@ -10,7 +10,7 @@ and compatibility work before their boundaries are proven.
 
 ## Decision
 
-Use the module `github.com/rsuzuki0/digitalpaper`. Enforce package dependency
+Use the module `github.com/rsuzuki0/dpwire`. Enforce package dependency
 direction mechanically.
 
 ## Consequences

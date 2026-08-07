@@ -7,12 +7,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/rsuzuki0/digitalpaper/dptest"
+	"github.com/rsuzuki0/dpwire/dptest"
 )
 
 func main() {
 	model := flag.String("model", "DP-SIM", "reported model name")
-	firmware := flag.String("firmware", "0.0-p0", "reported firmware version")
+	firmware := flag.String("firmware", "0.0-sim", "reported firmware version")
 	registrationPIN := flag.String("registration-pin", "123456", "pairing emulator PIN")
 	flag.Parse()
 

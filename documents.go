@@ -1,4 +1,4 @@
-package digitalpaper
+package dpwire
 
 import (
 	"context"
@@ -35,7 +35,7 @@ func (s *DocumentsService) Get(ctx context.Context, id string) (Entry, error) {
 // Resolve retrieves document or folder metadata by normalized device path.
 func (s *DocumentsService) Resolve(ctx context.Context, path RemotePath) (Entry, error) {
 	if path.String() == "" {
-		return Entry{}, errors.New("digitalpaper: zero remote path")
+		return Entry{}, errors.New("dpwire: zero remote path")
 	}
 	var raw wireEntry
 	endpoint := "/resolve/entry/path/" + path.EscapedValue()
@@ -57,7 +57,7 @@ func (s *DocumentsService) Download(ctx context.Context, id string, destination 
 		return DownloadResult{}, err
 	}
 	if destination == nil {
-		return DownloadResult{}, errors.New("digitalpaper: nil download destination")
+		return DownloadResult{}, errors.New("dpwire: nil download destination")
 	}
 	endpoint := "/documents/" + url.PathEscape(id) + "/file"
 	response, err := s.client.wire.DoWithAccept(ctx, http.MethodGet, endpoint, nil, nil, true, "application/pdf")
@@ -72,7 +72,7 @@ func (s *DocumentsService) Download(ctx context.Context, id string, destination 
 	var extra [1]byte
 	count, readErr := response.Body.Read(extra[:])
 	if count != 0 {
-		return DownloadResult{}, fmt.Errorf("digitalpaper: document exceeds %d-byte limit", maxDocumentSize)
+		return DownloadResult{}, fmt.Errorf("dpwire: document exceeds %d-byte limit", maxDocumentSize)
 	}
 	if readErr != nil && !errors.Is(readErr, io.EOF) {
 		return DownloadResult{}, readErr

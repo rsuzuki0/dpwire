@@ -1,1 +1,1 @@
-# Document wire protocol (read operations P1, writes P2)
+# Document wire protocol

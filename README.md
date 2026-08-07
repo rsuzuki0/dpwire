@@ -1,33 +1,24 @@
-# Digital Paper
+# DPWire
 
-`digitalpaper` is a Go library and command-line foundation for managing
-PDF-oriented digital paper devices. The initial targets are Sony DPT-RP1 / 
+`dpwire` is a Go library and command-line foundation for managing
+PDF-oriented digital paper devices. The initial targets are Sony DPT-RP1 /
 DPT-CP1 and compatible Fujitsu QUADERNO generations.
 
-The project is being built in phases. P0 preserves protocol references and
-provides reproducible checks, compatibility catalogs, crypto test vectors, and
-a stateful HTTPS simulator. P1 adds authenticated, read-only device access. P2
-adds verified folder creation, PDF upload, device-side copy, move/rename, and
-viewer control. P3 has added named profile onboarding, guarded deletion, direct
-connection, and fresh pairing. Fresh pairing and Sony-App-independent direct
-use are physically verified on a DPT-RP1. Deterministic release packaging,
-installation, upgrade, and credential recovery are implemented.
-
-P3 targets a complete PDF-only daily-use release: profile onboarding, fresh
-pairing, guarded deletion, packaging, installation, and recovery. Document
-renderers and Markdown/LaTeX/Tectonic workflows are deliberately deferred until
-after a real-use soak period.
+The current PDF-focused release supports fresh pairing, named direct or relay
+profiles, device status, listing and metadata, upload/download, device-side
+copy and move, folder management, guarded deletion, deterministic packaging,
+and credential recovery. Fresh pairing and operation without the Sony App are
+physically verified on a DPT-RP1. See the release notes for current limits.
 
 ## Why another client?
 
 Sony [ended DPT-RP1/DPT-CP1 support and provision of the Digital Paper App and
 firmware](https://www.sony.jp/digital-paper/info2/20240628.html) on 2026-03-31.
-The community `dpt-rp1-py` project remains important and active; it
-also has broader features today, including sync, FUSE mounting, and Wi-Fi
-management. This project does not claim to supersede it in every dimension.
+The community `dpt-rp1-py` project remains important and active; its current
+feature set includes sync, FUSE mounting, and Wi-Fi management.
 
-Digital Paper addresses a different operational need: an embeddable Go library
-and dependency-free `dp` binary with verified TLS identity, guarded deletion,
+DPWire addresses a different operational need: an embeddable Go library and
+dependency-free `dp` binary with verified TLS identity, guarded deletion,
 a stateful protocol emulator, explicit hardware evidence, and reproducible
 releases. See the full fair comparison and design rationale in
 [English](docs/project-rationale-and-comparison.md) or
@@ -43,8 +34,9 @@ validated separately.
 
 ## Names
 
-- Go module: `github.com/rsuzuki0/digitalpaper`
-- public package: `digitalpaper`
+- project: `DPWire`
+- Go module: `github.com/rsuzuki0/dpwire`
+- public package: `dpwire`
 - CLI: `dp`
 - simulator: `dp-sim`
 
@@ -82,6 +74,9 @@ dp profile pair rp1-direct digitalpaper.local
 The device displays a PIN after the authenticated key exchange begins. Enter it
 at the prompt. The new RSA private key and profile are stored owner-only outside
 the Sony application directory; an existing profile is never overwritten.
+New installations use a `dpwire` configuration directory. Upgrades continue
+using an existing legacy `digitalpaper` directory in place; keys are neither
+moved nor copied implicitly.
 
 The first imported profile becomes the default. Daily commands therefore need
 no profile flag:
@@ -162,4 +157,7 @@ explicit error; future commands are not exposed as successful placeholders.
 
 ## License
 
-MIT. See `LICENSE` and `NOTICE`.
+DPWire is tested for safety as extensively as practical. All use, including
+commands that modify or delete device content, is at the user's own risk. The
+software is provided without warranty under the MIT License. See `LICENSE` and
+`NOTICE`.

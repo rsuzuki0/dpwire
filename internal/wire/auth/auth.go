@@ -15,14 +15,14 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/rsuzuki0/digitalpaper/internal/wire/transport"
+	"github.com/rsuzuki0/dpwire/internal/wire/transport"
 )
 
 // Authenticate signs a fresh device nonce and installs the returned session
 // credential in the transport.
 func Authenticate(ctx context.Context, client *transport.Client, clientID string, privateKey *rsa.PrivateKey) error {
 	if clientID == "" || privateKey == nil {
-		return errors.New("digitalpaper: authentication credentials are incomplete")
+		return errors.New("dpwire: authentication credentials are incomplete")
 	}
 	var nonceResponse struct {
 		Nonce string `json:"nonce"`
@@ -32,12 +32,12 @@ func Authenticate(ctx context.Context, client *transport.Client, clientID string
 		return err
 	}
 	if nonceResponse.Nonce == "" {
-		return errors.New("digitalpaper: device returned an empty nonce")
+		return errors.New("dpwire: device returned an empty nonce")
 	}
 	digest := sha256.Sum256([]byte(nonceResponse.Nonce))
 	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, digest[:])
 	if err != nil {
-		return fmt.Errorf("digitalpaper: sign nonce: %w", err)
+		return fmt.Errorf("dpwire: sign nonce: %w", err)
 	}
 	payload, err := json.Marshal(map[string]string{
 		"client_id": clientID, "nonce_signed": base64.StdEncoding.EncodeToString(signature),
@@ -69,15 +69,15 @@ func ParseCredentialsCookie(headers []string) (string, error) {
 		}
 		value = strings.TrimSpace(value)
 		if value == "" || strings.ContainsAny(value, ";\r\n\x00") {
-			return "", errors.New("digitalpaper: malformed Credentials cookie")
+			return "", errors.New("dpwire: malformed Credentials cookie")
 		}
 		if found != "" && found != value {
-			return "", errors.New("digitalpaper: conflicting Credentials cookies")
+			return "", errors.New("dpwire: conflicting Credentials cookies")
 		}
 		found = value
 	}
 	if found == "" {
-		return "", errors.New("digitalpaper: authentication response has no Credentials cookie")
+		return "", errors.New("dpwire: authentication response has no Credentials cookie")
 	}
 	return found, nil
 }

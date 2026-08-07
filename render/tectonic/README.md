@@ -1,1 +1,1 @@
-# Tectonic adapter (reserved for P4)
+# Tectonic adapter (reserved)

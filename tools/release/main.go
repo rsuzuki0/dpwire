@@ -1,4 +1,4 @@
-// Command release creates deterministic Digital Paper binary and source
+// Command release creates deterministic DPWire binary and source
 // archives. It refuses dirty or untagged production releases by default.
 package main
 
@@ -132,12 +132,12 @@ func run(ctx context.Context, opts options) error {
 		return buildRelease(ctx, directory, version, commit)
 	}
 	if opts.CheckReproducible {
-		first, err := os.MkdirTemp("", "digitalpaper-release-a-")
+		first, err := os.MkdirTemp("", "dpwire-release-a-")
 		if err != nil {
 			return err
 		}
 		defer os.RemoveAll(first)
-		second, err := os.MkdirTemp("", "digitalpaper-release-b-")
+		second, err := os.MkdirTemp("", "dpwire-release-b-")
 		if err != nil {
 			return err
 		}
@@ -168,7 +168,7 @@ func run(ctx context.Context, opts options) error {
 	if err := os.MkdirAll(parent, 0o755); err != nil {
 		return err
 	}
-	staging, err := os.MkdirTemp(parent, ".digitalpaper-release-")
+	staging, err := os.MkdirTemp(parent, ".dpwire-release-")
 	if err != nil {
 		return err
 	}
@@ -215,7 +215,7 @@ func commandOutput(ctx context.Context, name string, args ...string) (string, er
 func buildRelease(ctx context.Context, output, version, commit string) error {
 	records := make([]artifactRecord, 0, len(targets)+1)
 	for _, item := range targets {
-		binaryDirectory, err := os.MkdirTemp("", "digitalpaper-binary-")
+		binaryDirectory, err := os.MkdirTemp("", "dpwire-binary-")
 		if err != nil {
 			return err
 		}
@@ -230,7 +230,7 @@ func buildRelease(ctx context.Context, output, version, commit string) error {
 		if err != nil {
 			return err
 		}
-		base := fmt.Sprintf("digitalpaper-v%s-%s-%s", version, item.OS, item.Arch)
+		base := fmt.Sprintf("dpwire-v%s-%s-%s", version, item.OS, item.Arch)
 		name := base + ".tar.gz"
 		if err := writeArchive(filepath.Join(output, name), base, entries); err != nil {
 			return err
@@ -246,7 +246,7 @@ func buildRelease(ctx context.Context, output, version, commit string) error {
 	if err != nil {
 		return err
 	}
-	sourceBase := fmt.Sprintf("digitalpaper-v%s-source", version)
+	sourceBase := fmt.Sprintf("dpwire-v%s-source", version)
 	sourceName := sourceBase + ".tar.gz"
 	if err := writeArchive(filepath.Join(output, sourceName), sourceBase, sourceEntries); err != nil {
 		return err

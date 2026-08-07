@@ -31,7 +31,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: digitalpaper-${{ github.ref_name }}
+          name: dpwire-${{ github.ref_name }}
           path: |
             dist/
             artifacts/eval/

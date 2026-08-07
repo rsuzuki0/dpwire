@@ -1,4 +1,4 @@
-module github.com/rsuzuki0/digitalpaper
+module github.com/rsuzuki0/dpwire
 
 go 1.24
 

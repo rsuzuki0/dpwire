@@ -1,1 +1,1 @@
-# Pandoc adapter (reserved for P4)
+# Pandoc adapter (reserved)

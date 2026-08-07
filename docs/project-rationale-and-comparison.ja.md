@@ -1,4 +1,4 @@
-# Digital Paperを独自開発する理由
+# DPWireを独自開発する理由
 
 この文書では、このGo実装を独自に開発した経緯と意義、Sony純正Digital
 Paper Appおよび`dpt-rp1-py`との違い、設計要件を説明します。
@@ -10,34 +10,31 @@ Paper Appおよび`dpt-rp1-py`との違い、設計要件を説明します。
 
 Sonyは2026年3月31日をもってDPT-RP1とDPT-CP1の修理・サポートを終了し、
 Digital Paper Appと本体ファームウェアの提供も終了したと公式に発表して
-います。動作する本体を今後も使うには、入手できずサポートもないデスクトップ
-アプリだけに依存し続けることは、長期的な運用方法になりません。
+います。独立して保守できるclientがあれば、vendor applicationの提供終了後も
+動作する本体を継続利用できます。
 
 一方、オープンソースの[`dpt-rp1-py`](https://github.com/janten/dpt-rp1-py)
 は、既に実用的なPythonライブラリとCLIを提供しています。これは先駆的で重要な
 成果であり、現在も活動しています。確認した最新版には2026年7月13日付で、
-断続的に生じる登録失敗の修正が取り込まれています。また、同期、FUSE mount、
-Wi-Fi設定など、本プロジェクトが意図的にまだ実装していない機能も備えています。
+断続的に生じる登録失敗の修正が取り込まれています。機能には、同期、FUSE mount、
+Wi-Fi設定なども含まれます。
 
-したがってDigital Paperは、「最初の代替クライアント」でも、既存ツールを全機能で
-置き換えるものでもありません。目的が異なります。長期保守可能で他のGoアプリへ
-組み込める通信ライブラリ、実行時依存のない単一`dp` binary、厳格なTLS識別、
+DPWireは、長期保守可能で他のGoアプリへ組み込める通信ライブラリ、実行時依存の
+ない単一`dp` binary、厳格なTLS識別、
 破壊的操作の安全制約、実機なしで動くprotocol emulator、再現可能な配布、
 機種・firmware別の実機検証記録を提供するための独立実装です。
 
-Sony Appを呼び出したり、内部で利用したりするwrapperではありません。新規pairing
-には、Sony Appが作成・保存したclient ID、private key、certificate fileのどれも
-不要です。`dp`が新しいRSA client identityを生成し、本体自身が返すdevice
-certificateを検証して完全一致pinとして保存します。Sonyがdesktop Appを提供した
-のはWindowsとmacOSであり、Linux版はありませんでした。この独立性はLinuxでも
-利用できるclientを作るうえで重要です。
+新規pairingでは`dp`が本体へ直接接続し、新しいRSA client identityを生成します。
+本体自身が返すdevice certificateを検証して完全一致pinとして保存します。これに
+よりmacOSとLinuxで運用できます。Sonyが公開したdesktop AppはWindows版とmacOS版
+でした。
 
 ## 公平な比較
 
-| 比較項目 | Sony Digital Paper App | `dpt-rp1-py` | Digital Paper / `dp` |
+| 比較項目 | Sony Digital Paper App | `dpt-rp1-py` | DPWire / `dp` |
 |---|---|---|---|
 | 位置付け | Sony純正の利用者向けGUIと公式workflow | コミュニティ製Python library、CLI、同期、FUSE mount | 独立したGo library、Unix/FTP風CLI、protocol emulator |
-| 現在の状態 | 2026年3月31日にSonyのサポートと提供が終了 | 確認した2026年7月13日版で活動中のcommunity project | pre-releaseの独立project。P3 PDF core完成、DPT-RP1実機検証済み |
+| 現在の状態 | 2026年3月31日にSonyのサポートと提供が終了 | 確認した2026年7月13日版で活動中のcommunity project | pre-releaseの独立project。PDF core完成、DPT-RP1実機検証済み |
 | sourceとlicense | 純正application。community向けopen source projectではない | MIT licenseのopen source | MIT licenseのopen source |
 | install・実行時依存 | 旧純正installerとdesktop runtime。現在Sonyからは提供されない | `pip`で導入するPython 3 package。現行metadataには10個のruntime依存 | 対応環境ごとの静的Go binary一個。実行時にPython、package manager、Sony Appは不要 |
 | desktop OS | Sonyの最終公開資料はWindows版とmacOS版のみ。Linux版はない | upstreamはWindows、Linux、macOSでの試験を掲げる | macOS/Linuxのarm64/amd64 binary。Linux自動build済み、Linux実機USB pairingは未検証 |
@@ -45,7 +42,7 @@ certificateを検証して完全一致pinとして保存します。Sonyがdeskt
 | 登録・資格情報 | 純正pairingとSony管理の資格情報 | PINによる新規登録、またはSony資格情報の再利用 | PINによる新規登録、named profile、明示的Sony資格情報import。新規鍵はSony領域外へ保存 |
 | 接続方法 | 純正アプリがUSB・network接続を管理 | 自動探索または明示address。upstreamはWi-Fi、Bluetooth、USBを説明 | direct/relayを明示したnamed profile。`digitalpaper.local`経由のUSB direct接続を実機検証済み |
 | 日常のPDF操作 | 純正GUIによる転送、同期、印刷workflow | list、upload、download、copy、move、delete、display、syncを含む広いCLI | `ls`、`file`/`stat`、`get`、`put`、`cp`、`mv`、`mkdir`、安全制約付き`rm`/`rmdir`、`open` |
-| P3 PDF core以外 | 純正GUI統合と公式sync workflow | sync、FUSE、Wi-Fi管理、template、設定、screenshot、firmware関連command | 現在は意図的に未実装。sync、backup、renderer、CUPS、OS統合はsoak後へ延期 |
+| 拡張workflow | 純正GUI統合と公式sync workflow | sync、FUSE、Wi-Fi管理、template、設定、screenshot、firmware関連command | sync、backup、renderer、CUPS、OS統合はPDF coreのsoak後に実装予定 |
 | pathの見せ方 | 本体UIはprotocol内部の`Document/` rootを見せない | upstream CLIでは通常`Document/...`を使用 | filesystem-like CLI UIが`Document/`を拒否して隠し、本体rootからのpathとして扱う |
 | TLSによる本体識別 | 純正内部動作。保守可能なopen clientとして外部監査できない | 確認版はHTTPS sessionの証明書検証を無効化 | trust-all modeなし。通常のCA/hostname検証、またはDPT-RP1のSANなし証明書に対するleaf SHA-256完全一致pin |
 | 削除・競合の安全性 | 純正GUI側の対話的動作 | 直接delete APIを呼ぶ。upstreamのsync説明は、新しいfileが古いfileを追加警告なしで上書きすると明記 | PDF削除に直前取得revision必須。`rmdir`は空を確認し、recursive force deleteを明示的に無効化 |
@@ -53,26 +50,13 @@ certificateを検証して完全一致pinとして保存します。Sonyがdeskt
 | 配布と復旧 | Sony管理。サポート終了とともにdownload提供終了 | PyPIまたはsourceからinstall | 再現可能binary/source archive、manifest、SHA-256、owner-only profile、install・復旧文書 |
 | 現在もっとも適する用途 | 既にinstall済みで、現在のOS上でも正常に動くlegacy環境 | 広い成熟機能が必要で、Python環境を受け入れられる場合 | 小さく実機確認済みのPDF core、Go組込み、安全境界、再現可能配布を重視する場合 |
 
-## この比較が主張しないこと
-
-- `dp`は現時点で`dpt-rp1-py`の上位互換ではありません。特にsync、FUSE、
-  Wi-Fi管理commandはありません。
-- DPT-RP1での実機結果は、DPT-CP1やQUADERNOの互換性を証明しません。
-  それぞれを別に検証します。
-- 単一binaryであるだけで安全になるわけではありません。TLS方針、変更・削除の
-  guard、response上限、試験、復旧可能なrelease工程が重要な差です。
-- SonyやFujitsuの公式な推奨・保証はありません。hardware修理、firmware保守、
-  vendor supportを代替するものでもありません。
-- 公開されたcodeと文書を確認した比較であり、先行projectのmaintainerの努力や
-  品質を一括評価するものではありません。
-
 ## 独自開発に至った経緯
 
 ### 1. 純正アプリ依存が継続利用上のriskになった
 
 Digital Paper本体は、用途が明確で単純だからこそ長く使えます。本体の寿命は、
 古いOS、installer、証明書処理、vendor配布に依存するdesktop applicationより
-長くなり得ます。Sonyのサポート終了によって、この不一致は仮定ではなく現実の
+長くなり得ます。Sonyのサポート終了によって、この不一致は現実の
 問題になりました。動作する本体があっても、純正applicationとfirmwareはもう
 提供されません。
 
@@ -80,8 +64,7 @@ Digital Paper本体は、用途が明確で単純だからこそ長く使えま�
 
 `dpt-rp1-py`は、直接登録、認証、文書操作、同期、探索、mountを実証しました。
 Java版[`DigitalPaperApp`](https://github.com/DPT-RP1/DigitalPaperApp)は調査範囲を
-さらに広げ、Polaris 2.0 endpoint資料の翻訳を保存しました。これらは歴史から
-消すべき競合ではなく、本projectの重要な参照元・先行成果です。
+さらに広げ、Polaris 2.0 endpoint資料の翻訳を保存しました。
 
 現在の`dpt-rp1-py`の登録修正も、その価値を示す具体例です。本体がJava
 `BigInteger`として生成する256/257 byte表現を、認証transcript内では受信した
@@ -90,12 +73,10 @@ raw byteのまま保持する必要があります。本Go実装も同じwire上
 
 ### 3. production環境に対する要求が異なった
 
-想定利用者は普段Python applicationを保守せず、Digital Paperの運用をPython、
-`pip`、virtual environment、多数のpackageへ依存させたくありませんでした。
-また、一つのCLIだけでなく、将来のnative applicationから再利用できる通信基盤が
-必要でした。
+production環境にはGoとself-contained executableを採用します。将来のnative
+applicationから再利用できる公開通信libraryも必要でした。
 
-そこで逐語的なGo移植ではなく、新しい実装を選びました。公式文書、保存された
+そこで独立設計の新しい実装を選びました。公式文書、保存された
 Polaris API資料、community code、実機観察を突き合わせますが、公開API、package
 境界、error model、path model、資格情報保存、emulator、release工程はこの
 projectの要件から設計しています。
@@ -104,16 +85,13 @@ projectの要件から設計しています。
 
 ### hardwareを使い続けられる
 
-desktop applicationのサポート終了だけを理由に、正常な読書・筆記hardwareを
-e-wasteにする必要はありません。protocolを文書化したclientがあれば、所有者は
-回復可能な方法で利用を継続できます。
+protocolを文書化したclientにより、正常な読書・筆記hardwareを回復可能な方法で
+継続利用できます。
 
 ### 純正アプリから運用を独立できる
 
 Sony App終了後も、新規pairingした資格情報によるdirect認証が成功しています。
-新しいidentityは独立保存され、Sony Appのprivate workspaceを参照も変更も
-しません。Sony Appのinstall、起動、またはSony Appによる資格情報fileの作成は
-不要です。client keyは`dp`自身が生成し、本体が返すcertificateからTLS完全一致
+client keyは`dp`自身が生成して独立保存し、本体が返すcertificateからTLS完全一致
 pinを確立します。
 
 ### 通信libraryを他のapplicationへ組み込める
@@ -122,7 +100,7 @@ pinを確立します。
 macOS application、print adapter、その他のtoolが、CLI subprocessを介さず同じ
 認証clientを利用できます。
 
-### 想像ではなく検証levelを記録できる
+### compatibilityの検証levelを記録できる
 
 原典記載、emulator動作、実機動作を同じ「対応済み」とは扱いません。model、
 firmware、日付、transport、redact済み結果が記録されたoperationだけを
@@ -132,8 +110,8 @@ compatibility recordへ残します。
 ### 長期保守時の事故を減らせる
 
 破壊的commandは狭く、errorは明示的で、response sizeには上限があります。
-TLS trustを全面無効化できず、資格情報はowner-only権限でatomicに保存されます。
-将来用commandをdummy成功させません。再現可能archiveとsource bundleにより、
+TLS trustは検証方式に固定し、資格情報はowner-only権限でatomicに保存されます。
+将来用commandは明示的errorを返します。再現可能archiveとsource bundleにより、
 最初の開発machineへの依存も減らします。
 
 ## 設計要件の概要
@@ -161,8 +139,8 @@ TLS trustを全面無効化できず、資格情報はowner-only権限でatomic�
 
 ## 現在の範囲
 
-P3はPDFだけを日常利用するrelease candidateであり、万能device managerの完成版では
-ありません。Sony DPT-RP1 firmware `1.6.50.14130`では、新規pairing、Sony App
+現在の範囲は、PDFだけを日常利用するrelease candidateです。Sony DPT-RP1
+firmware `1.6.50.14130`では、新規pairing、Sony App
 終了後のdirect認証、status、listing、download、upload/replacement、本体内
 copy/move、folder作成、安全制約付きdeleteを実機検証済みです。試験中、本体は
 一貫してUSB接続でした。新規pairingと独立認証はUSB Ethernet endpointへ直接接続し、
@@ -170,6 +148,9 @@ copy/move、folder作成、安全制約付きdeleteを実機検証済みです�
 emulator試験のみです。他機種と延期機能は明示的に未検証・未実装として残します。
 
 ## 原典と謝辞
+
+本projectでは安全性について可能な限り試験しています。すべての利用は利用者自身の
+責任です。保証と責任の条件はMIT Licenseに記載しています。
 
 - [Sony：「デジタルペーパー」およびDigital Paper Appサポート終了](https://www.sony.jp/digital-paper/info2/20240628.html)
 - [Sony Help Guide：computerから文書を転送](https://helpguide.sony.net/dpt/rp1/v1/en/contents/TP0001178322.html)
@@ -184,5 +165,4 @@ emulator試験のみです。他機種と延期機能は明示的に未検証・
 
 `dpt-rp1-py`とJava版DigitalPaperAppは、それぞれのcontributorによるMIT licenseの
 projectです。その成果をここ、およびrepositoryのprovenance recordで明示的に
-creditします。本Digital Paper projectはSonyおよびFujitsuから独立しており、
-提携、推奨、支援を受けたものではありません。
+creditします。

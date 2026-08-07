@@ -1,4 +1,4 @@
-# Digital Paper Goクライアント：検討経緯と設計判断
+# DPWire：検討経緯と設計判断
 
 ## 1. 目的
 
@@ -157,7 +157,7 @@ CLI / OS integration
 
 ただし、ライブラリ側からCLIやworkflowをimportすることは禁止する。
 
-moduleは `github.com/rsuzuki0/digitalpaper`、CLIは `dp`、emulatorは
+moduleは `github.com/rsuzuki0/dpwire`、CLIは `dp`、emulatorは
 `dp-sim` とする。製品系列をmodule名へ埋め込まず、vendor、model、firmware、
 Capabilityの組合せで互換性を管理する。
 
@@ -279,7 +279,7 @@ Commit result
 
 ## 8. ワークフロー統合の考え方
 
-以下は長期構想として保持するが、PDF-only P3の実用版とそのsoak期間が完了
+以下は長期構想として保持するが、PDF-only実用版とそのsoak期間が完了
 するまで実装しない。まず通信、pairing、PDF file operation、配布と復旧を
 安定させる。
 

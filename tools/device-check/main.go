@@ -16,8 +16,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/rsuzuki0/digitalpaper"
-	"github.com/rsuzuki0/digitalpaper/credentials"
+	"github.com/rsuzuki0/dpwire"
+	"github.com/rsuzuki0/dpwire/credentials"
 )
 
 type configuration struct {
@@ -80,10 +80,10 @@ func check(ctx context.Context, config configuration, creds credentials.Credenti
 	if config.PageSize < 1 || config.PageSize > 1000 {
 		return report{}, errors.New("page size must be between 1 and 1000")
 	}
-	client, err := digitalpaper.NewClient(digitalpaper.DeviceProfile{
+	client, err := dpwire.NewClient(dpwire.DeviceProfile{
 		Name: "physical-device-check", Address: config.Address, ClientID: creds.ClientID,
 		CertificateSHA256: config.Fingerprint,
-	}, digitalpaper.WithCredentials(creds), digitalpaper.WithTimeout(90*time.Second))
+	}, dpwire.WithCredentials(creds), dpwire.WithTimeout(90*time.Second))
 	if err != nil {
 		return report{}, fmt.Errorf("client creation: %w", err)
 	}
@@ -101,7 +101,7 @@ func check(ctx context.Context, config configuration, creds credentials.Credenti
 	if _, err := client.Device.Storage(ctx); err != nil {
 		return report{}, fmt.Errorf("storage status: %w", err)
 	}
-	documents, err := client.Documents.List(ctx, digitalpaper.ListOptions{PageSize: config.PageSize})
+	documents, err := client.Documents.List(ctx, dpwire.ListOptions{PageSize: config.PageSize})
 	if err != nil {
 		return report{}, fmt.Errorf("document listing: %w", err)
 	}
@@ -111,7 +111,7 @@ func check(ctx context.Context, config configuration, creds credentials.Credenti
 	}
 	for _, document := range documents {
 		if !result.FolderListChecked && document.ParentFolderID != "" {
-			if _, err := client.Folders.List(ctx, document.ParentFolderID, digitalpaper.ListOptions{PageSize: config.PageSize}); err != nil {
+			if _, err := client.Folders.List(ctx, document.ParentFolderID, dpwire.ListOptions{PageSize: config.PageSize}); err != nil {
 				return report{}, fmt.Errorf("folder listing: %w", err)
 			}
 			result.FolderListChecked = true
@@ -127,7 +127,7 @@ func check(ctx context.Context, config configuration, creds credentials.Credenti
 	if config.DownloadPath == "" {
 		return result, nil
 	}
-	path, err := digitalpaper.ParseRemotePath(config.DownloadPath)
+	path, err := dpwire.ParseRemotePath(config.DownloadPath)
 	if err != nil {
 		return report{}, fmt.Errorf("download path: %w", err)
 	}
@@ -135,7 +135,7 @@ func check(ctx context.Context, config configuration, creds credentials.Credenti
 	if err != nil {
 		return report{}, fmt.Errorf("download path resolution: %w", err)
 	}
-	if candidate.Type != digitalpaper.EntryDocument {
+	if candidate.Type != dpwire.EntryDocument {
 		return report{}, errors.New("download path is not a document")
 	}
 	metadata, err := client.Documents.Get(ctx, candidate.ID)

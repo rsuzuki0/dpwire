@@ -1,4 +1,4 @@
-Digital Paper
+DPWire
 Copyright (c) 2026 Ryuji Suzuki
 
 This project is an independent implementation and is not affiliated with,
@@ -13,8 +13,8 @@ revision, checksum, and classification are recorded in provenance.json.
 The registration and protocol behavior of the MIT-licensed dpt-rp1-py project
 was also studied as a community reference implementation. Its authorship,
 source repository, and inspected revision are recorded in provenance.json and
-the project comparison documents. This project is not a line-by-line port and
-does not vendor dpt-rp1-py source code.
+the project comparison documents. DPWire was independently authored from the
+recorded protocol references and observations.
 
 Sony, Digital Paper, Fujitsu, and QUADERNO may be trademarks of their
 respective owners.

@@ -1,4 +1,4 @@
-package digitalpaper
+package dpwire
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"mime/multipart"
 	"testing"
 
-	"github.com/rsuzuki0/digitalpaper/internal/wire/transport"
+	"github.com/rsuzuki0/dpwire/internal/wire/transport"
 )
 
 func TestMultipartPDFBody(t *testing.T) {

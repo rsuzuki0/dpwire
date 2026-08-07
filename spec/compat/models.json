@@ -27,7 +27,7 @@
       "verification": "device-required",
       "capabilities": {
         "documents": "target",
-        "pairing": "phase-p3",
+        "pairing": "unverified",
         "split-upload": "documented-unverified",
         "screen-capture": "unknown",
         "whiteboard": "unknown",
@@ -140,7 +140,7 @@
         "The CLI refused rmdir while the generated child folder contained the generated PDF.",
         "Document deletion with the resolved current target_revision succeeded and post-delete metadata lookup confirmed absence.",
         "Empty child-folder and top-level test-folder deletion with force_delete_flag false succeeded and post-delete metadata lookup confirmed absence.",
-        "The approved source PDF and retained P2 artifacts were read-only verified after the test and remained present."
+        "The approved source PDF and retained safe-write artifacts were read-only verified after the test and remained present."
       ],
       "quirks": []
     },

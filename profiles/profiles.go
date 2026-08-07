@@ -1,4 +1,4 @@
-// Package profiles manages named Digital Paper connection profiles.
+// Package profiles manages named DPWire connection profiles.
 package profiles
 
 import (
@@ -14,23 +14,27 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/rsuzuki0/digitalpaper"
-	"github.com/rsuzuki0/digitalpaper/credentials"
-	"github.com/rsuzuki0/digitalpaper/internal/atomicfile"
-	"github.com/rsuzuki0/digitalpaper/pairing"
+	"github.com/rsuzuki0/dpwire"
+	"github.com/rsuzuki0/dpwire/credentials"
+	"github.com/rsuzuki0/dpwire/internal/atomicfile"
+	"github.com/rsuzuki0/dpwire/pairing"
 )
 
-const maxConfigSize = 1 << 20
+const (
+	maxConfigSize             = 1 << 20
+	configDirectoryName       = "dpwire"
+	legacyConfigDirectoryName = "digitalpaper"
+)
 
 // Manager stores profiles below one explicit configuration root.
 type Manager struct{ root string }
 
 // Summary is safe to display and excludes client IDs and key paths.
 type Summary struct {
-	Name       string                      `json:"name"`
-	Address    string                      `json:"address"`
-	Connection digitalpaper.ConnectionMode `json:"connection"`
-	Current    bool                        `json:"current"`
+	Name       string                `json:"name"`
+	Address    string                `json:"address"`
+	Connection dpwire.ConnectionMode `json:"connection"`
+	Current    bool                  `json:"current"`
 }
 
 type configuration struct {
@@ -38,12 +42,48 @@ type configuration struct {
 }
 
 // DefaultRoot returns the platform-standard private application directory.
+// Existing installations keep using their legacy directory so
+// that an upgrade never moves or copies private keys implicitly.
 func DefaultRoot() (string, error) {
 	directory, err := os.UserConfigDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(directory, "digitalpaper"), nil
+	return defaultRootIn(directory)
+}
+
+func defaultRootIn(directory string) (string, error) {
+	current := filepath.Join(directory, configDirectoryName)
+	currentExists, err := isPrivateDirectory(current)
+	if err != nil {
+		return "", err
+	}
+	if currentExists {
+		return current, nil
+	}
+	legacy := filepath.Join(directory, legacyConfigDirectoryName)
+	legacyExists, err := isPrivateDirectory(legacy)
+	if err != nil {
+		return "", err
+	}
+	if legacyExists {
+		return legacy, nil
+	}
+	return current, nil
+}
+
+func isPrivateDirectory(path string) (bool, error) {
+	info, err := os.Lstat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return false, fmt.Errorf("profiles: configuration path is not a directory: %s", path)
+	}
+	return true, nil
 }
 
 // New constructs a manager rooted at directory.
@@ -56,27 +96,27 @@ func New(directory string) (*Manager, error) {
 
 // ImportSony validates and copies one existing Sony credential pair into a
 // newly named profile. Existing profiles are never overwritten.
-func (m *Manager) ImportSony(name, address, fingerprint, credentialDirectory string) (digitalpaper.DeviceProfile, error) {
+func (m *Manager) ImportSony(name, address, fingerprint, credentialDirectory string) (dpwire.DeviceProfile, error) {
 	if err := validateName(name); err != nil {
-		return digitalpaper.DeviceProfile{}, err
+		return dpwire.DeviceProfile{}, err
 	}
 	creds, err := credentials.ImportSony(filepath.Join(credentialDirectory, "deviceid.dat"), filepath.Join(credentialDirectory, "privatekey.dat"))
 	if err != nil {
-		return digitalpaper.DeviceProfile{}, err
+		return dpwire.DeviceProfile{}, err
 	}
-	profile := digitalpaper.DeviceProfile{
-		Name: name, Address: address, Connection: digitalpaper.InferConnectionMode(address), ClientID: creds.ClientID,
+	profile := dpwire.DeviceProfile{
+		Name: name, Address: address, Connection: dpwire.InferConnectionMode(address), ClientID: creds.ClientID,
 		PrivateKeyRef: "privatekey.pem", CertificateSHA256: fingerprint,
 	}
-	if _, err := digitalpaper.NewClient(profile, digitalpaper.WithCredentials(creds)); err != nil {
-		return digitalpaper.DeviceProfile{}, fmt.Errorf("profiles: validate connection settings: %w", err)
+	if _, err := dpwire.NewClient(profile, dpwire.WithCredentials(creds)); err != nil {
+		return dpwire.DeviceProfile{}, fmt.Errorf("profiles: validate connection settings: %w", err)
 	}
 	if err := m.ensureRoot(); err != nil {
-		return digitalpaper.DeviceProfile{}, err
+		return dpwire.DeviceProfile{}, err
 	}
 	profileDirectory := m.profileDirectory(name)
 	if err := os.Mkdir(profileDirectory, 0o700); err != nil {
-		return digitalpaper.DeviceProfile{}, fmt.Errorf("profiles: create %q: %w", name, err)
+		return dpwire.DeviceProfile{}, fmt.Errorf("profiles: create %q: %w", name, err)
 	}
 	complete := false
 	defer func() {
@@ -85,17 +125,17 @@ func (m *Manager) ImportSony(name, address, fingerprint, credentialDirectory str
 		}
 	}()
 	if err := atomicfile.WriteNew(filepath.Join(profileDirectory, "privatekey.pem"), creds.PrivateKeyPEM, 0o600); err != nil {
-		return digitalpaper.DeviceProfile{}, err
+		return dpwire.DeviceProfile{}, err
 	}
-	if err := digitalpaper.SaveProfile(filepath.Join(profileDirectory, "profile.json"), profile); err != nil {
-		return digitalpaper.DeviceProfile{}, err
+	if err := dpwire.SaveProfile(filepath.Join(profileDirectory, "profile.json"), profile); err != nil {
+		return dpwire.DeviceProfile{}, err
 	}
 	if _, err := m.defaultName(); errors.Is(err, os.ErrNotExist) {
 		if err := m.Use(name); err != nil {
-			return digitalpaper.DeviceProfile{}, err
+			return dpwire.DeviceProfile{}, err
 		}
 	} else if err != nil {
-		return digitalpaper.DeviceProfile{}, err
+		return dpwire.DeviceProfile{}, err
 	}
 	complete = true
 	return m.Load(name)
@@ -103,16 +143,16 @@ func (m *Manager) ImportSony(name, address, fingerprint, credentialDirectory str
 
 // Pair performs fresh direct registration and stores the resulting identity in
 // a new owner-private profile. An existing profile is never overwritten.
-func (m *Manager) Pair(ctx context.Context, name, address string, providePIN pairing.PINProvider) (digitalpaper.DeviceProfile, error) {
+func (m *Manager) Pair(ctx context.Context, name, address string, providePIN pairing.PINProvider) (dpwire.DeviceProfile, error) {
 	if err := validateName(name); err != nil {
-		return digitalpaper.DeviceProfile{}, err
+		return dpwire.DeviceProfile{}, err
 	}
 	if err := m.ensureRoot(); err != nil {
-		return digitalpaper.DeviceProfile{}, err
+		return dpwire.DeviceProfile{}, err
 	}
 	profileDirectory := m.profileDirectory(name)
 	if err := os.Mkdir(profileDirectory, 0o700); err != nil {
-		return digitalpaper.DeviceProfile{}, fmt.Errorf("profiles: create %q: %w", name, err)
+		return dpwire.DeviceProfile{}, fmt.Errorf("profiles: create %q: %w", name, err)
 	}
 	complete := false
 	defer func() {
@@ -122,46 +162,46 @@ func (m *Manager) Pair(ctx context.Context, name, address string, providePIN pai
 	}()
 	result, err := pairing.Register(ctx, address, providePIN)
 	if err != nil {
-		return digitalpaper.DeviceProfile{}, err
+		return dpwire.DeviceProfile{}, err
 	}
-	profile := digitalpaper.DeviceProfile{
-		Name: name, Address: result.Address, Connection: digitalpaper.ConnectionDirect,
+	profile := dpwire.DeviceProfile{
+		Name: name, Address: result.Address, Connection: dpwire.ConnectionDirect,
 		ClientID: result.Credentials.ClientID, PrivateKeyRef: "privatekey.pem", DeviceCAPEM: result.DeviceCAPEM,
 		CertificateSHA256: result.CertificateSHA256,
 	}
-	if _, err := digitalpaper.NewClient(profile, digitalpaper.WithCredentials(result.Credentials)); err != nil {
-		return digitalpaper.DeviceProfile{}, fmt.Errorf("profiles: validate paired identity: %w", err)
+	if _, err := dpwire.NewClient(profile, dpwire.WithCredentials(result.Credentials)); err != nil {
+		return dpwire.DeviceProfile{}, fmt.Errorf("profiles: validate paired identity: %w", err)
 	}
 	if err := atomicfile.WriteNew(filepath.Join(profileDirectory, "privatekey.pem"), result.Credentials.PrivateKeyPEM, 0o600); err != nil {
-		return digitalpaper.DeviceProfile{}, err
+		return dpwire.DeviceProfile{}, err
 	}
-	if err := digitalpaper.SaveProfile(filepath.Join(profileDirectory, "profile.json"), profile); err != nil {
-		return digitalpaper.DeviceProfile{}, err
+	if err := dpwire.SaveProfile(filepath.Join(profileDirectory, "profile.json"), profile); err != nil {
+		return dpwire.DeviceProfile{}, err
 	}
 	if _, err := m.defaultName(); errors.Is(err, os.ErrNotExist) {
 		if err := m.Use(name); err != nil {
-			return digitalpaper.DeviceProfile{}, err
+			return dpwire.DeviceProfile{}, err
 		}
 	} else if err != nil {
-		return digitalpaper.DeviceProfile{}, err
+		return dpwire.DeviceProfile{}, err
 	}
 	complete = true
 	return m.Load(name)
 }
 
 // Load reads one named profile.
-func (m *Manager) Load(name string) (digitalpaper.DeviceProfile, error) {
+func (m *Manager) Load(name string) (dpwire.DeviceProfile, error) {
 	if err := validateName(name); err != nil {
-		return digitalpaper.DeviceProfile{}, err
+		return dpwire.DeviceProfile{}, err
 	}
-	return digitalpaper.LoadProfile(filepath.Join(m.profileDirectory(name), "profile.json"))
+	return dpwire.LoadProfile(filepath.Join(m.profileDirectory(name), "profile.json"))
 }
 
 // Current loads the selected default profile.
-func (m *Manager) Current() (string, digitalpaper.DeviceProfile, error) {
+func (m *Manager) Current() (string, dpwire.DeviceProfile, error) {
 	name, err := m.defaultName()
 	if err != nil {
-		return "", digitalpaper.DeviceProfile{}, err
+		return "", dpwire.DeviceProfile{}, err
 	}
 	profile, err := m.Load(name)
 	return name, profile, err

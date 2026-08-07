@@ -1,15 +1,14 @@
-# Digital Paper v0.3.0-p3 release notes
+# DPWire v0.3.0 release notes
 
-This is the first PDF-only daily-use release candidate. It replaces the Sony
-Digital Paper App for the verified DPT-RP1 direct-USB workflow while keeping the
-Go communication library independently reusable.
+This is the first PDF-only daily-use release candidate. It provides a verified
+DPT-RP1 direct-USB workflow and an independently reusable Go communication
+library.
 
 ## Included
 
 - Fresh PIN pairing with independent RSA credentials and owner-only storage.
-- No Sony App installation, running process, client ID, private key, or
-  certificate file is needed for fresh pairing; the device supplies the
-  certificate that `dp` validates and pins.
+- Fresh pairing connects directly to the device, generates its own client
+  identity, and validates and pins the certificate supplied by the device.
 - Named direct and Sony-relay profiles with explicit default selection.
 - Authenticated model, firmware, battery, and storage status.
 - Unix/FTP-style `ls`, `ls -l`, `file`/`stat`, `get`, `put`, `cp`, `mv`,
@@ -35,24 +34,24 @@ records are in `compatibility.md`.
 
 ## Known limits
 
-- DPT-CP1 and every Fujitsu QUADERNO generation remain explicitly unverified by
-  this project. Similar names and community reports are not treated as proof.
+- DPT-CP1 and every Fujitsu QUADERNO generation require separate physical
+  verification.
 - Linux arm64/amd64 binaries are built and automated tests are portable to
   Linux, but physical USB pairing on Linux has not yet been recorded.
 - Viewer `open` is emulator-tested but not yet physically verified.
 - Native note and handwritten-annotation files are preserved as PDFs; behavior
   that differs from ordinary PDFs has not been physically characterized.
 - Sync, backup automation, watchers, CUPS, Markdown, LaTeX, Pandoc, Tectonic,
-  and other renderers are intentionally deferred until after the P4 soak.
-- Profile deletion is intentionally not automated in this release candidate.
+  and other renderers are planned after the PDF-core soak period.
+- Profile deletion remains a manual recovery operation in this release.
 - Release binaries are not code-signed or notarized. If local macOS policy
   rejects an unsigned binary, build from the verified source archive.
-- A sleeping or disconnected device must be woken or reconnected; automatic
-  background reconnection is not part of P3.
+- A sleeping or disconnected device must be woken or reconnected; background
+  reconnection is planned for later work.
 
 ## Security boundary
 
-There is no trust-all TLS mode. The DPT-RP1 certificate-without-SAN behavior is
-handled by an exact certificate pin established during registration. PINs,
-client IDs, keys, fingerprints, document paths, IDs, and contents are excluded
+TLS identity uses standard verification or an exact certificate pin established
+during registration. This handles the DPT-RP1 certificate-without-SAN behavior.
+PINs, client IDs, keys, fingerprints, document paths, IDs, and contents are excluded
 from committed device-test records.

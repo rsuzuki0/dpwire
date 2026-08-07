@@ -1,4 +1,4 @@
-package digitalpaper
+package dpwire
 
 import (
 	"context"
@@ -83,11 +83,11 @@ func (c *Client) listEntries(ctx context.Context, endpoint, entryType string, op
 		pageSize = 100
 	}
 	if pageSize < 1 || pageSize > 1000 {
-		return nil, errors.New("digitalpaper: page size must be between 1 and 1000")
+		return nil, errors.New("dpwire: page size must be between 1 and 1000")
 	}
 	for _, field := range options.Fields {
 		if field == "" || strings.ContainsAny(field, ",\r\n\x00") {
-			return nil, errors.New("digitalpaper: invalid field name")
+			return nil, errors.New("dpwire: invalid field name")
 		}
 	}
 	var entries []Entry
@@ -114,7 +114,7 @@ func (c *Client) listEntries(ctx context.Context, endpoint, entryType string, op
 			return entries, nil
 		}
 		if len(page.Entries) == 0 {
-			return nil, fmt.Errorf("digitalpaper: paginated list stopped at %d of %d entries", len(entries), page.Count)
+			return nil, fmt.Errorf("dpwire: paginated list stopped at %d of %d entries", len(entries), page.Count)
 		}
 		offset += len(page.Entries)
 	}
@@ -123,11 +123,11 @@ func (c *Client) listEntries(ctx context.Context, endpoint, entryType string, op
 func decodeEntry(raw wireEntry) (Entry, error) {
 	path, err := ParseRemotePath(strings.TrimSuffix(raw.Path, "/"))
 	if err != nil {
-		return Entry{}, fmt.Errorf("digitalpaper: entry %q has invalid path: %w", raw.ID, err)
+		return Entry{}, fmt.Errorf("dpwire: entry %q has invalid path: %w", raw.ID, err)
 	}
 	entryType := EntryType(raw.Type)
 	if entryType != EntryDocument && entryType != EntryFolder {
-		return Entry{}, fmt.Errorf("digitalpaper: entry %q has unknown type %q", raw.ID, raw.Type)
+		return Entry{}, fmt.Errorf("dpwire: entry %q has unknown type %q", raw.ID, raw.Type)
 	}
 	return Entry{ID: raw.ID, Name: raw.Name, Path: path, Type: entryType, Created: raw.Created,
 		Modified: raw.Modified, MIMEType: raw.MIMEType, Size: raw.Size, DocumentType: raw.DocumentType,
@@ -139,7 +139,7 @@ func decodeEntry(raw wireEntry) (Entry, error) {
 
 func validateID(id string) error {
 	if id == "" || strings.ContainsAny(id, "/\\\r\n\x00") || id == "." || id == ".." {
-		return errors.New("digitalpaper: invalid entry ID")
+		return errors.New("dpwire: invalid entry ID")
 	}
 	return nil
 }

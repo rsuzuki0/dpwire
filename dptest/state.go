@@ -112,7 +112,7 @@ func (s *State) AddDocument(path, name, parent string, content []byte, at time.T
 }
 
 // RequireAuthentication controls whether protected emulator endpoints require
-// a valid Credentials session. It is opt-in so P0 protocol fixtures remain usable.
+// a valid Credentials session. It is opt-in so unauthenticated fixtures remain usable.
 func (s *State) RequireAuthentication(required bool) {
 	s.mu.Lock()
 	s.requireAuth = required
@@ -134,8 +134,8 @@ func (s *State) uploadFileHashRejected() bool {
 	return s.rejectHash
 }
 
-// RegisterClient adds a pre-paired public key. Registration itself remains a
-// reserved P3 operation.
+// RegisterClient adds a pre-paired public key. Registration uses the separate
+// registration emulator.
 func (s *State) RegisterClient(clientID string, key *rsa.PublicKey) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

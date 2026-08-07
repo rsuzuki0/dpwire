@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rsuzuki0/digitalpaper/credentials"
-	wireregistration "github.com/rsuzuki0/digitalpaper/internal/wire/registration"
+	"github.com/rsuzuki0/dpwire/credentials"
+	wireregistration "github.com/rsuzuki0/dpwire/internal/wire/registration"
 )
 
 // PINProvider obtains the PIN displayed by the device.

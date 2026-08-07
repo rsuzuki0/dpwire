@@ -1,4 +1,4 @@
-package digitalpaper
+package dpwire
 
 import (
 	"context"

@@ -1,6 +1,6 @@
 # Credential backup and recovery
 
-Digital Paper profile storage contains RSA private keys that authorize access
+DPWire profile storage contains RSA private keys that authorize access
 to the device. Treat every backup as a secret. Never commit it, attach it to an
 issue, put it in ordinary cloud storage, or send it with a diagnostic report.
 
@@ -9,16 +9,18 @@ issue, put it in ordinary cloud storage, or send it with a diagnostic report.
 The default macOS directory is:
 
 ```text
-~/Library/Application Support/digitalpaper/
+~/Library/Application Support/dpwire/
 ```
 
 On Linux it is normally:
 
 ```text
-~/.config/digitalpaper/
+~/.config/dpwire/
 ```
 
-`config.json` selects the default profile. Each directory below `profiles/`
+An upgrade automatically continues using an existing legacy `digitalpaper`
+directory in place. If both names exist, `dpwire` is selected. `config.json`
+selects the default profile. Each directory below `profiles/`
 contains a redaction-safe `profile.json` and a secret `privatekey.pem`. Fresh
 pairing stores its identity here; it neither references nor changes the Sony
 Digital Paper App directory.
@@ -44,8 +46,9 @@ dp profile list
 dp profile show
 ```
 
-Copy the entire `digitalpaper` directory to an encrypted volume or an encrypted
-backup. Preserve it as one unit; copying only `privatekey.pem` omits the client
+Copy the entire active `dpwire` or legacy `digitalpaper` directory to an
+encrypted volume or encrypted backup. Preserve it as one unit; copying only
+`privatekey.pem` omits the client
 ID, certificate pin, address, and default selection. The live directory and
 every profile directory must be owner-only (`0700`), and every contained file
 must be owner-only (`0600`). An unencrypted archive is sensitive even if its
@@ -53,15 +56,15 @@ filesystem permissions are restrictive.
 
 ## Restore on a new machine
 
-Install and verify the same or a newer `dp` binary first. If a Digital Paper
+Install and verify the same or a newer `dp` binary first. If a DPWire
 configuration directory already exists, do not merge or overwrite it. Move it
 aside as a recoverable backup, restore the saved directory in its place, and
 then enforce owner-only permissions. On macOS:
 
 ```sh
-chmod 700 "$HOME/Library/Application Support/digitalpaper"
-find "$HOME/Library/Application Support/digitalpaper" -type d -exec chmod 700 {} \;
-find "$HOME/Library/Application Support/digitalpaper" -type f -exec chmod 600 {} \;
+chmod 700 "$HOME/Library/Application Support/dpwire"
+find "$HOME/Library/Application Support/dpwire" -type d -exec chmod 700 {} \;
+find "$HOME/Library/Application Support/dpwire" -type f -exec chmod 600 {} \;
 dp profile list
 dp auth
 ```
@@ -81,9 +84,7 @@ dp auth
 ```
 
 After successful authentication, retain any old profile until ordinary PDF
-operations have been checked. Profile removal is intentionally not automated
-in the P3 CLI; this prevents a recovery attempt from deleting the last usable
-credential.
+operations have been checked. Profile removal remains a manual recovery step.
 
 ## Diagnostic boundary
 

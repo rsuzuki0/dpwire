@@ -1,1 +1,1 @@
-# Template operations (reserved for P7)
+# Template operations (reserved)

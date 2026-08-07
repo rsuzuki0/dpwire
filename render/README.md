@@ -1,4 +1,4 @@
-# Render layer (reserved for P4)
+# Render layer (reserved)
 
-Renderer interfaces and adapters belong here. P0 contains no renderer command
+Renderer interfaces and adapters belong here. The current release contains no renderer command
 or successful placeholder implementation.

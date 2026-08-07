@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rsuzuki0/digitalpaper/internal/wire/auth"
-	"github.com/rsuzuki0/digitalpaper/internal/wire/transport"
+	"github.com/rsuzuki0/dpwire/internal/wire/auth"
+	"github.com/rsuzuki0/dpwire/internal/wire/transport"
 )
 
 func TestDocumentsGolden(t *testing.T) {
@@ -46,7 +46,7 @@ func TestDocumentsGolden(t *testing.T) {
 	}
 }
 
-func TestAuthenticatedP1Endpoints(t *testing.T) {
+func TestAuthenticatedEndpoints(t *testing.T) {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Fatal(err)
@@ -144,7 +144,7 @@ func TestFaultInjectionOnce(t *testing.T) {
 }
 
 func TestDeleteEndpointsGuardRevisionAndFolderContents(t *testing.T) {
-	state := NewState("DP-SIM", "test-p3")
+	state := NewState("DP-SIM", "test-delete")
 	folder := state.AddFolder("Document/delete-test", "delete-test", "root", time.Now())
 	document := state.AddDocument("Document/delete-test/paper.pdf", "paper.pdf", folder.ID, []byte("%PDF-test"), time.Now())
 	sim := Start(state)

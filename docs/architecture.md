@@ -6,7 +6,7 @@ applications. Dependency direction is enforced by `tools/arch-check`.
 ```text
 internal/wire and low-level helpers
               ↓
-      public digitalpaper API
+         public dpwire API
               ↓
        workflow packages
               ↓
@@ -21,7 +21,7 @@ Future source locations are reserved with documentation, not functions that
 return false success.
 
 Named profile management is a separate public support package. It may depend on
-the core `digitalpaper` and `credentials` packages, while the core library must
+the core `dpwire` and `credentials` packages, while the core library must
 not depend on profile storage. Profile files and copied private keys are written
 through owner-private persistence primitives in `internal/atomicfile`.
 

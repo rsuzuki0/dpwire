@@ -48,9 +48,9 @@ type HTTPError struct {
 
 func (e *HTTPError) Error() string {
 	if e.Code == "" {
-		return fmt.Sprintf("digitalpaper: HTTP %d", e.StatusCode)
+		return fmt.Sprintf("dpwire: HTTP %d", e.StatusCode)
 	}
-	return fmt.Sprintf("digitalpaper: HTTP %d (%s): %s", e.StatusCode, e.Code, e.Message)
+	return fmt.Sprintf("dpwire: HTTP %d (%s): %s", e.StatusCode, e.Code, e.Message)
 }
 
 // New constructs a verified HTTPS transport.
@@ -86,7 +86,7 @@ func New(address string, trust TrustConfig, timeout time.Duration) (*Client, err
 // SetCredential sets the opaque Credentials cookie value.
 func (c *Client) SetCredential(value string) error {
 	if value == "" || strings.ContainsAny(value, ";\r\n\x00") {
-		return errors.New("digitalpaper: invalid Credentials cookie")
+		return errors.New("dpwire: invalid Credentials cookie")
 	}
 	c.mu.Lock()
 	c.credential = value
@@ -115,7 +115,7 @@ func (c *Client) DoJSON(ctx context.Context, method, endpoint string, query url.
 			return err
 		}
 		if written > maxJSONBody {
-			return errors.New("digitalpaper: JSON response exceeds limit")
+			return errors.New("dpwire: JSON response exceeds limit")
 		}
 		return nil
 	}
@@ -125,10 +125,10 @@ func (c *Client) DoJSON(ctx context.Context, method, endpoint string, query url.
 		return err
 	}
 	if len(raw) > maxJSONBody {
-		return errors.New("digitalpaper: JSON response exceeds limit")
+		return errors.New("dpwire: JSON response exceeds limit")
 	}
 	if err := json.Unmarshal(raw, output); err != nil {
-		return fmt.Errorf("digitalpaper: decode response: %w", err)
+		return fmt.Errorf("dpwire: decode response: %w", err)
 	}
 	return nil
 }
@@ -141,7 +141,7 @@ func (c *Client) Do(ctx context.Context, method, endpoint string, query url.Valu
 // DoWithAccept performs a request with an explicit response media type.
 func (c *Client) DoWithAccept(ctx context.Context, method, endpoint string, query url.Values, body io.Reader, authenticated bool, accept string) (*http.Response, error) {
 	if strings.ContainsAny(accept, "\r\n\x00") {
-		return nil, errors.New("digitalpaper: invalid Accept header")
+		return nil, errors.New("dpwire: invalid Accept header")
 	}
 	return c.do(ctx, method, endpoint, query, body, authenticated, "application/json", accept, -1)
 }
@@ -150,10 +150,10 @@ func (c *Client) DoWithAccept(ctx context.Context, method, endpoint string, quer
 // is used for bounded streaming bodies such as multipart PDF uploads.
 func (c *Client) DoMedia(ctx context.Context, method, endpoint string, query url.Values, body io.Reader, authenticated bool, contentType, accept string, contentLength int64) (*http.Response, error) {
 	if strings.ContainsAny(contentType+accept, "\r\n\x00") {
-		return nil, errors.New("digitalpaper: invalid media type header")
+		return nil, errors.New("dpwire: invalid media type header")
 	}
 	if contentLength < 0 {
-		return nil, errors.New("digitalpaper: negative content length")
+		return nil, errors.New("dpwire: negative content length")
 	}
 	response, err := c.do(ctx, method, endpoint, query, body, authenticated, contentType, accept, contentLength)
 	if err != nil {
@@ -185,7 +185,7 @@ func (c *Client) do(ctx context.Context, method, endpoint string, query url.Valu
 		credential := c.credential
 		c.mu.RUnlock()
 		if credential == "" {
-			return nil, errors.New("digitalpaper: request requires authentication")
+			return nil, errors.New("dpwire: request requires authentication")
 		}
 		request.Header.Set("Cookie", "Credentials="+credential)
 	}
@@ -215,7 +215,7 @@ func (c *Client) do(ctx context.Context, method, endpoint string, query url.Valu
 
 func (c *Client) resolve(endpoint string, query url.Values) (*url.URL, error) {
 	if !strings.HasPrefix(endpoint, "/") {
-		return nil, errors.New("digitalpaper: endpoint must be absolute")
+		return nil, errors.New("dpwire: endpoint must be absolute")
 	}
 	reference, err := url.Parse(endpoint)
 	if err != nil {
@@ -239,7 +239,7 @@ func baseURL(address string) (*url.URL, error) {
 		return nil, err
 	}
 	if parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
-		return nil, errors.New("digitalpaper: address must identify an HTTPS device")
+		return nil, errors.New("dpwire: address must identify an HTTPS device")
 	}
 	parsed.Path = "/"
 	return parsed, nil
@@ -255,7 +255,7 @@ func tlsConfig(trust TrustConfig) (*tls.Config, error) {
 	if len(trust.CAPEM) > 0 {
 		roots = x509.NewCertPool()
 		if !roots.AppendCertsFromPEM(trust.CAPEM) {
-			return nil, errors.New("digitalpaper: invalid device CA PEM")
+			return nil, errors.New("dpwire: invalid device CA PEM")
 		}
 	}
 	if len(fingerprint) > 0 {
@@ -266,16 +266,16 @@ func tlsConfig(trust TrustConfig) (*tls.Config, error) {
 	} else if roots != nil {
 		config.RootCAs = roots
 	} else {
-		return nil, errors.New("digitalpaper: no TLS trust anchor")
+		return nil, errors.New("dpwire: no TLS trust anchor")
 	}
 	if len(fingerprint) > 0 {
 		config.VerifyConnection = func(state tls.ConnectionState) error {
 			if len(state.PeerCertificates) == 0 {
-				return errors.New("digitalpaper: peer sent no certificate")
+				return errors.New("dpwire: peer sent no certificate")
 			}
 			sum := sha256.Sum256(state.PeerCertificates[0].Raw)
 			if subtle.ConstantTimeCompare(sum[:], fingerprint) != 1 {
-				return errors.New("digitalpaper: certificate fingerprint mismatch")
+				return errors.New("dpwire: certificate fingerprint mismatch")
 			}
 			return nil
 		}
@@ -290,7 +290,7 @@ func decodeFingerprint(value string) ([]byte, error) {
 	}
 	decoded, err := hex.DecodeString(value)
 	if err != nil || len(decoded) != sha256.Size {
-		return nil, errors.New("digitalpaper: certificate fingerprint must be SHA-256")
+		return nil, errors.New("dpwire: certificate fingerprint must be SHA-256")
 	}
 	return decoded, nil
 }

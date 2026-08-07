@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rsuzuki0/digitalpaper/internal/wire/transport"
+	"github.com/rsuzuki0/dpwire/internal/wire/transport"
 )
 
 func TestAuthenticate(t *testing.T) {

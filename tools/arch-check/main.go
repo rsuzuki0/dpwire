@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const module = "github.com/rsuzuki0/digitalpaper"
+const module = "github.com/rsuzuki0/dpwire"
 
 type violation struct{ file, imported, reason string }
 

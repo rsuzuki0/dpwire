@@ -1,6 +1,7 @@
 /artifacts/eval/*
 !/artifacts/eval/.gitkeep
 /dist/
+/dist.previous-*/
 /.DS_Store
 *.tmp
 *.out

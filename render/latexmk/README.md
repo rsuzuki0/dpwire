@@ -1,1 +1,1 @@
-# latexmk adapter (reserved for P4)
+# latexmk adapter (reserved)

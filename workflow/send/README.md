@@ -1,1 +1,1 @@
-# Send workflow (reserved for P4)
+# Send workflow (reserved)

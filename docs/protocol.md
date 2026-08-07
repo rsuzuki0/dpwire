@@ -9,9 +9,9 @@ Implementation decisions require agreement among the snapshot, reference
 implementations, simulator tests, and physical-device observations. Physical
 observations take priority and must record model and firmware.
 
-## P1 authentication
+## Authentication
 
-P1 imports an existing RSA client identity. It requests
+An existing RSA client identity requests
 `GET /auth/nonce/{client_id}`, signs the UTF-8 nonce bytes using RSA PKCS#1 v1.5
 with SHA-256, and sends the base64 signature to `PUT /auth`. The opaque value of
 the returned `Credentials` cookie is preserved verbatim, including base64
@@ -29,7 +29,7 @@ the authenticated API is directly available at
 seen through the Sony application's loopback relay. Direct and relay addresses
 are recorded explicitly in new profiles.
 
-## P3 fresh registration
+## Fresh registration
 
 Fresh registration uses the separate HTTP port 8080 and executes
 `PUT /register/cleanup`, then `POST /register/pin`, `/register/hash`,
@@ -57,7 +57,7 @@ modern Go. Fresh pairing stores both the returned PEM certificate and the exact
 leaf DER SHA-256. Operational TLS uses the exact pin while retaining the PEM as
 device evidence; it never enables unverified trust-all TLS.
 
-## P1 read surface
+## Read surface
 
 - firmware/model, battery, and storage status
 - automatically paginated document and folder listings (100 by default, 1000 maximum)
@@ -65,12 +65,11 @@ device evidence; it never enables unverified trust-all TLS.
 - streaming PDF download with a 1 GiB ceiling and ETag reporting
 
 The translated Swagger snapshot incorrectly names the battery `status` field
-`Settings - status`; the decoder accepts both spellings. Pairing and every
-write operation remain outside the P1 surface.
+`Settings - status`; the decoder accepts both spellings.
 
-## P2 safe-write surface
+## Safe-write surface
 
-P2 implements folder and document metadata creation, whole-file multipart PDF
+The client implements folder and document metadata creation, whole-file multipart PDF
 upload, revision-guarded replacement, rename/move, device-side document copy,
 and viewer open. Each multi-step create/upload verifies the resulting byte size
 and revision. A failure after metadata creation returns `PartialFailureError`
@@ -88,12 +87,12 @@ emulator fixtures used `code`. The decoder accepts both keys, preferring
 `error_code`, while the emulator now emits the specification form. This permits
 specification-conformant devices and older captured fixtures to behave alike.
 
-Deletion and split upload are not in P2. No destructive CLI command is exposed.
+Split upload remains a future capability.
 Native notes (`document_type: note`) and annotated documents use the normal
 document transfer endpoints. Note-template management uses separate viewer
 endpoints and remains an optional later capability.
 
-## P3 guarded deletion
+## Guarded deletion
 
 Document deletion uses `DELETE /documents/{document_id}` and always supplies
 the current `target_revision`; error `40017` maps to `ErrConflict`. Folder

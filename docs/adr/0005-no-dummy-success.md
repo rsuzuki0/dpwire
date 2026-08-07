@@ -10,7 +10,7 @@ Empty functions returning success hide missing safety and protocol work.
 ## Decision
 
 Reserve directories and capability identifiers only. Unsupported operations
-return typed errors and unpublished commands stay out of help. The P0 simulator
+return typed errors and unpublished commands stay out of help. The simulator
 returns HTTP 501 for reserved registration endpoints.
 
 ## Consequences

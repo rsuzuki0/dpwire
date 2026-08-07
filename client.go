@@ -1,4 +1,4 @@
-package digitalpaper
+package dpwire
 
 import (
 	"context"
@@ -6,9 +6,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/rsuzuki0/digitalpaper/credentials"
-	"github.com/rsuzuki0/digitalpaper/internal/wire/auth"
-	"github.com/rsuzuki0/digitalpaper/internal/wire/transport"
+	"github.com/rsuzuki0/dpwire/credentials"
+	"github.com/rsuzuki0/dpwire/internal/wire/auth"
+	"github.com/rsuzuki0/dpwire/internal/wire/transport"
 )
 
 // Client is a concurrency-safe, authenticated Digital Paper API client.
@@ -36,7 +36,7 @@ type Option func(*clientOptions) error
 func WithCredentials(value credentials.Credentials) Option {
 	return func(options *clientOptions) error {
 		if value.ClientID == "" || len(value.PrivateKeyPEM) == 0 {
-			return errors.New("digitalpaper: credentials are incomplete")
+			return errors.New("dpwire: credentials are incomplete")
 		}
 		copy := value
 		copy.PrivateKeyPEM = append([]byte(nil), value.PrivateKeyPEM...)
@@ -49,7 +49,7 @@ func WithCredentials(value credentials.Credentials) Option {
 func WithTimeout(value time.Duration) Option {
 	return func(options *clientOptions) error {
 		if value <= 0 {
-			return errors.New("digitalpaper: timeout must be positive")
+			return errors.New("dpwire: timeout must be positive")
 		}
 		options.timeout = value
 		return nil
@@ -64,7 +64,7 @@ func NewClient(profile DeviceProfile, options ...Option) (*Client, error) {
 	settings := clientOptions{timeout: 90 * time.Second}
 	for _, option := range options {
 		if option == nil {
-			return nil, errors.New("digitalpaper: nil client option")
+			return nil, errors.New("dpwire: nil client option")
 		}
 		if err := option(&settings); err != nil {
 			return nil, err
@@ -84,7 +84,7 @@ func NewClient(profile DeviceProfile, options ...Option) (*Client, error) {
 	} else if profile.PrivateKeyRef != "" {
 		privateKey, err = credentials.LoadPrivateKey(profile.PrivateKeyRef)
 	} else {
-		err = errors.New("digitalpaper: profile has no private key reference")
+		err = errors.New("dpwire: profile has no private key reference")
 	}
 	if err != nil {
 		return nil, err

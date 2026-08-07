@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rsuzuki0/digitalpaper/credentials"
-	"github.com/rsuzuki0/digitalpaper/dptest"
+	"github.com/rsuzuki0/dpwire/credentials"
+	"github.com/rsuzuki0/dpwire/dptest"
 )
 
 func TestCheckAgainstAuthenticatedSimulator(t *testing.T) {

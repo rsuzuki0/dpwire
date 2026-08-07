@@ -1,4 +1,4 @@
-# Why Digital Paper exists
+# Why DPWire exists
 
 This document explains why this independent Go implementation was created,
 what it does differently, and where the Sony Digital Paper App and
@@ -11,38 +11,32 @@ Comparison checked: 2026-08-06.
 
 Sony officially ended repair and support for the DPT-RP1 and DPT-CP1 on
 2026-03-31. Sony's notice also says that provision of the Digital Paper App and
-device firmware ended with that support. Existing hardware can remain useful,
-but depending on an unavailable, unsupported desktop application is not a
-durable operating plan.
+device firmware ended with that support. Existing hardware can remain useful.
+A maintained independent client provides a durable operating path after the
+vendor application disappears.
 
 The open-source [`dpt-rp1-py`](https://github.com/janten/dpt-rp1-py) project
 already provides a capable Python library and CLI. It was essential pioneering
 work and remains active: its inspected head commit from 2026-07-13 fixed an
-intermittent registration failure. It also implements features that this
-project deliberately does not yet provide, including synchronization, FUSE
-mounting, and Wi-Fi configuration.
+intermittent registration failure. Its feature set includes synchronization,
+FUSE mounting, and Wi-Fi configuration.
 
-Digital Paper is therefore not presented as the first community client or as a
-feature-for-feature replacement for every existing tool. It is an independent,
-narrower implementation for a different operational requirement: a
-long-lived, embeddable Go library and dependency-free `dp` binary with strict
-TLS identity checks, guarded destructive operations, a hardware-independent
-protocol emulator, reproducible releases, and explicit device/firmware
-verification records.
+DPWire addresses a focused operational requirement: a long-lived, embeddable
+Go library and dependency-free `dp` binary with strict TLS identity checks,
+guarded destructive operations, a hardware-independent protocol emulator,
+reproducible releases, and explicit device/firmware verification records.
 
-It does not wrap, launch, or depend on the Sony App. Fresh pairing requires no
-Sony App client ID, private key, or certificate file: `dp` generates a new RSA
-client identity, receives the device certificate from the device itself,
-validates it, and records an exact pin. This distinction matters on Linux,
-where Sony documented Windows and macOS desktop apps but did not provide a
-Linux version.
+Fresh pairing connects directly to the device. `dp` generates a new RSA client
+identity, receives the device certificate from the device itself, validates it,
+and records an exact pin. This enables operation on Linux as well as macOS;
+Sony's published desktop application covered Windows and macOS.
 
 ## Fair comparison
 
-| Area | Sony Digital Paper App | `dpt-rp1-py` | Digital Paper / `dp` |
+| Area | Sony Digital Paper App | `dpt-rp1-py` | DPWire / `dp` |
 |---|---|---|---|
 | Role | Sony's original end-user GUI and supported workflow | Community Python library, CLI, sync tool, and FUSE mount | Independent Go library, Unix/FTP-style CLI, and protocol emulator |
-| Current status | Sony support and distribution ended 2026-03-31 | Active community project at the inspected 2026-07-13 revision | Pre-release independent project; P3 PDF core completed and physically tested |
+| Current status | Sony support and distribution ended 2026-03-31 | Active community project at the inspected 2026-07-13 revision | Pre-release independent project; PDF core completed and physically tested |
 | Source and license | Vendor application; not an open-source community project | MIT-licensed open source | MIT-licensed open source |
 | Installation/runtime | Historical vendor installer and desktop runtime; no longer provided by Sony | Python 3 package installed with `pip`; current metadata lists ten runtime dependencies | One statically linked Go binary for supported targets; no Python, package manager, or Sony App at runtime |
 | Desktop platforms | Sony's last published App material describes Windows and macOS versions; no Linux App is listed | Upstream states Windows, Linux, and macOS testing | macOS and Linux binaries for arm64 and amd64; automated Linux builds, but physical USB pairing on Linux is not yet recorded |
@@ -50,27 +44,13 @@ Linux version.
 | Registration | Vendor-managed pairing and credential storage | Fresh PIN registration or reuse of Sony credentials | Fresh PIN registration, named profiles, or explicit Sony-credential import; new keys are stored outside Sony's directory |
 | Connection model | Vendor-managed USB/network connection | Automatic discovery or explicit address; Wi-Fi, Bluetooth, and USB are described upstream | Explicit named direct or relay profiles; direct USB via `digitalpaper.local` is physically verified |
 | Daily PDF work | The original graphical transfer, synchronization, and print workflow | Broad document CLI: list, upload, download, copy, move, delete, display, and sync | `ls`, `file`/`stat`, `get`, `put`, `cp`, `mv`, `mkdir`, guarded `rm`/`rmdir`, and `open` |
-| Features beyond the P3 PDF core | Vendor GUI integration and supported sync workflow | Sync, FUSE mount, Wi-Fi management, templates, configuration, screenshot, and firmware commands | None yet by design; sync, backup, rendering, CUPS, and OS integration are deferred until after the soak period |
+| Extended workflows | Vendor GUI integration and supported sync workflow | Sync, FUSE mount, Wi-Fi management, templates, configuration, screenshot, and firmware commands | Sync, backup, rendering, CUPS, and OS integration are planned after the PDF-core soak period |
 | Path model | Device UI hides the protocol's `Document/` root | Upstream CLI commonly exposes `Document/...` | Filesystem-like CLI UI rejects and hides `Document/`; users address paths from the device root |
 | TLS server identity | Internal vendor behavior; not externally auditable as a maintained open client | The inspected code disables HTTPS certificate verification for its session | No trust-all mode; normal CA/hostname verification or exact leaf SHA-256 pinning for the DPT-RP1 certificate-without-SAN quirk |
 | Destructive-operation policy | Interactive GUI behavior controlled by the vendor app | Direct delete calls; upstream sync warns that newer files overwrite older files without another warning | Document deletion requires the revision just resolved; `rmdir` verifies emptiness and explicitly disables recursive force deletion |
 | Automated verification | Sony's historical internal testing is not available as a reproducible public suite | The inspected revision has no committed test files or protocol emulator; its GitHub workflow publishes the Python package | Stateful auth/pairing/document emulator, fault injection, unit and integration tests, race testing, architecture/spec checks, and cross-builds |
 | Releases and recovery | Vendor-controlled; downloads ended with support | PyPI/source installation under the upstream project | Deterministic binary/source archives, manifest, SHA-256 checksums, owner-only profile storage, installation and recovery guides |
 | Best fit today | An already-working legacy installation whose platform still runs it | Users who need its broader mature feature set and accept a Python environment | Users and applications prioritizing a small verified PDF core, Go embedding, explicit safety boundaries, and reproducible deployment |
-
-## What this comparison does not claim
-
-- `dp` is not currently a superset of `dpt-rp1-py`. In particular, it has no
-  sync, FUSE mount, or Wi-Fi-management command.
-- A DPT-RP1 hardware result does not establish DPT-CP1 or QUADERNO
-  compatibility. Those targets remain separately classified.
-- A single binary does not by itself make software safer. The relevant
-  differences are the TLS policy, mutation guards, bounded protocol handling,
-  automated tests, and recoverable release process.
-- This project does not claim official Sony or Fujitsu endorsement and does not
-  replace hardware service, firmware maintenance, or vendor support.
-- The comparison describes inspected published code and documented behavior;
-  it is not a judgment about the diligence of previous maintainers.
 
 ## How the independent implementation arose
 
@@ -88,8 +68,7 @@ firmware are no longer provided, even though functioning devices remain.
 operations, synchronization, discovery, and mounting. The Java
 [`DigitalPaperApp`](https://github.com/DPT-RP1/DigitalPaperApp) project expanded
 the explored surface and preserved a translation of the Polaris 2.0 endpoint
-material. These projects are references and predecessors, not competitors to
-erase from the history.
+material.
 
 The current `dpt-rp1-py` registration fix is a concrete example of that value:
 it preserves the device's 256/257-byte Java `BigInteger` representation in the
@@ -98,12 +77,11 @@ tests the same required wire behavior.
 
 ### 3. The production requirement was different
 
-The intended operator does not otherwise maintain Python applications and did
-not want the device workflow to depend on Python, `pip`, virtual environments,
-or a multi-package runtime. The requested foundation also had to be reusable by
-future native applications rather than remain coupled to one CLI.
+The intended production environment uses Go and a self-contained executable.
+The requested foundation also had to be reusable by future native applications
+through a public library.
 
-That led to a new implementation rather than a line-by-line port. Official
+That led to an independently designed implementation. Official
 documentation, the preserved Polaris endpoint description, community code, and
 physical observations are compared, but the public API, package boundaries,
 error model, path model, credential store, emulator, and release process are
@@ -113,18 +91,14 @@ designed for this project.
 
 ### Hardware preservation
 
-An unsupported desktop application should not turn functioning reading and
-writing hardware into e-waste. A documented protocol client gives owners a
-recoverable way to keep using their devices.
+A documented protocol client gives owners a recoverable way to keep functioning
+reading and writing hardware in service.
 
 ### Operational independence
 
-Fresh pairing and direct authentication work after the Sony App is quit. The
-new identity is stored independently, so the vendor application's private
-workspace is neither required nor modified. The Sony App does not need to be
-installed, launched, or used to manufacture credential files. `dp` generates
-the client key itself; the device supplies the certificate used to establish
-the exact TLS pin.
+Fresh pairing and direct authentication connect to the device after the Sony
+App is quit. `dp` generates and independently stores the client key; the device
+supplies the certificate used to establish the exact TLS pin.
 
 ### A reusable protocol boundary
 
@@ -132,7 +106,7 @@ The public Go package is separate from the CLI, profiles, future renderers, and
 OS integration. A macOS application, print adapter, or other tool can reuse the
 same authenticated client without invoking a command-line subprocess.
 
-### Evidence instead of assumed compatibility
+### Recorded compatibility evidence
 
 Reference documentation, emulator behavior, and physical hardware results are
 different evidence levels. Operations are promoted to `device-verified` only
@@ -142,17 +116,17 @@ quirks are documented rather than silently generalized to every device.
 ### Safer long-term maintenance
 
 Destructive commands are narrow, errors are explicit, responses are bounded,
-TLS trust cannot be globally disabled, credentials are written atomically with
-owner-only permissions, and unsupported future commands do not pretend to
-succeed. Reproducible archives and a source bundle reduce dependence on the
-original development machine.
+TLS trust policy is fixed to verification modes, credentials are written
+atomically with owner-only permissions, and unsupported future commands return
+explicit errors. Reproducible archives and a source bundle reduce dependence
+on the original development machine.
 
 ## Design requirements in brief
 
 1. **Deploy as one binary.** Support macOS and Linux on arm64 and amd64 without
    a production language runtime or CGO dependency.
-2. **Keep the Go library independent.** The protocol client must not depend on
-   CLI parsing, profile storage, synchronization, renderers, or OS integration.
+2. **Keep the Go library independent.** Keep CLI parsing, profile storage,
+   synchronization, renderers, and OS integration outside the protocol client.
 3. **Authenticate directly.** Support fresh PIN pairing, imported credentials,
    named devices, and operation without the Sony App.
 4. **Verify TLS identity.** Use standard CA/hostname validation where possible
@@ -175,9 +149,9 @@ original development machine.
 
 ## Current boundary
 
-P3 is a complete PDF-only release candidate, not a finished universal device
-manager. On Sony DPT-RP1 firmware `1.6.50.14130`, fresh pairing, independent
-direct authentication, status, listing, download, upload/replacement,
+The current scope is a complete PDF-only release candidate. On Sony DPT-RP1
+firmware `1.6.50.14130`, fresh pairing, independent direct authentication,
+status, listing, download, upload/replacement,
 device-side copy/move, folder creation, and guarded deletion have been
 physically verified. The device was connected by USB throughout. Fresh pairing
 and independent authentication used USB Ethernet directly; the earlier
@@ -186,6 +160,9 @@ emulator-tested but not physically verified. Other models and the deferred
 features remain clearly marked.
 
 ## Sources and credit
+
+DPWire is tested for safety as extensively as practical. All use is at the
+user's own risk. The warranty and liability terms are stated in the MIT License.
 
 - [Sony: Digital Paper and Digital Paper App support termination](https://www.sony.jp/digital-paper/info2/20240628.html)
 - [Sony Help Guide: transferring a document from a computer](https://helpguide.sony.net/dpt/rp1/v1/en/contents/TP0001178322.html)
@@ -200,5 +177,4 @@ features remain clearly marked.
 
 `dpt-rp1-py` and the Java DigitalPaperApp are MIT-licensed projects by their
 respective contributors. Their work is credited here and in the repository's
-provenance records. Digital Paper is independent and is not affiliated with,
-endorsed by, or sponsored by Sony or Fujitsu.
+provenance records.

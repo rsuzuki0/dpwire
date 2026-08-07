@@ -7,26 +7,23 @@ Machine-readable model status is stored in `spec/compat/models.json`.
 - QUADERNO Gen.2 is a priority validation target based on community reports.
 - QUADERNO Gen.3C is research-only until its protocol is probed safely.
 
-These targets do not imply confirmed compatibility. P1 is implemented and
-emulator-tested against the preserved Polaris interface, but no operation is
-marked `device-verified` until its model, firmware, result, and safe test record
-are captured from hardware. In particular, current Fujitsu generations must
-not be assumed protocol-compatible solely because they are called digital
-paper or digital note-taking devices.
+Each target has a separate compatibility state. An operation becomes
+`device-verified` when its model, firmware, result, and safe test record are
+captured from hardware. Current Fujitsu generations remain validation targets.
 
 `documented`, `emulated`, and `device-verified` are separate states. Emulator
 success never promotes an operation to device-verified.
 
 ## Verified hardware
 
-Sony DPT-RP1 firmware `1.6.50.14130` completed the P1 read-only verification on
+Sony DPT-RP1 firmware `1.6.50.14130` completed read-only verification on
 2026-08-06: RSA nonce authentication, firmware/battery/storage, pagination,
 folder listing, ID metadata, Unicode path resolution, and streamed PDF download
 with ETag and revision. The test used the Sony application's loopback relay and
 the device was connected by USB. It did not record document metadata or
 credential material.
 
-The same device and firmware completed P2 safe-write verification on 2026-08-06:
+The same device and firmware completed safe-write verification on 2026-08-06:
 folder creation, device-side PDF copy, document rename and move, folder rename,
 whole-PDF upload without the optional unspecified `file_hash`, rejection of an
 incorrect target revision, revision-guarded replacement, and byte-for-byte
@@ -34,12 +31,12 @@ download verification. The approved source PDF remained unchanged. Delete and
 viewer-open were not tested, and native-note behavior remains specification-only
 until a note fixture is explicitly approved.
 
-The same device and firmware completed P3 guarded-deletion verification on
+The same device and firmware completed guarded-deletion verification on
 2026-08-06 using a newly generated UUID-named folder tree and UUID-named PDF
 copy at the device root. Non-empty `rmdir` was refused locally, revision-guarded
 document deletion succeeded, and empty-folder deletion with
 `force_delete_flag: "false"` succeeded for both generated folders. Post-delete
-lookups confirmed absence. The approved source PDF and retained P2 artifacts
+lookups confirmed absence. The approved source PDF and retained write-test artifacts
 were read-only verified afterward and remained present.
 
 The same USB-connected device was also discovered on interface-scoped mDNS as

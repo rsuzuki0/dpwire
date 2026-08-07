@@ -1,10 +1,10 @@
-# Digital Paper Goクライアント：技術仕様
+# DPWire：技術仕様
 
 ## 1. プロジェクト概要
 
-正式名称：`Digital Paper`
+正式名称：`DPWire`
 
-リポジトリ名：`digitalpaper`
+リポジトリ名：`dpwire`
 
 Author：Ryuji Suzuki
 
@@ -19,7 +19,7 @@ License：MIT
 Go module：
 
 ```text
-github.com/rsuzuki0/digitalpaper
+github.com/rsuzuki0/dpwire
 ```
 
 ## 2. 対象機器
@@ -86,7 +86,7 @@ CLI frameworkは使わず、標準 `flag` と小型command registryを用いる�
 ## 5. リポジトリ構成
 
 ```text
-digitalpaper/
+dpwire/
 ├── go.mod
 ├── go.sum
 ├── LICENSE
@@ -280,7 +280,7 @@ const (
 未対応時は必ずtyped errorを返す。
 
 ```go
-var ErrUnsupported = errors.New("digitalpaper: capability unsupported")
+var ErrUnsupported = errors.New("dpwire: capability unsupported")
 
 type UnsupportedError struct {
     Capability Capability
@@ -457,9 +457,9 @@ type Artifact struct {
 
 ## 12. CLI仕様
 
-P3の完成対象はPDF操作、profile、pairing、safe deleteまでとする。`send`、
-`render`、Markdown、LaTeX、Pandoc、latexmk、TectonicはP3実使用期間の後へ
-延期し、P3 binaryへ未完成commandとして含めない。
+現在の完成対象はPDF操作、profile、pairing、safe deleteまでとする。`send`、
+`render`、Markdown、LaTeX、Pandoc、latexmk、TectonicはPDF coreの実使用期間後へ
+延期し、未完成commandとしてbinaryへ含めない。
 
 ### 12.1 基本command
 
@@ -565,10 +565,9 @@ DELETE-CANDIDATE
 - firmware capability
 - fault injection
 
-P0ではstateful HTTPS server、文書木、TLS、fault injectionおよび登録APIの
-入口のみを作る。登録endpointは明示的な未実装応答を返し、成功dummyには
-しない。PIN state machine、DH、証明書発行を含む完全なpairingはP3で一体と
-して実装する。
+stateful HTTPS server、文書木、TLS、fault injectionを一体で試験する。
+完全なpairingは専用registration emulatorでPIN state machine、DH、証明書発行を
+一体として試験する。
 
 例：
 
@@ -605,7 +604,7 @@ go run ./tools/eval -mode=ci
 14. CLI end-to-end tests
 15. report生成
 
-aggregate statement coverageはP0で最低60%を要求し、phaseの進行に合わせて
+aggregate statement coverageは初期実装から最低60%を要求し、開発の進行に合わせて
 閾値を引き上げる。閾値を下げる変更には理由を記録する。
 
 生成物：

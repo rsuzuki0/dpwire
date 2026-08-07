@@ -1,1 +1,1 @@
-# Screen operations (reserved for P7)
+# Screen operations (reserved)

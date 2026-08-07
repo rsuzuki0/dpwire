@@ -1,4 +1,4 @@
-package digitalpaper
+package dpwire
 
 import (
 	"context"
@@ -15,7 +15,7 @@ func (s *DocumentsService) Delete(ctx context.Context, id, targetRevision string
 		return err
 	}
 	if targetRevision == "" {
-		return errors.New("digitalpaper: target revision is required for deletion")
+		return errors.New("dpwire: target revision is required for deletion")
 	}
 	payload := map[string]string{"target_revision": targetRevision}
 	endpoint := "/documents/" + url.PathEscape(id)
@@ -40,7 +40,7 @@ func (s *FoldersService) DeleteEmpty(ctx context.Context, id string) error {
 		return err
 	}
 	if folder.Path.String() == "Document" {
-		return errors.New("digitalpaper: device root cannot be deleted")
+		return errors.New("dpwire: device root cannot be deleted")
 	}
 	entries, err := s.List(ctx, id, ListOptions{})
 	if err != nil {
@@ -69,5 +69,5 @@ func verifyDeleted(kind, id string, lookup func() error) error {
 	if errors.As(err, &apiError) && apiError.StatusCode == http.StatusNotFound {
 		return nil
 	}
-	return fmt.Errorf("digitalpaper: %s deletion succeeded but absence could not be verified for %s: %w", kind, id, err)
+	return fmt.Errorf("dpwire: %s deletion succeeded but absence could not be verified for %s: %w", kind, id, err)
 }

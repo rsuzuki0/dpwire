@@ -1,4 +1,4 @@
-package digitalpaper
+package dpwire
 
 import (
 	"encoding/json"
@@ -17,22 +17,22 @@ type RemotePath struct{ normalized string }
 // ParseRemotePath validates and NFC-normalizes a device path.
 func ParseRemotePath(value string) (RemotePath, error) {
 	if strings.ContainsRune(value, 0) {
-		return RemotePath{}, errors.New("digitalpaper: remote path contains NUL")
+		return RemotePath{}, errors.New("dpwire: remote path contains NUL")
 	}
 	if strings.Contains(value, "\\") {
-		return RemotePath{}, errors.New("digitalpaper: remote path contains backslash")
+		return RemotePath{}, errors.New("dpwire: remote path contains backslash")
 	}
 	value = norm.NFC.String(value)
 	if value == "" || strings.HasPrefix(value, "/") || strings.HasSuffix(value, "/") {
-		return RemotePath{}, fmt.Errorf("digitalpaper: invalid remote path %q", value)
+		return RemotePath{}, fmt.Errorf("dpwire: invalid remote path %q", value)
 	}
 	segments := strings.Split(value, "/")
 	if segments[0] != "Document" {
-		return RemotePath{}, errors.New("digitalpaper: remote path must start with Document")
+		return RemotePath{}, errors.New("dpwire: remote path must start with Document")
 	}
 	for _, segment := range segments {
 		if segment == "" || segment == "." || segment == ".." {
-			return RemotePath{}, fmt.Errorf("digitalpaper: invalid remote path segment %q", segment)
+			return RemotePath{}, fmt.Errorf("dpwire: invalid remote path segment %q", segment)
 		}
 	}
 	return RemotePath{normalized: value}, nil
@@ -56,7 +56,7 @@ func (p RemotePath) EscapedValue() string { return url.PathEscape(p.normalized) 
 
 func (p RemotePath) MarshalText() ([]byte, error) {
 	if p.normalized == "" {
-		return nil, errors.New("digitalpaper: zero remote path")
+		return nil, errors.New("dpwire: zero remote path")
 	}
 	return []byte(p.normalized), nil
 }

@@ -41,7 +41,7 @@ func InspectUntrustedCertificate(ctx context.Context, address string) (Inspected
 	tlsConnection := connection.(*tls.Conn)
 	state := tlsConnection.ConnectionState()
 	if len(state.PeerCertificates) == 0 {
-		return InspectedCertificate{}, errors.New("digitalpaper: peer sent no certificate")
+		return InspectedCertificate{}, errors.New("dpwire: peer sent no certificate")
 	}
 	certificate := state.PeerCertificates[0]
 	sum := sha256.Sum256(certificate.Raw)

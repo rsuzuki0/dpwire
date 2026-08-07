@@ -1,1 +1,1 @@
-# Sync workflow (reserved for P5)
+# Sync workflow (reserved)

@@ -13,12 +13,12 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/rsuzuki0/digitalpaper"
-	"github.com/rsuzuki0/digitalpaper/credentials"
-	"github.com/rsuzuki0/digitalpaper/profiles"
+	"github.com/rsuzuki0/dpwire"
+	"github.com/rsuzuki0/dpwire/credentials"
+	"github.com/rsuzuki0/dpwire/profiles"
 )
 
-var version = "0.3.0-p3"
+var version = "0.3.0"
 
 func main() { os.Exit(runWithInput(os.Args[1:], os.Stdin, os.Stdout, os.Stderr)) }
 
@@ -45,7 +45,7 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 		return 0
 	}
 	if args[0] == "inspect-cert" && len(args) == 2 {
-		certificate, err := digitalpaper.InspectUntrustedCertificate(context.Background(), args[1])
+		certificate, err := dpwire.InspectUntrustedCertificate(context.Background(), args[1])
 		if err != nil {
 			return report(stderr, err)
 		}
@@ -70,7 +70,7 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 	if err != nil {
 		return report(stderr, err)
 	}
-	client, err := digitalpaper.NewClient(profile)
+	client, err := dpwire.NewClient(profile)
 	if err != nil {
 		return report(stderr, err)
 	}
@@ -104,9 +104,9 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 			return report(stderr, err)
 		}
 		return encode(stdout, struct {
-			Firmware digitalpaper.FirmwareStatus `json:"firmware"`
-			Battery  digitalpaper.BatteryStatus  `json:"battery"`
-			Storage  digitalpaper.StorageStatus  `json:"storage"`
+			Firmware dpwire.FirmwareStatus `json:"firmware"`
+			Battery  dpwire.BatteryStatus  `json:"battery"`
+			Storage  dpwire.StorageStatus  `json:"storage"`
 		}{firmware, battery, storage})
 	case "ls":
 		long, target, ok := parseListArguments(args[1:])
@@ -114,7 +114,7 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 			usage(stderr)
 			return 2
 		}
-		var entries []digitalpaper.Entry
+		var entries []dpwire.Entry
 		if target != "" {
 			path, pathErr := parseDevicePath(target)
 			if pathErr != nil {
@@ -124,17 +124,17 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 			if resolveErr != nil {
 				return report(stderr, resolveErr)
 			}
-			if folder.Type == digitalpaper.EntryDocument {
-				entries = []digitalpaper.Entry{folder}
+			if folder.Type == dpwire.EntryDocument {
+				entries = []dpwire.Entry{folder}
 			} else {
-				entries, err = client.Folders.List(ctx, folder.ID, digitalpaper.ListOptions{})
+				entries, err = client.Folders.List(ctx, folder.ID, dpwire.ListOptions{})
 			}
 		} else {
-			root, resolveErr := client.Documents.Resolve(ctx, digitalpaper.MustRemotePath("Document"))
+			root, resolveErr := client.Documents.Resolve(ctx, dpwire.MustRemotePath("Document"))
 			if resolveErr != nil {
 				return report(stderr, resolveErr)
 			}
-			entries, err = client.Folders.List(ctx, root.ID, digitalpaper.ListOptions{})
+			entries, err = client.Folders.List(ctx, root.ID, dpwire.ListOptions{})
 		}
 		if err != nil {
 			return report(stderr, err)
@@ -205,14 +205,14 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 		if err != nil {
 			return report(stderr, err)
 		}
-		if source.Type != digitalpaper.EntryDocument {
+		if source.Type != dpwire.EntryDocument {
 			return report(stderr, errors.New("source path is not a PDF"))
 		}
 		parentEntry, name, err := resolveDestination(ctx, client, args[2], source.Name)
 		if err != nil {
 			return report(stderr, err)
 		}
-		var entry digitalpaper.Entry
+		var entry dpwire.Entry
 		if args[0] == "cp" {
 			entry, err = client.Documents.Copy(ctx, source.ID, parentEntry.ID, name)
 		} else {
@@ -236,7 +236,7 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 			return report(stderr, err)
 		}
 		if args[0] == "rm" {
-			if entry.Type != digitalpaper.EntryDocument {
+			if entry.Type != dpwire.EntryDocument {
 				return report(stderr, errors.New("path is a folder; use rmdir"))
 			}
 			if err := client.Documents.Delete(ctx, entry.ID, entry.Revision); err != nil {
@@ -246,7 +246,7 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 			if path.String() == "Document" {
 				return report(stderr, errors.New("device root cannot be deleted"))
 			}
-			if entry.Type != digitalpaper.EntryFolder {
+			if entry.Type != dpwire.EntryFolder {
 				return report(stderr, errors.New("path is not a folder; use rm"))
 			}
 			if err := client.Folders.DeleteEmpty(ctx, entry.ID); err != nil {
@@ -300,19 +300,19 @@ func profileManager(directory string) (*profiles.Manager, error) {
 	return profiles.New(directory)
 }
 
-func selectedProfile(manager *profiles.Manager, selection string) (digitalpaper.DeviceProfile, error) {
+func selectedProfile(manager *profiles.Manager, selection string) (dpwire.DeviceProfile, error) {
 	if selection == "" {
 		_, profile, err := manager.Current()
 		if errors.Is(err, os.ErrNotExist) {
-			return digitalpaper.DeviceProfile{}, errors.New("no default profile; run 'dp profile import-sony' or select -profile")
+			return dpwire.DeviceProfile{}, errors.New("no default profile; run 'dp profile import-sony' or select -profile")
 		}
 		return profile, err
 	}
 	if filepath.IsAbs(selection) || strings.ContainsRune(selection, filepath.Separator) {
-		return digitalpaper.LoadProfile(selection)
+		return dpwire.LoadProfile(selection)
 	}
 	if _, err := os.Stat(selection); err == nil {
-		return digitalpaper.LoadProfile(selection)
+		return dpwire.LoadProfile(selection)
 	}
 	return manager.Load(selection)
 }
@@ -345,7 +345,7 @@ func profileCommand(ctx context.Context, manager *profiles.Manager, args []strin
 	}
 	if (len(args) == 2 || len(args) == 3) && args[1] == "show" {
 		name := ""
-		var profile digitalpaper.DeviceProfile
+		var profile dpwire.DeviceProfile
 		var err error
 		if len(args) == 3 {
 			name = args[2]
@@ -387,7 +387,7 @@ func profileCommand(ctx context.Context, manager *profiles.Manager, args []strin
 	return 2
 }
 
-func put(ctx context.Context, client *digitalpaper.Client, local, remote string, stdout, stderr io.Writer) int {
+func put(ctx context.Context, client *dpwire.Client, local, remote string, stdout, stderr io.Writer) int {
 	parentEntry, name, err := resolveDestination(ctx, client, remote, filepath.Base(local))
 	if err != nil {
 		return report(stderr, err)
@@ -404,94 +404,94 @@ func put(ctx context.Context, client *digitalpaper.Client, local, remote string,
 	return encode(stdout, map[string]any{"entry": presentEntry(entry), "upload": result})
 }
 
-func splitRemoteTarget(value string) (digitalpaper.RemotePath, string, error) {
+func splitRemoteTarget(value string) (dpwire.RemotePath, string, error) {
 	path, err := parseDevicePath(value)
 	if err != nil {
-		return digitalpaper.RemotePath{}, "", err
+		return dpwire.RemotePath{}, "", err
 	}
 	index := strings.LastIndex(path.String(), "/")
 	if index < 0 {
-		return digitalpaper.RemotePath{}, "", errors.New("remote target must be below Document")
+		return dpwire.RemotePath{}, "", errors.New("remote target must be below Document")
 	}
-	parent, err := digitalpaper.ParseRemotePath(path.String()[:index])
+	parent, err := dpwire.ParseRemotePath(path.String()[:index])
 	if err != nil {
-		return digitalpaper.RemotePath{}, "", err
+		return dpwire.RemotePath{}, "", err
 	}
 	return parent, path.String()[index+1:], nil
 }
 
 // parseDevicePath keeps the protocol's Document root out of the CLI.
-func parseDevicePath(value string) (digitalpaper.RemotePath, error) {
+func parseDevicePath(value string) (dpwire.RemotePath, error) {
 	if value == "." {
-		return digitalpaper.MustRemotePath("Document"), nil
+		return dpwire.MustRemotePath("Document"), nil
 	}
 	if value == "Document" || strings.HasPrefix(value, "Document/") {
-		return digitalpaper.RemotePath{}, errors.New("device paths must omit the internal Document/ prefix")
+		return dpwire.RemotePath{}, errors.New("device paths must omit the internal Document/ prefix")
 	}
-	return digitalpaper.ParseRemotePath("Document/" + value)
+	return dpwire.ParseRemotePath("Document/" + value)
 }
 
-func devicePathString(path digitalpaper.RemotePath) string {
+func devicePathString(path dpwire.RemotePath) string {
 	if path.String() == "Document" {
 		return "."
 	}
 	return strings.TrimPrefix(path.String(), "Document/")
 }
 
-func resolveDestination(ctx context.Context, client *digitalpaper.Client, value, defaultName string) (digitalpaper.Entry, string, error) {
+func resolveDestination(ctx context.Context, client *dpwire.Client, value, defaultName string) (dpwire.Entry, string, error) {
 	path, err := parseDevicePath(value)
 	if err != nil {
-		return digitalpaper.Entry{}, "", err
+		return dpwire.Entry{}, "", err
 	}
 	destination, err := client.Documents.Resolve(ctx, path)
 	if err == nil {
-		if destination.Type != digitalpaper.EntryFolder {
-			return digitalpaper.Entry{}, "", errors.New("destination already exists; overwrite is disabled")
+		if destination.Type != dpwire.EntryFolder {
+			return dpwire.Entry{}, "", errors.New("destination already exists; overwrite is disabled")
 		}
 		return destination, defaultName, nil
 	}
-	var apiError *digitalpaper.APIError
+	var apiError *dpwire.APIError
 	if !errors.As(err, &apiError) || apiError.Code != "40401" {
-		return digitalpaper.Entry{}, "", err
+		return dpwire.Entry{}, "", err
 	}
 	parent, name, err := splitRemoteTarget(value)
 	if err != nil {
-		return digitalpaper.Entry{}, "", err
+		return dpwire.Entry{}, "", err
 	}
 	parentEntry, err := client.Documents.Resolve(ctx, parent)
 	if err != nil {
-		return digitalpaper.Entry{}, "", err
+		return dpwire.Entry{}, "", err
 	}
-	if parentEntry.Type != digitalpaper.EntryFolder {
-		return digitalpaper.Entry{}, "", errors.New("destination parent is not a folder")
+	if parentEntry.Type != dpwire.EntryFolder {
+		return dpwire.Entry{}, "", errors.New("destination parent is not a folder")
 	}
 	return parentEntry, name, nil
 }
 
 type entryOutput struct {
-	ID             string                 `json:"id"`
-	Name           string                 `json:"name"`
-	Path           string                 `json:"path"`
-	Type           digitalpaper.EntryType `json:"type"`
-	Created        string                 `json:"created,omitempty"`
-	Modified       string                 `json:"modified,omitempty"`
-	MIMEType       string                 `json:"mime_type,omitempty"`
-	Size           string                 `json:"size,omitempty"`
-	DocumentType   string                 `json:"document_type,omitempty"`
-	Author         string                 `json:"author,omitempty"`
-	Title          string                 `json:"title,omitempty"`
-	TotalPages     string                 `json:"total_pages,omitempty"`
-	CurrentPage    string                 `json:"current_page,omitempty"`
-	ReadingDate    string                 `json:"reading_date,omitempty"`
-	ParentFolderID string                 `json:"parent_folder_id,omitempty"`
-	IsNew          string                 `json:"is_new,omitempty"`
-	DocumentSource string                 `json:"document_source,omitempty"`
-	ExternalID     string                 `json:"external_id,omitempty"`
-	FileHash       string                 `json:"file_hash,omitempty"`
-	Revision       string                 `json:"revision,omitempty"`
+	ID             string           `json:"id"`
+	Name           string           `json:"name"`
+	Path           string           `json:"path"`
+	Type           dpwire.EntryType `json:"type"`
+	Created        string           `json:"created,omitempty"`
+	Modified       string           `json:"modified,omitempty"`
+	MIMEType       string           `json:"mime_type,omitempty"`
+	Size           string           `json:"size,omitempty"`
+	DocumentType   string           `json:"document_type,omitempty"`
+	Author         string           `json:"author,omitempty"`
+	Title          string           `json:"title,omitempty"`
+	TotalPages     string           `json:"total_pages,omitempty"`
+	CurrentPage    string           `json:"current_page,omitempty"`
+	ReadingDate    string           `json:"reading_date,omitempty"`
+	ParentFolderID string           `json:"parent_folder_id,omitempty"`
+	IsNew          string           `json:"is_new,omitempty"`
+	DocumentSource string           `json:"document_source,omitempty"`
+	ExternalID     string           `json:"external_id,omitempty"`
+	FileHash       string           `json:"file_hash,omitempty"`
+	Revision       string           `json:"revision,omitempty"`
 }
 
-func presentEntry(entry digitalpaper.Entry) entryOutput {
+func presentEntry(entry dpwire.Entry) entryOutput {
 	return entryOutput{
 		ID: entry.ID, Name: entry.Name, Path: devicePathString(entry.Path), Type: entry.Type,
 		Created: entry.Created, Modified: entry.Modified, MIMEType: entry.MIMEType, Size: entry.Size,
@@ -522,11 +522,11 @@ func parseListArguments(arguments []string) (long bool, target string, ok bool) 
 	return false, "", false
 }
 
-func printEntries(output io.Writer, entries []digitalpaper.Entry, long bool) int {
+func printEntries(output io.Writer, entries []dpwire.Entry, long bool) int {
 	if !long {
 		for _, entry := range entries {
 			name := entry.Name
-			if entry.Type == digitalpaper.EntryFolder {
+			if entry.Type == dpwire.EntryFolder {
 				name += "/"
 			}
 			fmt.Fprintln(output, name)
@@ -536,7 +536,7 @@ func printEntries(output io.Writer, entries []digitalpaper.Entry, long bool) int
 	writer := tabwriter.NewWriter(output, 0, 4, 2, ' ', 0)
 	for _, entry := range entries {
 		kind, size, modified, name := "-", entry.Size, entry.Modified, entry.Name
-		if entry.Type == digitalpaper.EntryFolder {
+		if entry.Type == dpwire.EntryFolder {
 			kind, size, name = "d", "-", name+"/"
 		}
 		if size == "" {
@@ -553,7 +553,7 @@ func printEntries(output io.Writer, entries []digitalpaper.Entry, long bool) int
 	return 0
 }
 
-func get(ctx context.Context, client *digitalpaper.Client, remote, local string, stdout, stderr io.Writer) int {
+func get(ctx context.Context, client *dpwire.Client, remote, local string, stdout, stderr io.Writer) int {
 	path, err := parseDevicePath(remote)
 	if err != nil {
 		return report(stderr, err)
@@ -562,7 +562,7 @@ func get(ctx context.Context, client *digitalpaper.Client, remote, local string,
 	if err != nil {
 		return report(stderr, err)
 	}
-	if entry.Type != digitalpaper.EntryDocument {
+	if entry.Type != dpwire.EntryDocument {
 		return report(stderr, errors.New("remote path is not a document"))
 	}
 	if local == "" {

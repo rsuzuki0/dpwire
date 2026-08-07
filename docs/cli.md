@@ -62,7 +62,7 @@ size, modification time, device ID, and name. `file` and `stat` are identical
 and return the complete metadata for one entry. IDs are diagnostic information
 and are never required as command arguments.
 
-P2 and P3 never overwrite an existing destination. `rm` is an explicit request
+Existing destinations are protected from overwrite. `rm` is an explicit request
 to delete exactly one document: the CLI resolves its current revision and the
 device rejects the deletion if that revision changes. `rmdir` rejects the
 device root and non-empty folders. It both checks for children beforehand and

@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rsuzuki0/digitalpaper"
-	"github.com/rsuzuki0/digitalpaper/dptest"
+	"github.com/rsuzuki0/dpwire"
+	"github.com/rsuzuki0/dpwire/dptest"
 )
 
 func TestVersionAndUsage(t *testing.T) {
@@ -29,9 +29,9 @@ func TestVersionAndUsage(t *testing.T) {
 }
 
 func TestUnixStyleListOutput(t *testing.T) {
-	entries := []digitalpaper.Entry{
-		{ID: "folder-1", Name: "Inbox", Type: digitalpaper.EntryFolder},
-		{ID: "doc-1", Name: "paper.pdf", Type: digitalpaper.EntryDocument, Size: "42", Modified: "2026-08-06T12:00:00Z"},
+	entries := []dpwire.Entry{
+		{ID: "folder-1", Name: "Inbox", Type: dpwire.EntryFolder},
+		{ID: "doc-1", Name: "paper.pdf", Type: dpwire.EntryDocument, Size: "42", Modified: "2026-08-06T12:00:00Z"},
 	}
 	var output bytes.Buffer
 	if code := printEntries(&output, entries, false); code != 0 || output.String() != "Inbox/\npaper.pdf\n" {
@@ -108,7 +108,7 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	state := dptest.NewState("DPT-RP1", "test-p2")
+	state := dptest.NewState("DPT-RP1", "test-write")
 	state.RegisterClient("cli-client", &key.PublicKey)
 	state.RequireAuthentication(true)
 	root := state.AddFolder("Document/Codex_dp", "Codex_dp", "root", time.Now())
@@ -124,7 +124,7 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	profilePath := filepath.Join(temporary, "profile.json")
-	if err := digitalpaper.SaveProfile(profilePath, digitalpaper.DeviceProfile{
+	if err := dpwire.SaveProfile(profilePath, dpwire.DeviceProfile{
 		Name: "cli-test", Address: simulator.URL(), ClientID: "cli-client",
 		PrivateKeyRef: keyPath, CertificateSHA256: simulator.CertificateSHA256(),
 	}); err != nil {
@@ -154,35 +154,35 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	}
 	invoke("file", "Codex_dp/source.pdf")
 	invoke("stat", "Codex_dp/source.pdf")
-	invoke("mkdir", "Codex_dp/P2")
-	invoke("cp", "Codex_dp/source.pdf", "Codex_dp/P2")
-	invoke("mv", "Codex_dp/P2/source.pdf", "Codex_dp/P2/renamed.pdf")
+	invoke("mkdir", "Codex_dp/Write")
+	invoke("cp", "Codex_dp/source.pdf", "Codex_dp/Write")
+	invoke("mv", "Codex_dp/Write/source.pdf", "Codex_dp/Write/renamed.pdf")
 
 	localUpload := filepath.Join(temporary, "local.pdf")
 	uploadContent := []byte("%PDF-1.7\nupload\n")
 	if err := os.WriteFile(localUpload, uploadContent, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	invoke("put", localUpload, "Codex_dp/P2")
+	invoke("put", localUpload, "Codex_dp/Write")
 	downloadPath := filepath.Join(temporary, "download.pdf")
-	invoke("get", "Codex_dp/P2/local.pdf", downloadPath)
+	invoke("get", "Codex_dp/Write/local.pdf", downloadPath)
 	if downloaded, err := os.ReadFile(downloadPath); err != nil || !bytes.Equal(downloaded, uploadContent) {
 		t.Fatalf("downloaded = %q, err = %v", downloaded, err)
 	}
-	invoke("open", "Codex_dp/P2/renamed.pdf", "1")
+	invoke("open", "Codex_dp/Write/renamed.pdf", "1")
 
 	var stdout, stderr bytes.Buffer
-	if code := run([]string{"-profile", profilePath, "put", localUpload, "Codex_dp/P2"}, &stdout, &stderr); code == 0 || !strings.Contains(stderr.String(), "write conflict") {
+	if code := run([]string{"-profile", profilePath, "put", localUpload, "Codex_dp/Write"}, &stdout, &stderr); code == 0 || !strings.Contains(stderr.String(), "write conflict") {
 		t.Fatalf("duplicate put: code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 	}
 	var removeOutput, removeErrors bytes.Buffer
-	if code := run([]string{"-profile", profilePath, "rmdir", "Codex_dp/P2"}, &removeOutput, &removeErrors); code == 0 || !strings.Contains(removeErrors.String(), "folder not empty") {
+	if code := run([]string{"-profile", profilePath, "rmdir", "Codex_dp/Write"}, &removeOutput, &removeErrors); code == 0 || !strings.Contains(removeErrors.String(), "folder not empty") {
 		t.Fatalf("non-empty rmdir: code=%d stdout=%q stderr=%q", code, removeOutput.String(), removeErrors.String())
 	}
-	invoke("rm", "Codex_dp/P2/local.pdf")
-	invoke("rm", "Codex_dp/P2/renamed.pdf")
-	invoke("rmdir", "Codex_dp/P2")
-	if output := invoke("ls", "Codex_dp"); strings.Contains(output, "P2/") {
+	invoke("rm", "Codex_dp/Write/local.pdf")
+	invoke("rm", "Codex_dp/Write/renamed.pdf")
+	invoke("rmdir", "Codex_dp/Write")
+	if output := invoke("ls", "Codex_dp"); strings.Contains(output, "Write/") {
 		t.Fatalf("deleted folder remains in listing: %q", output)
 	}
 

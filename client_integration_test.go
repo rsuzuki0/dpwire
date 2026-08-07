@@ -1,4 +1,4 @@
-package digitalpaper_test
+package dpwire_test
 
 import (
 	"bytes"
@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rsuzuki0/digitalpaper"
-	"github.com/rsuzuki0/digitalpaper/credentials"
-	"github.com/rsuzuki0/digitalpaper/dptest"
-	wireregistration "github.com/rsuzuki0/digitalpaper/internal/wire/registration"
+	"github.com/rsuzuki0/dpwire"
+	"github.com/rsuzuki0/dpwire/credentials"
+	"github.com/rsuzuki0/dpwire/dptest"
+	wireregistration "github.com/rsuzuki0/dpwire/internal/wire/registration"
 )
 
 func TestAuthenticatedReadOnlyClient(t *testing.T) {
@@ -35,10 +35,10 @@ func TestAuthenticatedReadOnlyClient(t *testing.T) {
 	defer simulator.Close()
 
 	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
-	client, err := digitalpaper.NewClient(digitalpaper.DeviceProfile{
+	client, err := dpwire.NewClient(dpwire.DeviceProfile{
 		Name: "integration", Address: simulator.URL(), ClientID: "integration-client",
 		CertificateSHA256: simulator.CertificateSHA256(),
-	}, digitalpaper.WithCredentials(credentials.Credentials{ClientID: "integration-client", PrivateKeyPEM: keyPEM}))
+	}, dpwire.WithCredentials(credentials.Credentials{ClientID: "integration-client", PrivateKeyPEM: keyPEM}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestAuthenticatedReadOnlyClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	documents, err := client.Documents.List(ctx, digitalpaper.ListOptions{PageSize: 1})
+	documents, err := client.Documents.List(ctx, dpwire.ListOptions{PageSize: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,12 +61,12 @@ func TestAuthenticatedReadOnlyClient(t *testing.T) {
 	if err != nil || metadata.Path.String() != "Document/Inbox/資料 one.pdf" {
 		t.Fatalf("metadata = %#v, err = %v", metadata, err)
 	}
-	remotePath := digitalpaper.MustRemotePath("Document/Inbox/資料 one.pdf")
+	remotePath := dpwire.MustRemotePath("Document/Inbox/資料 one.pdf")
 	resolved, err := client.Documents.Resolve(ctx, remotePath)
 	if err != nil || resolved.ID != first.ID {
 		t.Fatalf("resolved = %#v, err = %v", resolved, err)
 	}
-	entries, err := client.Folders.List(ctx, "inbox", digitalpaper.ListOptions{PageSize: 1})
+	entries, err := client.Folders.List(ctx, "inbox", dpwire.ListOptions{PageSize: 1})
 	if err != nil || len(entries) != 2 {
 		t.Fatalf("entries = %#v, err = %v", entries, err)
 	}
@@ -88,7 +88,7 @@ func TestAuthenticatedReadOnlyClient(t *testing.T) {
 		t.Fatalf("storage = %#v, err = %v", storage, err)
 	}
 	_, err = client.Documents.Get(ctx, "missing")
-	var apiError *digitalpaper.APIError
+	var apiError *dpwire.APIError
 	if !errors.As(err, &apiError) || apiError.Code != "40401" {
 		t.Fatalf("missing document error = %#v", err)
 	}
@@ -109,10 +109,10 @@ func TestSafeWriteLifecycle(t *testing.T) {
 	simulator := dptest.Start(state)
 	defer simulator.Close()
 	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
-	client, err := digitalpaper.NewClient(digitalpaper.DeviceProfile{
+	client, err := dpwire.NewClient(dpwire.DeviceProfile{
 		Name: "write-integration", Address: simulator.URL(), ClientID: "write-client",
 		CertificateSHA256: simulator.CertificateSHA256(),
-	}, digitalpaper.WithCredentials(credentials.Credentials{ClientID: "write-client", PrivateKeyPEM: keyPEM}))
+	}, dpwire.WithCredentials(credentials.Credentials{ClientID: "write-client", PrivateKeyPEM: keyPEM}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,30 +120,30 @@ func TestSafeWriteLifecycle(t *testing.T) {
 	if err := client.Authenticate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	deviceRoot, err := client.Documents.Resolve(ctx, digitalpaper.MustRemotePath("Document"))
-	if err != nil || deviceRoot.Type != digitalpaper.EntryFolder {
+	deviceRoot, err := client.Documents.Resolve(ctx, dpwire.MustRemotePath("Document"))
+	if err != nil || deviceRoot.Type != dpwire.EntryFolder {
 		t.Fatalf("device root = %#v, err = %v", deviceRoot, err)
 	}
-	rootEntries, err := client.Folders.List(ctx, deviceRoot.ID, digitalpaper.ListOptions{})
+	rootEntries, err := client.Folders.List(ctx, deviceRoot.ID, dpwire.ListOptions{})
 	if err != nil || len(rootEntries) != 1 || rootEntries[0].ID != root.ID {
 		t.Fatalf("root entries = %#v, err = %v", rootEntries, err)
 	}
 
-	runFolder, err := client.Folders.Create(ctx, root.ID, "p2-run")
+	runFolder, err := client.Folders.Create(ctx, root.ID, "write-run")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := client.Folders.Create(ctx, root.ID, "p2-run"); err == nil {
+	if _, err := client.Folders.Create(ctx, root.ID, "write-run"); err == nil {
 		t.Fatal("duplicate folder creation succeeded")
 	} else {
-		var apiError *digitalpaper.APIError
+		var apiError *dpwire.APIError
 		if !errors.As(err, &apiError) || apiError.Code != "40007" {
 			t.Fatalf("duplicate error = %#v", err)
 		}
 	}
 	state.InjectFault("GET /folders2/*", dptest.Fault{Status: http.StatusInternalServerError, Body: `{"error_code":"TEST_VERIFY","message":"verification failed"}`, Once: true})
 	partiallyCreated, err := client.Folders.Create(ctx, root.ID, "verification-fails")
-	var createPartial *digitalpaper.PartialFailureError
+	var createPartial *dpwire.PartialFailureError
 	if !errors.As(err, &createPartial) || partiallyCreated.ID == "" || createPartial.EntryID != partiallyCreated.ID {
 		t.Fatalf("partially verified folder = %#v, error = %#v", partiallyCreated, err)
 	}
@@ -165,7 +165,7 @@ func TestSafeWriteLifecycle(t *testing.T) {
 	if upload.SHA256 != hex.EncodeToString(wantHash[:]) {
 		t.Fatalf("upload SHA-256 = %q", upload.SHA256)
 	}
-	if _, _, err := client.Documents.Replace(ctx, uploaded.ID, uploaded.Name, "wrong-revision", bytes.NewReader([]byte("%PDF-1.7\nreplacement\n"))); !errors.Is(err, digitalpaper.ErrConflict) {
+	if _, _, err := client.Documents.Replace(ctx, uploaded.ID, uploaded.Name, "wrong-revision", bytes.NewReader([]byte("%PDF-1.7\nreplacement\n"))); !errors.Is(err, dpwire.ErrConflict) {
 		t.Fatalf("replacement conflict = %#v", err)
 	}
 	replaced, replacement, err := client.Documents.Replace(ctx, uploaded.ID, uploaded.Name, uploaded.Revision, bytes.NewReader([]byte("%PDF-1.7\nreplacement\n")))
@@ -176,18 +176,18 @@ func TestSafeWriteLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	renamedFolder, err := client.Folders.Update(ctx, runFolder.ID, "", "p2-renamed")
-	if err != nil || renamedFolder.Name != "p2-renamed" {
+	renamedFolder, err := client.Folders.Update(ctx, runFolder.ID, "", "write-renamed")
+	if err != nil || renamedFolder.Name != "write-renamed" {
 		t.Fatalf("renamed folder = %#v, err = %v", renamedFolder, err)
 	}
-	resolved, err := client.Documents.Resolve(ctx, digitalpaper.MustRemotePath("Document/Codex_dp/p2-renamed/renamed.pdf"))
+	resolved, err := client.Documents.Resolve(ctx, dpwire.MustRemotePath("Document/Codex_dp/write-renamed/renamed.pdf"))
 	if err != nil || resolved.ID != copy.ID {
 		t.Fatalf("resolved moved child = %#v, err = %v", resolved, err)
 	}
 
 	state.InjectFault("PUT /documents/*/file", dptest.Fault{Status: http.StatusInternalServerError, Body: `{"code":"TEST_UPLOAD_FAILURE"}`, Once: true})
 	partialEntry, _, err := client.Documents.CreateAndUpload(ctx, renamedFolder.ID, "partial.pdf", bytes.NewReader([]byte("%PDF-1.4\npartial\n")))
-	var partial *digitalpaper.PartialFailureError
+	var partial *dpwire.PartialFailureError
 	if !errors.As(err, &partial) || partial.EntryID == "" || partialEntry.ID != partial.EntryID {
 		t.Fatalf("partial entry = %#v, error = %#v", partialEntry, err)
 	}
@@ -196,7 +196,7 @@ func TestSafeWriteLifecycle(t *testing.T) {
 	if _, _, err := client.Documents.CreateAndUpload(ctx, renamedFolder.ID, "full.pdf", bytes.NewReader([]byte("%PDF-1.4\nfull\n"))); err == nil {
 		t.Fatal("storage-full upload succeeded")
 	} else {
-		var apiError *digitalpaper.APIError
+		var apiError *dpwire.APIError
 		if !errors.As(err, &apiError) || apiError.StatusCode != http.StatusInsufficientStorage || apiError.Code != "50701" {
 			t.Fatalf("storage-full error = %#v", err)
 		}
@@ -213,7 +213,7 @@ func TestSafeWriteLifecycle(t *testing.T) {
 	if entry, _, err := client.Documents.CreateAndUpload(ctx, renamedFolder.ID, "incomplete.pdf", bytes.NewReader([]byte("%PDF-1.4\nincomplete\n"))); err == nil {
 		t.Fatal("incomplete upload response succeeded")
 	} else {
-		var verification *digitalpaper.VerificationError
+		var verification *dpwire.VerificationError
 		if !errors.As(err, &partial) || partial.EntryID != entry.ID || !errors.As(err, &verification) {
 			t.Fatalf("incomplete response entry = %#v, error = %#v", entry, err)
 		}
@@ -225,7 +225,7 @@ func TestSafeDeleteLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	state := dptest.NewState("DPT-RP1", "test-p3")
+	state := dptest.NewState("DPT-RP1", "test-delete")
 	state.RegisterClient("delete-client", &key.PublicKey)
 	state.RequireAuthentication(true)
 	folder := state.AddFolder("Document/delete-test", "delete-test", "root", time.Now())
@@ -234,10 +234,10 @@ func TestSafeDeleteLifecycle(t *testing.T) {
 	defer simulator.Close()
 
 	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
-	client, err := digitalpaper.NewClient(digitalpaper.DeviceProfile{
+	client, err := dpwire.NewClient(dpwire.DeviceProfile{
 		Name: "delete-integration", Address: simulator.URL(), ClientID: "delete-client",
 		CertificateSHA256: simulator.CertificateSHA256(),
-	}, digitalpaper.WithCredentials(credentials.Credentials{ClientID: "delete-client", PrivateKeyPEM: keyPEM}))
+	}, dpwire.WithCredentials(credentials.Credentials{ClientID: "delete-client", PrivateKeyPEM: keyPEM}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -252,10 +252,10 @@ func TestSafeDeleteLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := client.Documents.Delete(ctx, document.ID, document.Revision); !errors.Is(err, digitalpaper.ErrConflict) {
+	if err := client.Documents.Delete(ctx, document.ID, document.Revision); !errors.Is(err, dpwire.ErrConflict) {
 		t.Fatalf("stale-revision deletion error = %#v", err)
 	}
-	if err := client.Folders.DeleteEmpty(ctx, folder.ID); !errors.Is(err, digitalpaper.ErrNotEmpty) {
+	if err := client.Folders.DeleteEmpty(ctx, folder.ID); !errors.Is(err, dpwire.ErrNotEmpty) {
 		t.Fatalf("non-empty folder deletion error = %#v", err)
 	}
 	if err := client.Documents.Delete(ctx, updated.ID, updated.Revision); err != nil {
@@ -273,7 +273,7 @@ func TestSafeDeleteLifecycle(t *testing.T) {
 }
 
 func TestFreshPairingEmulatorLifecycle(t *testing.T) {
-	state := dptest.NewState("DPT-RP1", "test-p3-pairing")
+	state := dptest.NewState("DPT-RP1", "test-pairing")
 	state.RequireAuthentication(true)
 	simulator := dptest.Start(state)
 	defer simulator.Close()
@@ -298,10 +298,10 @@ func TestFreshPairingEmulatorLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	client, err := digitalpaper.NewClient(digitalpaper.DeviceProfile{
-		Name: "fresh", Address: simulator.URL(), Connection: digitalpaper.ConnectionDirect,
+	client, err := dpwire.NewClient(dpwire.DeviceProfile{
+		Name: "fresh", Address: simulator.URL(), Connection: dpwire.ConnectionDirect,
 		ClientID: registered.ClientID, DeviceCAPEM: registered.DeviceCAPEM,
-	}, digitalpaper.WithCredentials(credentials.Credentials{ClientID: registered.ClientID, PrivateKeyPEM: registered.PrivateKeyPEM}))
+	}, dpwire.WithCredentials(credentials.Credentials{ClientID: registered.ClientID, PrivateKeyPEM: registered.PrivateKeyPEM}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -309,7 +309,7 @@ func TestFreshPairingEmulatorLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	firmware, err := client.Device.Firmware(context.Background())
-	if err != nil || firmware.Version != "test-p3-pairing" {
+	if err != nil || firmware.Version != "test-pairing" {
 		t.Fatalf("firmware=%#v err=%v", firmware, err)
 	}
 	repeated, err := registrationClient.Register(context.Background(), func(context.Context) (string, error) {

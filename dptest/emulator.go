@@ -19,7 +19,7 @@ import (
 	"strings"
 	"time"
 
-	wireregistration "github.com/rsuzuki0/digitalpaper/internal/wire/registration"
+	wireregistration "github.com/rsuzuki0/dpwire/internal/wire/registration"
 )
 
 // Simulator is an in-process HTTPS Digital Paper protocol simulator.
@@ -33,7 +33,7 @@ type Simulator struct {
 // Start starts a loopback TLS simulator.
 func Start(state *State) *Simulator {
 	if state == nil {
-		state = NewState("DP-SIM", "0.0-p0")
+		state = NewState("DP-SIM", "0.0-sim")
 	}
 	sim := &Simulator{State: state}
 	sim.server = httptest.NewTLSServer(http.HandlerFunc(sim.serveHTTP))
@@ -106,7 +106,7 @@ func (s *Simulator) serveHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	case strings.HasPrefix(r.URL.Path, "/register"):
 		writeJSON(w, http.StatusNotImplemented, map[string]string{
-			"error_code": "P0_PAIRING_RESERVED", "message": "registration is reserved for phase P3",
+			"error_code": "REGISTRATION_ENDPOINT_REQUIRED", "message": "use the registration emulator",
 		})
 		return
 	}

@@ -1,1 +1,1 @@
-# Viewer controls (reserved for P2)
+# Viewer controls

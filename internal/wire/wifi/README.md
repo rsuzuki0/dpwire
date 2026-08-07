@@ -1,1 +1,1 @@
-# Wi-Fi operations (reserved for P7)
+# Wi-Fi operations (reserved)

@@ -1,23 +1,23 @@
-package digitalpaper
+package dpwire
 
 import (
 	"errors"
 	"fmt"
 
-	"github.com/rsuzuki0/digitalpaper/internal/wire/transport"
+	"github.com/rsuzuki0/dpwire/internal/wire/transport"
 )
 
 // ErrUnsupported is the sentinel for a capability unavailable on a device or
 // not implemented by this library version.
-var ErrUnsupported = errors.New("digitalpaper: capability unsupported")
+var ErrUnsupported = errors.New("dpwire: capability unsupported")
 
 // ErrConflict is returned when a revision or destination-name precondition no
 // longer matches device state.
-var ErrConflict = errors.New("digitalpaper: write conflict")
+var ErrConflict = errors.New("dpwire: write conflict")
 
 // ErrNotEmpty is returned when an empty-only folder deletion encounters a
 // child entry.
-var ErrNotEmpty = errors.New("digitalpaper: folder not empty")
+var ErrNotEmpty = errors.New("dpwire: folder not empty")
 
 // UnsupportedError explains which capability could not be used.
 type UnsupportedError struct {
@@ -41,9 +41,9 @@ type APIError struct {
 
 func (e *APIError) Error() string {
 	if e.Code == "" {
-		return fmt.Sprintf("digitalpaper: HTTP %d", e.StatusCode)
+		return fmt.Sprintf("dpwire: HTTP %d", e.StatusCode)
 	}
-	return fmt.Sprintf("digitalpaper: HTTP %d (%s): %s", e.StatusCode, e.Code, e.Message)
+	return fmt.Sprintf("dpwire: HTTP %d (%s): %s", e.StatusCode, e.Code, e.Message)
 }
 
 func publicError(err error) error {
@@ -85,7 +85,7 @@ type PartialFailureError struct {
 }
 
 func (e *PartialFailureError) Error() string {
-	return fmt.Sprintf("digitalpaper: %s partially failed after creating %s: %v", e.Operation, e.EntryID, e.Cause)
+	return fmt.Sprintf("dpwire: %s partially failed after creating %s: %v", e.Operation, e.EntryID, e.Cause)
 }
 func (e *PartialFailureError) Unwrap() error { return e.Cause }
 
@@ -98,5 +98,5 @@ type VerificationError struct {
 }
 
 func (e *VerificationError) Error() string {
-	return fmt.Sprintf("digitalpaper: verification failed for %s: expected %q, got %q", e.Field, e.Expected, e.Actual)
+	return fmt.Sprintf("dpwire: verification failed for %s: expected %q, got %q", e.Field, e.Expected, e.Actual)
 }

@@ -251,7 +251,7 @@ func writeReports(value report) error {
 	if err := os.WriteFile("artifacts/eval/report.json", append(encoded, '\n'), 0o644); err != nil {
 		return err
 	}
-	suite := testSuite{Name: "digitalpaper-eval", Tests: len(value.Results)}
+	suite := testSuite{Name: "dpwire-eval", Tests: len(value.Results)}
 	for _, item := range value.Results {
 		caseItem := testCase{Name: item.Name, Time: fmt.Sprintf("%.3f", float64(item.DurationMS)/1000), SystemOut: item.Output}
 		if item.Status != "passed" {

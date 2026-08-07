@@ -14,9 +14,9 @@ import (
 
 func TestNormalizeVersion(t *testing.T) {
 	for input, want := range map[string]string{
-		"0.3.0-p3": "0.3.0-p3",
-		"v1.2.3":   "1.2.3",
-		"1.0.0+go": "1.0.0+go",
+		"1.2.3-rc.1": "1.2.3-rc.1",
+		"v1.2.3":     "1.2.3",
+		"1.0.0+go":   "1.0.0+go",
 	} {
 		got, err := normalizeVersion(input)
 		if err != nil || got != want {
@@ -38,10 +38,10 @@ func TestArchiveIsDeterministicAndNormalized(t *testing.T) {
 	}
 	first := filepath.Join(directory, "first.tar.gz")
 	second := filepath.Join(directory, "second.tar.gz")
-	if err := writeArchive(first, "digitalpaper-test", append([]archiveEntry(nil), entries...)); err != nil {
+	if err := writeArchive(first, "dpwire-test", append([]archiveEntry(nil), entries...)); err != nil {
 		t.Fatal(err)
 	}
-	if err := writeArchive(second, "digitalpaper-test", append([]archiveEntry(nil), entries...)); err != nil {
+	if err := writeArchive(second, "dpwire-test", append([]archiveEntry(nil), entries...)); err != nil {
 		t.Fatal(err)
 	}
 	a, _ := os.ReadFile(first)
@@ -73,7 +73,7 @@ func TestArchiveIsDeterministicAndNormalized(t *testing.T) {
 		}
 		seen[header.Name] = string(data)
 	}
-	if seen["digitalpaper-test/dp"] != "binary" || seen["digitalpaper-test/docs/readme.txt"] != "read me\n" {
+	if seen["dpwire-test/dp"] != "binary" || seen["dpwire-test/docs/readme.txt"] != "read me\n" {
 		t.Fatalf("archive contents = %#v", seen)
 	}
 }

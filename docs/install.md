@@ -1,6 +1,6 @@
 # Installation and upgrade
 
-Digital Paper releases are dependency-free `dp` binaries. The user archive
+DPWire releases are dependency-free `dp` binaries. The user archive
 contains `dp`, the license and notices, and the CLI, compatibility, installation,
 and recovery documents. `dp-sim` is a development tool and is not installed.
 
@@ -13,7 +13,7 @@ names. Download the selected archive and `SHA256SUMS` into one directory.
 Verify exactly the selected file before extracting it. For example:
 
 ```sh
-archive=digitalpaper-v0.3.0-p3-darwin-arm64.tar.gz
+archive=dpwire-v0.3.0-darwin-arm64.tar.gz
 awk -v file="$archive" '$2 == file {print}' SHA256SUMS > selected.sha256
 test "$(wc -l < selected.sha256)" -eq 1
 shasum -a 256 -c selected.sha256
@@ -30,9 +30,9 @@ Extract the verified archive and install `dp` into a private executable
 directory:
 
 ```sh
-tar -xzf digitalpaper-v0.3.0-p3-darwin-arm64.tar.gz
+tar -xzf dpwire-v0.3.0-darwin-arm64.tar.gz
 mkdir -p "$HOME/.local/bin"
-install -m 0755 digitalpaper-v0.3.0-p3-darwin-arm64/dp "$HOME/.local/bin/dp"
+install -m 0755 dpwire-v0.3.0-darwin-arm64/dp "$HOME/.local/bin/dp"
 "$HOME/.local/bin/dp" version
 ```
 
@@ -64,7 +64,7 @@ binary until the new one authenticates successfully:
 
 ```sh
 cp -p "$HOME/.local/bin/dp" "$HOME/.local/bin/dp.previous"
-install -m 0755 digitalpaper-vNEW-darwin-arm64/dp "$HOME/.local/bin/dp.new"
+install -m 0755 dpwire-vNEW-darwin-arm64/dp "$HOME/.local/bin/dp.new"
 "$HOME/.local/bin/dp.new" version
 mv "$HOME/.local/bin/dp.new" "$HOME/.local/bin/dp"
 dp auth
@@ -87,8 +87,8 @@ See `recovery.md` before moving credentials to another machine.
 The source archive is checksummed with the binaries. After verification:
 
 ```sh
-tar -xzf digitalpaper-v0.3.0-p3-source.tar.gz
-cd digitalpaper-v0.3.0-p3-source
+tar -xzf dpwire-v0.3.0-source.tar.gz
+cd dpwire-v0.3.0-source
 go test ./...
 go build -trimpath -buildvcs=false -o dp ./cmd/dp
 ```

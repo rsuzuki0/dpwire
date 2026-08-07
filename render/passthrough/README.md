@@ -1,1 +1,1 @@
-# PDF pass-through renderer (reserved for P4)
+# PDF pass-through renderer (reserved)

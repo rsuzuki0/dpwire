@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rsuzuki0/digitalpaper"
+	"github.com/rsuzuki0/dpwire"
 )
 
 func TestImportListUseAndCurrent(t *testing.T) {
@@ -28,7 +28,7 @@ func TestImportListUseAndCurrent(t *testing.T) {
 	if profile.Name != "first" || !filepath.IsAbs(profile.PrivateKeyRef) {
 		t.Fatalf("profile = %#v", profile)
 	}
-	if profile.Connection != digitalpaper.ConnectionRelay {
+	if profile.Connection != dpwire.ConnectionRelay {
 		t.Fatalf("first connection = %q", profile.Connection)
 	}
 	second := sonyCredentials(t, "second-client")
@@ -39,7 +39,7 @@ func TestImportListUseAndCurrent(t *testing.T) {
 	if err != nil || len(items) != 2 || !items[0].Current || items[0].Name != "first" {
 		t.Fatalf("items = %#v, err = %v", items, err)
 	}
-	if items[1].Connection != digitalpaper.ConnectionDirect {
+	if items[1].Connection != dpwire.ConnectionDirect {
 		t.Fatalf("second connection = %q", items[1].Connection)
 	}
 	if err := manager.Use("second"); err != nil {
@@ -91,6 +91,42 @@ func TestRejectsUnsafeNamesAndConfig(t *testing.T) {
 		if _, err := manager.Load(name); err == nil {
 			t.Fatalf("unsafe name %q accepted", name)
 		}
+	}
+}
+
+func TestDefaultRootCompatibility(t *testing.T) {
+	base := t.TempDir()
+	current := filepath.Join(base, "dpwire")
+	legacy := filepath.Join(base, "digitalpaper")
+
+	root, err := defaultRootIn(base)
+	if err != nil || root != current {
+		t.Fatalf("new root = %q, err = %v", root, err)
+	}
+	if err := os.Mkdir(legacy, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	root, err = defaultRootIn(base)
+	if err != nil || root != legacy {
+		t.Fatalf("legacy root = %q, err = %v", root, err)
+	}
+	if err := os.Mkdir(current, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	root, err = defaultRootIn(base)
+	if err != nil || root != current {
+		t.Fatalf("current root = %q, err = %v", root, err)
+	}
+}
+
+func TestDefaultRootRejectsLegacySymlink(t *testing.T) {
+	base := t.TempDir()
+	legacy := filepath.Join(base, "digitalpaper")
+	if err := os.Symlink(t.TempDir(), legacy); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := defaultRootIn(base); err == nil {
+		t.Fatal("legacy configuration symlink accepted")
 	}
 }
 

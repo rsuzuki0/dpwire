@@ -1,4 +1,4 @@
-package digitalpaper
+package dpwire
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/rsuzuki0/digitalpaper/internal/atomicfile"
+	"github.com/rsuzuki0/dpwire/internal/atomicfile"
 )
 
 const maxProfileSize = 1 << 20
@@ -70,7 +70,7 @@ func LoadProfile(path string) (DeviceProfile, error) {
 		return DeviceProfile{}, err
 	}
 	if info.Size() > maxProfileSize {
-		return DeviceProfile{}, errors.New("digitalpaper: profile exceeds size limit")
+		return DeviceProfile{}, errors.New("dpwire: profile exceeds size limit")
 	}
 	raw, err := os.ReadFile(path)
 	if err != nil {
@@ -80,11 +80,11 @@ func LoadProfile(path string) (DeviceProfile, error) {
 	decoder.DisallowUnknownFields()
 	var profile DeviceProfile
 	if err := decoder.Decode(&profile); err != nil {
-		return DeviceProfile{}, fmt.Errorf("digitalpaper: decode profile: %w", err)
+		return DeviceProfile{}, fmt.Errorf("dpwire: decode profile: %w", err)
 	}
 	var trailing any
 	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
-		return DeviceProfile{}, errors.New("digitalpaper: profile contains trailing data")
+		return DeviceProfile{}, errors.New("dpwire: profile contains trailing data")
 	}
 	if err := profile.validate(); err != nil {
 		return DeviceProfile{}, err
@@ -111,13 +111,13 @@ func SaveProfile(path string, profile DeviceProfile) error {
 
 func (p DeviceProfile) validate() error {
 	if p.Name == "" || p.Address == "" || p.ClientID == "" {
-		return errors.New("digitalpaper: profile name, address, and client_id are required")
+		return errors.New("dpwire: profile name, address, and client_id are required")
 	}
 	if p.Connection != "" && p.Connection != ConnectionDirect && p.Connection != ConnectionRelay {
-		return errors.New("digitalpaper: profile connection must be direct or relay")
+		return errors.New("dpwire: profile connection must be direct or relay")
 	}
 	if len(p.DeviceCAPEM) == 0 && p.CertificateSHA256 == "" {
-		return errors.New("digitalpaper: profile requires a device CA or certificate fingerprint")
+		return errors.New("dpwire: profile requires a device CA or certificate fingerprint")
 	}
 	return nil
 }

@@ -1,4 +1,4 @@
-package digitalpaper
+package dpwire
 
 // Capability identifies an independently testable device feature.
 type Capability string

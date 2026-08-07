@@ -1,4 +1,4 @@
-package digitalpaper
+package dpwire
 
 import (
 	"bytes"
@@ -48,7 +48,7 @@ func (s *FoldersService) Create(ctx context.Context, parentID, name string) (Ent
 		return Entry{}, publicError(err)
 	}
 	if err := validateID(response.FolderID); err != nil {
-		return Entry{}, errors.New("digitalpaper: device returned an invalid folder ID")
+		return Entry{}, errors.New("dpwire: device returned an invalid folder ID")
 	}
 	entry, err := s.Get(ctx, response.FolderID)
 	if err != nil {
@@ -93,7 +93,7 @@ func (s *FoldersService) Update(ctx context.Context, id, parentID, newName strin
 		payload["folder_name"] = name
 	}
 	if len(payload) == 0 {
-		return Entry{}, errors.New("digitalpaper: folder update has no changes")
+		return Entry{}, errors.New("dpwire: folder update has no changes")
 	}
 	endpoint := "/folders2/" + url.PathEscape(id)
 	if err := s.client.wire.DoJSON(ctx, http.MethodPut, endpoint, nil, payload, nil, true); err != nil {
@@ -130,7 +130,7 @@ func (s *DocumentsService) CreateMetadata(ctx context.Context, parentID, filenam
 		return Entry{}, publicError(err)
 	}
 	if err := validateID(response.DocumentID); err != nil {
-		return Entry{}, errors.New("digitalpaper: device returned an invalid document ID")
+		return Entry{}, errors.New("dpwire: device returned an invalid document ID")
 	}
 	entry, err := s.Get(ctx, response.DocumentID)
 	if err != nil {
@@ -176,7 +176,7 @@ func (s *DocumentsService) CreateAndUpload(ctx context.Context, parentID, filena
 // Replace uploads a new PDF body only if targetRevision is still current.
 func (s *DocumentsService) Replace(ctx context.Context, id, filename, targetRevision string, source io.ReadSeeker) (Entry, UploadResult, error) {
 	if targetRevision == "" {
-		return Entry{}, UploadResult{}, errors.New("digitalpaper: target revision is required for replacement")
+		return Entry{}, UploadResult{}, errors.New("dpwire: target revision is required for replacement")
 	}
 	prepared, err := preparePDF(source)
 	if err != nil {
@@ -216,7 +216,7 @@ func (s *DocumentsService) Update(ctx context.Context, id, parentID, newName str
 		payload["file_name"] = name
 	}
 	if len(payload) == 0 {
-		return Entry{}, errors.New("digitalpaper: document update has no changes")
+		return Entry{}, errors.New("dpwire: document update has no changes")
 	}
 	endpoint := "/documents2/" + url.PathEscape(id)
 	if err := s.client.wire.DoJSON(ctx, http.MethodPut, endpoint, nil, payload, nil, true); err != nil {
@@ -259,7 +259,7 @@ func (s *DocumentsService) Copy(ctx context.Context, id, parentID, newName strin
 		return Entry{}, publicError(err)
 	}
 	if err := validateID(response.DocumentID); err != nil {
-		return Entry{}, errors.New("digitalpaper: device returned an invalid copied document ID")
+		return Entry{}, errors.New("dpwire: device returned an invalid copied document ID")
 	}
 	entry, err := s.Get(ctx, response.DocumentID)
 	if err != nil {
@@ -279,7 +279,7 @@ func (s *DocumentsService) Open(ctx context.Context, id string, page int) error 
 		return err
 	}
 	if page < 0 {
-		return errors.New("digitalpaper: page must not be negative")
+		return errors.New("dpwire: page must not be negative")
 	}
 	payload := map[string]string{"document_id": id}
 	if page > 0 {
@@ -296,14 +296,14 @@ type preparedPDF struct {
 
 func preparePDF(source io.ReadSeeker) (preparedPDF, error) {
 	if source == nil {
-		return preparedPDF{}, errors.New("digitalpaper: nil PDF source")
+		return preparedPDF{}, errors.New("dpwire: nil PDF source")
 	}
 	if _, err := source.Seek(0, io.SeekStart); err != nil {
-		return preparedPDF{}, fmt.Errorf("digitalpaper: seek PDF: %w", err)
+		return preparedPDF{}, fmt.Errorf("dpwire: seek PDF: %w", err)
 	}
 	var magic [5]byte
 	if _, err := io.ReadFull(source, magic[:]); err != nil || string(magic[:]) != "%PDF-" {
-		return preparedPDF{}, errors.New("digitalpaper: source is not a PDF")
+		return preparedPDF{}, errors.New("dpwire: source is not a PDF")
 	}
 	if _, err := source.Seek(0, io.SeekStart); err != nil {
 		return preparedPDF{}, err
@@ -314,7 +314,7 @@ func preparePDF(source io.ReadSeeker) (preparedPDF, error) {
 		return preparedPDF{}, err
 	}
 	if size > maxDocumentSize {
-		return preparedPDF{}, fmt.Errorf("digitalpaper: PDF exceeds %d-byte limit", maxDocumentSize)
+		return preparedPDF{}, fmt.Errorf("dpwire: PDF exceeds %d-byte limit", maxDocumentSize)
 	}
 	if _, err := source.Seek(0, io.SeekStart); err != nil {
 		return preparedPDF{}, err
@@ -353,7 +353,7 @@ func (s *DocumentsService) upload(ctx context.Context, id, filename string, prep
 		return UploadResult{}, err
 	}
 	if len(raw) > maxUploadResponse {
-		return UploadResult{}, errors.New("digitalpaper: upload response exceeds limit")
+		return UploadResult{}, errors.New("dpwire: upload response exceeds limit")
 	}
 	var wire struct {
 		Received string `json:"received_bytes"`
@@ -362,15 +362,15 @@ func (s *DocumentsService) upload(ctx context.Context, id, filename string, prep
 		Revision string `json:"file_revision"`
 	}
 	if err := json.Unmarshal(raw, &wire); err != nil {
-		return UploadResult{}, fmt.Errorf("digitalpaper: decode upload response: %w", err)
+		return UploadResult{}, fmt.Errorf("dpwire: decode upload response: %w", err)
 	}
 	received, err := strconv.ParseInt(wire.Received, 10, 64)
 	if err != nil {
-		return UploadResult{}, errors.New("digitalpaper: invalid received_bytes")
+		return UploadResult{}, errors.New("dpwire: invalid received_bytes")
 	}
 	current, err := strconv.ParseInt(wire.Current, 10, 64)
 	if err != nil {
-		return UploadResult{}, errors.New("digitalpaper: invalid current_bytes")
+		return UploadResult{}, errors.New("dpwire: invalid current_bytes")
 	}
 	result := UploadResult{ReceivedBytes: received, CurrentBytes: current, Completed: wire.Complete == "yes", Revision: wire.Revision, SHA256: prepared.hash}
 	if !result.Completed || received != prepared.size || current != prepared.size || result.Revision == "" {
@@ -403,10 +403,10 @@ func multipartBody(filename string, content io.Reader, size int64) (io.Reader, s
 func validateEntryName(name string, document bool) (string, error) {
 	name = norm.NFC.String(name)
 	if name == "" || name == "." || name == ".." || !utf8.ValidString(name) || strings.ContainsAny(name, "/\\\r\n\x00") {
-		return "", errors.New("digitalpaper: invalid entry name")
+		return "", errors.New("dpwire: invalid entry name")
 	}
 	if document && !strings.HasSuffix(strings.ToLower(name), ".pdf") {
-		return "", errors.New("digitalpaper: document name must end in .pdf")
+		return "", errors.New("dpwire: document name must end in .pdf")
 	}
 	return name, nil
 }
