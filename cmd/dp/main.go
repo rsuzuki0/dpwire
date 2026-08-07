@@ -127,21 +127,23 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 			return 2
 		}
 		var store *profiles.ObjectReferenceStore
-		if selector.kind != selectorPath || long {
+		if selector.kind == selectorID || long {
 			store, err = getReferenceStore()
 			if err != nil {
 				return report(stderr, err)
 			}
 		}
-		target, resolveErr := resolveObject(ctx, client, store, selector, "")
+		resolved, globbed, resolveErr := resolveReadObjects(ctx, client, store, selector, "")
 		if resolveErr != nil {
 			return report(stderr, resolveErr)
 		}
 		var entries []dpwire.Entry
-		if target.Type == dpwire.EntryDocument {
-			entries = []dpwire.Entry{target}
+		if globbed {
+			entries = resolved
+		} else if resolved[0].Type == dpwire.EntryDocument {
+			entries = resolved
 		} else {
-			entries, err = client.Folders.List(ctx, target.ID, dpwire.ListOptions{})
+			entries, err = client.Folders.List(ctx, resolved[0].ID, dpwire.ListOptions{})
 		}
 		if err != nil {
 			return report(stderr, err)
@@ -161,17 +163,24 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 			return 2
 		}
 		var store *profiles.ObjectReferenceStore
-		if selector.kind != selectorPath {
+		if selector.kind == selectorID {
 			store, err = getReferenceStore()
 			if err != nil {
 				return report(stderr, err)
 			}
 		}
-		entry, err := resolveObject(ctx, client, store, selector, "")
+		entries, globbed, err := resolveReadObjects(ctx, client, store, selector, "")
 		if err != nil {
 			return report(stderr, err)
 		}
-		return encode(stdout, presentEntry(entry))
+		if !globbed {
+			return encode(stdout, presentEntry(entries[0]))
+		}
+		output := make([]entryOutput, len(entries))
+		for index, entry := range entries {
+			output[index] = presentEntry(entry)
+		}
+		return encode(stdout, output)
 	case "get":
 		selector, remaining, selectorErr := parseObjectSelector(args[1:])
 		if selectorErr != nil || len(remaining) > 1 {
@@ -651,17 +660,7 @@ func usage(output io.Writer) {
 	fmt.Fprintln(output, "commands:")
 	fmt.Fprintln(output)
 	commands := [][2]string{
-		{"version", "print version"},
-		{"inspect-cert ADDRESS", "inspect untrusted first-contact certificate"},
-		{"credentials find ROOT", "list existing Sony credential pairs"},
-		{"profile import-sony NAME ADDRESS SHA256 CREDENTIAL_DIR", "import an existing Sony credential pair"},
-		{"profile pair NAME DIRECT_ADDRESS", "register a new direct client identity"},
-		{"profile list", "list configured devices"},
-		{"profile use NAME", "select the default device"},
-		{"profile show [NAME]", "show safe connection details"},
-		{"auth", "verify profile authentication"},
-		{"device", "show firmware, battery, and storage"},
-		{"ls [-l] [OBJECT]", "list the root, a folder, or one PDF"},
+		{"ls [-l] [OBJECT]", "list the root, a folder, or matching objects"},
 		{"stat OBJECT", "show complete entry metadata"},
 		{"file OBJECT", "alias for stat"},
 		{"get OBJECT [LOCAL_FILE]", "download PDF without overwriting"},
@@ -672,6 +671,16 @@ func usage(output io.Writer) {
 		{"rm OBJECT", "remove one PDF with a revision guard"},
 		{"rmdir OBJECT", "remove one empty folder only"},
 		{"open OBJECT [PAGE]", "display a PDF on the device"},
+		{"device", "show firmware, battery, and storage"},
+		{"auth", "verify profile authentication"},
+		{"profile import-sony NAME ADDRESS SHA256 CREDENTIAL_DIR", "import an existing Sony credential pair"},
+		{"profile pair NAME DIRECT_ADDRESS", "register a new direct client identity"},
+		{"profile list", "list configured devices"},
+		{"profile use NAME", "select the default device"},
+		{"profile show [NAME]", "show safe connection details"},
+		{"credentials find ROOT", "list existing Sony credential pairs"},
+		{"inspect-cert ADDRESS", "inspect untrusted first-contact certificate"},
+		{"version", "print version"},
 	}
 	writer := tabwriter.NewWriter(output, 0, 4, 4, ' ', 0)
 	for _, command := range commands {
@@ -682,4 +691,5 @@ func usage(output io.Writer) {
 	fmt.Fprintln(output, "device paths use the fixed root /; both /Documents/paper.pdf and Documents/paper.pdf are accepted")
 	fmt.Fprintln(output, "dp does not retain a current directory between commands")
 	fmt.Fprintln(output, "OBJECT is a device path, --id NUMBER|0xHEX, or --glob PATTERN")
+	fmt.Fprintln(output, "ls, file, and stat also expand quoted glob characters in a device path")
 }

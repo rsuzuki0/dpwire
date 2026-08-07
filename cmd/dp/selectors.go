@@ -87,20 +87,11 @@ func resolveObject(ctx context.Context, client *dpwire.Client, store *profiles.O
 		if store == nil {
 			return dpwire.Entry{}, errors.New("object reference store is unavailable")
 		}
-		pattern := foldGlobString(selector.value)
-		if _, err := path.Match(pattern, ""); err != nil {
-			return dpwire.Entry{}, fmt.Errorf("invalid glob pattern: %w", err)
-		}
-		entries, err := globDevice(ctx, client, pattern)
+		entries, err := resolveGlobObjects(ctx, client, selector.value, expected)
 		if err != nil {
 			return dpwire.Entry{}, err
 		}
-		for _, entry := range entries {
-			if expected != "" && entry.Type != expected {
-				continue
-			}
-			candidates = append(candidates, entry)
-		}
+		candidates = entries
 	default:
 		return dpwire.Entry{}, errors.New("invalid object selector")
 	}
@@ -128,6 +119,70 @@ func resolveObject(ctx context.Context, client *dpwire.Client, store *profiles.O
 		return dpwire.Entry{}, ambiguousObjectError(store, selector, candidates)
 	}
 	return candidates[0], nil
+}
+
+// resolveReadObjects resolves one exact object or expands a glob for read-only
+// list and metadata commands. A positional path is always tried literally
+// before glob fallback, preserving access to names containing metacharacters.
+func resolveReadObjects(ctx context.Context, client *dpwire.Client, store *profiles.ObjectReferenceStore, selector objectSelector, expected dpwire.EntryType) ([]dpwire.Entry, bool, error) {
+	if selector.kind == selectorGlob {
+		entries, err := resolveGlobObjects(ctx, client, selector.value, expected)
+		return entries, true, err
+	}
+	if selector.kind == selectorPath {
+		remotePath, err := parseDevicePath(selector.value)
+		if err != nil {
+			return nil, false, err
+		}
+		entry, err := client.Documents.Resolve(ctx, remotePath)
+		if err == nil {
+			if expected != "" && entry.Type != expected {
+				return nil, false, fmt.Errorf("selected object is a %s; command requires a %s", entry.Type, expected)
+			}
+			return []dpwire.Entry{entry}, false, nil
+		}
+		if !isNotFound(err) || !hasGlobMetachar(selector.value) {
+			return nil, false, err
+		}
+		entries, globErr := resolveGlobObjects(ctx, client, selector.value, expected)
+		return entries, true, globErr
+	}
+	entry, err := resolveObject(ctx, client, store, selector, expected)
+	if err != nil {
+		return nil, false, err
+	}
+	return []dpwire.Entry{entry}, false, nil
+}
+
+func resolveGlobObjects(ctx context.Context, client *dpwire.Client, value string, expected dpwire.EntryType) ([]dpwire.Entry, error) {
+	pattern := foldGlobString(value)
+	if _, err := path.Match(pattern, ""); err != nil {
+		return nil, fmt.Errorf("invalid glob pattern: %w", err)
+	}
+	entries, err := globDevice(ctx, client, pattern)
+	if err != nil {
+		return nil, err
+	}
+	filtered := entries[:0]
+	for _, entry := range entries {
+		if expected == "" || entry.Type == expected {
+			filtered = append(filtered, entry)
+		}
+	}
+	entries = filtered
+	if len(entries) == 0 {
+		kind := "device object"
+		if expected != "" {
+			kind = string(expected)
+		}
+		return nil, fmt.Errorf("no %s matches glob %q", kind, value)
+	}
+	sort.Slice(entries, func(i, j int) bool { return devicePathString(entries[i].Path) < devicePathString(entries[j].Path) })
+	return entries, nil
+}
+
+func hasGlobMetachar(value string) bool {
+	return strings.ContainsAny(value, "*?[")
 }
 
 func foldGlobString(value string) string {

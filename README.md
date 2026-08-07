@@ -117,9 +117,16 @@ with `--id`. `--glob` follows root-relative shell pathname expansion: `E*`
 examines the device root only, while `/Documents/E*` examines that directory.
 Each `/` advances exactly one directory level; quote the pattern to prevent
 local shell expansion. Glob matching is case-insensitive. The verified DPT-RP1 also resolves exact
-paths case-insensitively. Exactly one matching object is required. `cp` and `mv` operate within the device;
+paths case-insensitively. Commands that act on one object require exactly one
+match. `cp` and `mv` operate within the device;
 `put` and `get` transfer between the host and device. Existing destinations are
 never overwritten. See `docs/cli.md`.
+
+For `ls`, `file`, and `stat`, `--glob` may be omitted: a quoted positional path
+containing `*`, `?`, or `[...]` is tried as an exact path first and expanded as
+a glob only when no exact object exists. `ls` prints every match itself;
+`file` and `stat` return a JSON array for a glob, including a one-item glob.
+Commands that act on one object retain explicit `--glob` and require one match.
 
 `rm` deletes exactly one document using the revision just resolved by the CLI.
 `rmdir` deletes only an empty folder and always disables the protocol's

@@ -84,6 +84,8 @@ dp file /Documents/paper.pdf
 dp file Documents/paper.pdf
 dp file --id 23
 dp file --id 0x3a71c8
+dp file '/Documents/*.pdf'
+dp ls -l '/Documents/2026-*.pdf'
 dp get --glob '/Documents/*報告*2026*.pdf'
 dp mv --glob '/Documents/Inbox/*draft*.pdf' /Documents/Archive/
 ```
@@ -97,14 +99,27 @@ glob syntax after Unicode NFC normalization and case folding. Exact paths and gl
 case-insensitive on the verified DPT-RP1; `--glob` applies case-insensitive
 matching consistently. Other device families require separate path-resolution
 verification. Quote the pattern so the host shell does not expand it. Exactly
-one object of the type required by the command must match. Zero
-matches stop with an error; multiple matches stop and list each persistent
-number, hexadecimal reference, and exact path. No matching object is modified
-in either case. Expansion stops at a 10,000-object safety limit.
+Zero matches stop with an error. For a command requiring one object, multiple
+matches stop and list each persistent number, hexadecimal reference, and exact
+path. No matching object is modified in either case. Expansion stops at a
+10,000-object safety limit.
+
+`ls`, `file`, and `stat` accept a quoted glob directly, without `--glob`.
+DPWire first attempts an exact path lookup, so an existing literal filename
+containing `*`, `?`, or `[` remains addressable. Glob expansion occurs only
+after that exact lookup reports no object. `--glob` remains available to force
+glob interpretation.
+
+For a glob, `ls` prints all matching entries themselves and does not enter a
+matching folder. `file` and `stat` return a JSON array for every glob request,
+including one match. Exact paths and `--id` return the existing single JSON
+object. Commands that transfer, open, copy, move, or remove one object require
+explicit `--glob` and exactly one compatible match.
 
 The reference map is stored owner-only in the active DPWire configuration
 directory. It contains device object IDs and types, but no filenames or paths.
-`file` and `stat` are identical and return the complete metadata for one entry.
+`file` and `stat` are identical and return complete metadata for one or more
+entries.
 
 Existing destinations are protected from overwrite. `rm` is an explicit request
 to delete exactly one document: the CLI resolves its current revision and the
@@ -114,5 +129,5 @@ sends `force_delete_flag: "false"`, so a child created concurrently also stops
 the operation. There is no recursive or force option.
 
 No command silently invokes `rm` or `rmdir`. A successful command reports the
-removed root-relative path only after a metadata lookup confirms that the entry
+removed absolute device path only after a metadata lookup confirms that the entry
 is absent. Deletion is permanent on devices that provide no trash facility.

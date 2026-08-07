@@ -268,6 +268,10 @@ globは大文字・小文字を区別しない。DPT-RP1のexact path解決も�
 `--glob` は一致が一件のときだけ処理を実行し、複数一致では番号と完全なpathを
 表示して中止する。globは端末rootからpath segmentごとに展開し、`E*`はroot
 直下だけ、`/Documents/E*`はそのdirectory直下だけを調べる。暗黙の再帰検索はしない。
+`ls`、`file`、`stat`ではexact path解決を先に行い、不一致かつglob記号を含む
+場合に限って `--glob` を省略した展開を行う。複数一致を許容し、`ls`は一致
+object自体を列挙、`file/stat`は一致数にかかわらずJSON arrayを返す。他command
+では明示的な `--glob` と一意一致を要求する。
 
 ## 7. Capability仕様
 

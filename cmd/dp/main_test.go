@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -35,8 +36,17 @@ func TestUsageColumns(t *testing.T) {
 	if !strings.HasPrefix(output.String(), "usage: dp [-profile NAME|FILE] COMMAND [ARG...]\n\ncommands:\n\n") {
 		t.Fatalf("usage section spacing:\n%s", output.String())
 	}
-	if !strings.Contains(output.String(), "display a PDF on the device\n\ndevice paths use the fixed root /") {
+	if !strings.Contains(output.String(), "print version\n\ndevice paths use the fixed root /") {
 		t.Fatalf("usage block spacing:\n%s", output.String())
+	}
+	ordered := []string{"  ls ", "  open ", "  device ", "  auth ", "  profile ", "  credentials ", "  inspect-cert ", "  version "}
+	previous := -1
+	for _, command := range ordered {
+		index := strings.Index(output.String(), command)
+		if index < 0 || index <= previous {
+			t.Fatalf("usage command order at %q:\n%s", command, output.String())
+		}
+		previous = index
 	}
 	lines := strings.Split(output.String(), "\n")
 	descriptions := []string{"print version", "import an existing Sony credential pair", "display a PDF on the device"}
@@ -197,6 +207,7 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	state.AddDocument("Document/Documents/年次 報告 2026.pdf", "年次 報告 2026.pdf", root.ID, sourceContent, time.Now())
 	state.AddDocument("Document/Documents/zebra.pdf", "zebra.pdf", root.ID, sourceContent, time.Now())
 	state.AddDocument("Document/Documents/zenith.pdf", "zenith.pdf", root.ID, sourceContent, time.Now())
+	state.AddDocument("Document/Documents/literal*.pdf", "literal*.pdf", root.ID, sourceContent, time.Now())
 	simulator := dptest.Start(state)
 	defer simulator.Close()
 
@@ -252,12 +263,26 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 		t.Fatalf("long ls = %q", output)
 	}
 	number, hexID := referenceFor(longListing, "source.pdf")
-	if number != "0" || !strings.HasPrefix(hexID, "0x") {
+	if _, err := strconv.ParseUint(number, 10, 64); err != nil || !strings.HasPrefix(hexID, "0x") {
 		t.Fatalf("long ls references = %q", longListing)
 	}
 	invoke("file", "--id", number)
 	invoke("stat", "--id", hexID)
-	invoke("file", "--glob", "Documents/*source.pdf")
+	if output := invoke("file", "--glob", "/Documents/*source.pdf"); !strings.HasPrefix(strings.TrimSpace(output), "[") {
+		t.Fatalf("explicit file glob is not a JSON array: %q", output)
+	}
+	if output := invoke("file", "/Documents/z*.pdf"); !strings.HasPrefix(strings.TrimSpace(output), "[") || !strings.Contains(output, "/Documents/zebra.pdf") || !strings.Contains(output, "/Documents/zenith.pdf") {
+		t.Fatalf("automatic file glob = %q", output)
+	}
+	if output := invoke("stat", "/Documents/z*.pdf"); !strings.HasPrefix(strings.TrimSpace(output), "[") {
+		t.Fatalf("automatic stat glob is not a JSON array: %q", output)
+	}
+	if output := invoke("file", "/Documents/literal*.pdf"); !strings.HasPrefix(strings.TrimSpace(output), "{") {
+		t.Fatalf("literal metacharacter path did not win over glob: %q", output)
+	}
+	if output := invoke("ls", "-l", "/Documents/z*.pdf"); !strings.Contains(output, "zebra.pdf") || !strings.Contains(output, "zenith.pdf") {
+		t.Fatalf("multiple ls glob = %q", output)
+	}
 	invoke("file", "--glob", "Documents/*報告*2026.PDF")
 	if output := invoke("file", "--glob", "e*"); !strings.Contains(output, `"path": "/Examples"`) {
 		t.Fatalf("root-scoped glob = %q", output)
@@ -269,7 +294,7 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 		t.Fatalf("absolute root glob = %q", output)
 	}
 	var ambiguousOutput, ambiguousErrors bytes.Buffer
-	ambiguousArgs := []string{"-config-dir", filepath.Join(temporary, "external-profile-config"), "-profile", profilePath, "file", "--glob", "Documents/z*.pdf"}
+	ambiguousArgs := []string{"-config-dir", filepath.Join(temporary, "external-profile-config"), "-profile", profilePath, "get", "--glob", "Documents/z*.pdf"}
 	if code := run(ambiguousArgs, &ambiguousOutput, &ambiguousErrors); code == 0 || !strings.Contains(ambiguousErrors.String(), "multiple device objects") || !strings.Contains(ambiguousErrors.String(), "Documents/zebra.pdf") || !strings.Contains(ambiguousErrors.String(), "Documents/zenith.pdf") {
 		t.Fatalf("ambiguous glob: code=%d stdout=%q stderr=%q", code, ambiguousOutput.String(), ambiguousErrors.String())
 	}

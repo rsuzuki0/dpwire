@@ -23,9 +23,16 @@ the fixed root explicit. There is no implicit recursive search, and `**` has no
 special recursive meaning. Exact path resolution and glob matching are
 case-insensitive on the verified DPT-RP1. DPWire applies the same case folding
 to glob matching on every device; exact path resolution remains a device API
-behavior to verify on other families. A command proceeds only when exactly one compatible
-object matches. Ambiguity reports the number, hexadecimal reference, and exact
-path for every match. Traversal has a 10,000-object safety limit.
+behavior to verify on other families. Commands that require one object proceed
+only when exactly one compatible object matches. Ambiguity then reports the
+number, hexadecimal reference, and exact path for every match. Traversal has a
+10,000-object safety limit.
+
+Read-only `ls`, `file`, and `stat` infer glob intent from metacharacters after
+an exact-path lookup fails. They permit multiple matches. `ls` lists matching
+entries without entering matched folders; `file` and `stat` return a JSON array
+for inferred or explicit globs. Other object commands retain explicit `--glob`
+and require exactly one compatible match.
 
 ## Consequences
 

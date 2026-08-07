@@ -14,7 +14,9 @@ library.
 - Unix/FTP-style `ls`, `ls -l`, `file`/`stat`, `get`, `put`, `cp`, `mv`,
   `mkdir`, `rm`, `rmdir`, and `open` commands in a filesystem-like CLI UI.
 - Persistent nonnegative object numbers, collision-safe `0x` references, and
-  single-result Unix glob selection for paths that are difficult to type.
+  bounded Unix glob selection for paths that are difficult to type.
+- Direct quoted glob arguments and multiple-match output for read-only `ls`,
+  `file`, and `stat`, with exact literal paths taking precedence.
 - PDF-only upload and replacement with revision conflict checks.
 - Device-side copy and move without unnecessary host round trips.
 - Revision-guarded document deletion and empty-only, non-recursive folder
