@@ -96,3 +96,14 @@ func TestDuplicateNameIsConflict(t *testing.T) {
 		}
 	}
 }
+
+func TestFolderNotEmptyError(t *testing.T) {
+	err := publicError(&transport.HTTPError{StatusCode: 400, Code: "40018", Message: "not empty"})
+	if !errors.Is(err, ErrNotEmpty) {
+		t.Fatalf("40018 did not map to ErrNotEmpty: %v", err)
+	}
+	var apiError *APIError
+	if !errors.As(err, &apiError) || apiError.Code != "40018" {
+		t.Fatalf("folder error did not preserve APIError: %#v", err)
+	}
+}

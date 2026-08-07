@@ -45,19 +45,20 @@ type Fault struct {
 
 // State stores mutable simulator data. All methods are safe for concurrent use.
 type State struct {
-	mu          sync.RWMutex
-	model       string
-	firmware    string
-	nextID      uint64
-	documents   map[string]Document
-	folders     map[string]Document
-	contents    map[string][]byte
-	faults      map[string]Fault
-	clients     map[string]*rsa.PublicKey
-	nonces      map[string]string
-	sessions    map[string]bool
-	requireAuth bool
-	rejectHash  bool
+	mu                    sync.RWMutex
+	model                 string
+	firmware              string
+	nextID                uint64
+	documents             map[string]Document
+	folders               map[string]Document
+	contents              map[string][]byte
+	faults                map[string]Fault
+	clients               map[string]*rsa.PublicKey
+	nonces                map[string]string
+	sessions              map[string]bool
+	requireAuth           bool
+	rejectHash            bool
+	lastFolderDeleteForce *bool
 }
 
 // NewState constructs an empty simulated device.
@@ -372,6 +373,69 @@ func (s *State) copyDocument(id, parentID, name string) (Document, error) {
 	s.documents[newID] = copy
 	s.contents[newID] = append([]byte(nil), s.contents[id]...)
 	return copy, nil
+}
+
+func (s *State) deleteDocument(id, targetRevision string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	document, ok := s.documents[id]
+	if !ok {
+		return errors.New("not found")
+	}
+	if targetRevision != "" && targetRevision != document.Revision {
+		return errors.New("conflict")
+	}
+	delete(s.documents, id)
+	delete(s.contents, id)
+	return nil
+}
+
+func (s *State) deleteFolder(id string, force bool) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	recordedForce := force
+	s.lastFolderDeleteForce = &recordedForce
+	folder, ok := s.folders[id]
+	if !ok {
+		return errors.New("not found")
+	}
+	prefix := folder.Path + "/"
+	for _, child := range s.folders {
+		if child.ParentID == id && !force {
+			return errors.New("not empty")
+		}
+	}
+	for _, child := range s.documents {
+		if child.ParentID == id && !force {
+			return errors.New("not empty")
+		}
+	}
+	if force {
+		for childID, child := range s.folders {
+			if strings.HasPrefix(child.Path, prefix) {
+				delete(s.folders, childID)
+			}
+		}
+		for childID, child := range s.documents {
+			if strings.HasPrefix(child.Path, prefix) {
+				delete(s.documents, childID)
+				delete(s.contents, childID)
+			}
+		}
+	}
+	delete(s.folders, id)
+	return nil
+}
+
+// LastFolderDeleteForced reports the force flag received by the most recent
+// folder deletion request.
+func (s *State) LastFolderDeleteForced() (bool, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.lastFolderDeleteForce == nil {
+		return false, false
+	}
+	return *s.lastFolderDeleteForce, true
 }
 
 func (s *State) folderPathLocked(id string) (string, bool) {

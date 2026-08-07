@@ -181,6 +181,10 @@ P3は機能拡張ではなく、PDFだけを長期間日常使用できる完成
 - macOS arm64 / amd64およびLinux用binary
 - checksum、install、upgrade、recovery手順
 
+削除は、documentでは取得直後の`target_revision`を必須とする。folderでは
+事前に空を確認したうえ、原典で省略時`true`となる`force_delete_flag`を必ず
+`false`で送る。recursive/force delete APIは公開せず、root削除も拒否する。
+
 ### 6.2 試験
 
 - RFC test vectors

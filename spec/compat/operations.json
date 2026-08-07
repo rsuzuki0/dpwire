@@ -8,7 +8,7 @@
       "method": "DELETE",
       "path": "/documents/{document_id}",
       "tag": "document",
-      "status": "documented",
+      "status": "emulated",
       "deprecated": false
     },
     {
@@ -24,7 +24,7 @@
       "method": "DELETE",
       "path": "/folders/{folder_id}",
       "tag": "folder",
-      "status": "documented",
+      "status": "emulated",
       "deprecated": false
     },
     {

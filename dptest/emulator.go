@@ -174,6 +174,38 @@ func (s *Simulator) serveHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, http.StatusOK, document)
+	case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/documents/"):
+		id := strings.TrimPrefix(r.URL.Path, "/documents/")
+		var request struct {
+			TargetRevision string `json:"target_revision"`
+		}
+		if !decodeRequest(w, r, &request) {
+			return
+		}
+		if err := s.State.deleteDocument(id, request.TargetRevision); err != nil {
+			writeStateError(w, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/folders/"):
+		id := strings.TrimPrefix(r.URL.Path, "/folders/")
+		var request struct {
+			Force string `json:"force_delete_flag"`
+		}
+		if !decodeRequest(w, r, &request) {
+			return
+		}
+		// Polaris specifies force=true when the property is omitted.
+		force := request.Force == "" || request.Force == "true"
+		if request.Force != "" && request.Force != "true" && request.Force != "false" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error_code": "40001", "message": "invalid force_delete_flag"})
+			return
+		}
+		if err := s.State.deleteFolder(id, force); err != nil {
+			writeStateError(w, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/documents2/"):
 		id := strings.TrimPrefix(r.URL.Path, "/documents2/")
 		var request struct {
@@ -309,6 +341,8 @@ func writeStateError(w http.ResponseWriter, err error) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error_code": "40012", "message": "parent folder not found"})
 	case "conflict":
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error_code": "40017", "message": "revision conflict"})
+	case "not empty":
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error_code": "40018", "message": "folder is not empty"})
 	default:
 		writeJSON(w, http.StatusNotFound, map[string]string{"error_code": "40401", "message": "entry not found"})
 	}

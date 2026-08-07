@@ -8,8 +8,8 @@ The project is being built in phases. P0 preserves protocol references and
 provides reproducible checks, compatibility catalogs, crypto test vectors, and
 a stateful HTTPS simulator. P1 adds authenticated, read-only device access. P2
 adds verified folder creation, PDF upload, device-side copy, move/rename, and
-viewer control. Pairing and destructive deletion remain deliberately
-unavailable.
+viewer control. P3 has added named profile onboarding and guarded deletion;
+fresh pairing and release packaging remain in progress.
 
 P3 targets a complete PDF-only daily-use release: profile onboarding, fresh
 pairing, guarded deletion, packaging, installation, and recovery. Document
@@ -30,7 +30,7 @@ go run ./tools/eval -mode=ci
 ```
 
 Evaluation output is written below `artifacts/eval/`. No physical device is
-required for P0 through the automated P2 suite.
+required for the automated protocol and CLI suite.
 
 ## Command line
 
@@ -57,6 +57,8 @@ dp put paper.pdf Codex_dp
 dp cp Codex_dp/paper.pdf Codex_dp/copy.pdf
 dp mv Codex_dp/copy.pdf Codex_dp/Archive
 dp mkdir Codex_dp/New
+dp rm Codex_dp/old.pdf
+dp rmdir Codex_dp/Empty
 ```
 
 Use `dp profile use NAME` to change the default or `-profile NAME` for one
@@ -70,6 +72,11 @@ relative to its root; `.` denotes the root and the protocol-internal
 byte size, modification time, device ID, and name. `cp` and `mv` operate within
 the device; `put` and `get` transfer between the host and device. Existing
 destinations are never overwritten. See `docs/cli.md`.
+
+`rm` deletes exactly one document using the revision just resolved by the CLI.
+`rmdir` deletes only an empty folder and always disables the protocol's
+recursive force-delete behavior. Neither command is used implicitly by another
+operation; deletion is permanent on devices that provide no trash facility.
 
 `inspect-cert` obtains only
 untrusted first-contact certificate information and sends no credentials:

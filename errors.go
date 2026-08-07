@@ -15,6 +15,10 @@ var ErrUnsupported = errors.New("digitalpaper: capability unsupported")
 // longer matches device state.
 var ErrConflict = errors.New("digitalpaper: write conflict")
 
+// ErrNotEmpty is returned when an empty-only folder deletion encounters a
+// child entry.
+var ErrNotEmpty = errors.New("digitalpaper: folder not empty")
+
 // UnsupportedError explains which capability could not be used.
 type UnsupportedError struct {
 	Capability Capability
@@ -49,6 +53,9 @@ func publicError(err error) error {
 		if wireError.Code == "40007" || wireError.Code == "40017" || wireError.StatusCode == 409 {
 			return &ConflictError{Cause: apiError}
 		}
+		if wireError.Code == "40018" {
+			return &FolderNotEmptyError{Cause: apiError}
+		}
 		return apiError
 	}
 	return err
@@ -60,6 +67,14 @@ type ConflictError struct{ Cause *APIError }
 func (e *ConflictError) Error() string        { return fmt.Sprintf("%v: %v", ErrConflict, e.Cause) }
 func (e *ConflictError) Unwrap() error        { return e.Cause }
 func (e *ConflictError) Is(target error) bool { return target == ErrConflict }
+
+// FolderNotEmptyError preserves the device response while supporting
+// errors.Is(err, ErrNotEmpty).
+type FolderNotEmptyError struct{ Cause *APIError }
+
+func (e *FolderNotEmptyError) Error() string        { return fmt.Sprintf("%v: %v", ErrNotEmpty, e.Cause) }
+func (e *FolderNotEmptyError) Unwrap() error        { return e.Cause }
+func (e *FolderNotEmptyError) Is(target error) bool { return target == ErrNotEmpty }
 
 // PartialFailureError reports a multi-step write whose earlier step succeeded.
 // EntryID identifies the metadata entry that may need later cleanup.

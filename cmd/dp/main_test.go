@@ -175,6 +175,16 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	if code := run([]string{"-profile", profilePath, "put", localUpload, "Codex_dp/P2"}, &stdout, &stderr); code == 0 || !strings.Contains(stderr.String(), "write conflict") {
 		t.Fatalf("duplicate put: code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 	}
+	var removeOutput, removeErrors bytes.Buffer
+	if code := run([]string{"-profile", profilePath, "rmdir", "Codex_dp/P2"}, &removeOutput, &removeErrors); code == 0 || !strings.Contains(removeErrors.String(), "folder not empty") {
+		t.Fatalf("non-empty rmdir: code=%d stdout=%q stderr=%q", code, removeOutput.String(), removeErrors.String())
+	}
+	invoke("rm", "Codex_dp/P2/local.pdf")
+	invoke("rm", "Codex_dp/P2/renamed.pdf")
+	invoke("rmdir", "Codex_dp/P2")
+	if output := invoke("ls", "Codex_dp"); strings.Contains(output, "P2/") {
+		t.Fatalf("deleted folder remains in listing: %q", output)
+	}
 
 	sonyDirectory := filepath.Join(temporary, "sony-credentials")
 	if err := os.Mkdir(sonyDirectory, 0o700); err != nil {

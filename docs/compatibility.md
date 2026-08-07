@@ -32,3 +32,7 @@ incorrect target revision, revision-guarded replacement, and byte-for-byte
 download verification. The approved source PDF remained unchanged. Delete and
 viewer-open were not tested, and native-note behavior remains specification-only
 until a note fixture is explicitly approved.
+
+P3 guarded document and empty-folder deletion are implemented and
+emulator-tested, but remain unverified on physical hardware. No retained P2
+artifact has been deleted by the P3 implementation work.

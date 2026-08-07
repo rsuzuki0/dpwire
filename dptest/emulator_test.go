@@ -142,3 +142,49 @@ func TestFaultInjectionOnce(t *testing.T) {
 		}
 	}
 }
+
+func TestDeleteEndpointsGuardRevisionAndFolderContents(t *testing.T) {
+	state := NewState("DP-SIM", "test-p3")
+	folder := state.AddFolder("Document/delete-test", "delete-test", "root", time.Now())
+	document := state.AddDocument("Document/delete-test/paper.pdf", "paper.pdf", folder.ID, []byte("%PDF-test"), time.Now())
+	sim := Start(state)
+	defer sim.Close()
+
+	request := func(method, endpoint, body string) *http.Response {
+		t.Helper()
+		req, err := http.NewRequest(method, sim.URL()+endpoint, bytes.NewBufferString(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		response, err := sim.Client().Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return response
+	}
+
+	response := request(http.MethodDelete, "/documents/"+document.ID, `{"target_revision":"stale"}`)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("stale delete status = %d", response.StatusCode)
+	}
+	response.Body.Close()
+	response = request(http.MethodDelete, "/folders/"+folder.ID, `{"force_delete_flag":"false"}`)
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("non-empty rmdir status = %d", response.StatusCode)
+	}
+	response.Body.Close()
+	response = request(http.MethodDelete, "/documents/"+document.ID, `{"target_revision":"1"}`)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("document delete status = %d", response.StatusCode)
+	}
+	response.Body.Close()
+	response = request(http.MethodDelete, "/folders/"+folder.ID, `{"force_delete_flag":"false"}`)
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("empty rmdir status = %d", response.StatusCode)
+	}
+	response.Body.Close()
+	if _, ok := state.documentByPath("Document/delete-test"); ok {
+		t.Fatal("deleted folder still resolves")
+	}
+}

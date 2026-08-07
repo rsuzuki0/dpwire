@@ -29,6 +29,8 @@ dp cp Codex_dp/paper.pdf Codex_dp/Archive
 dp mv Codex_dp/old.pdf Codex_dp/new.pdf
 dp put local.pdf Codex_dp
 dp get Codex_dp/paper.pdf
+dp rm Codex_dp/old.pdf
+dp rmdir Codex_dp/Empty
 dp open Codex_dp/paper.pdf 3
 ```
 
@@ -42,6 +44,13 @@ size, modification time, device ID, and name. `file` and `stat` are identical
 and return the complete metadata for one entry. IDs are diagnostic information
 and are never required as command arguments.
 
-P2 never overwrites an existing destination. It exposes no `rm` or `rmdir`
-command. Destructive commands will only be added with explicit confirmation,
-conflict checks, and recoverability rules.
+P2 and P3 never overwrite an existing destination. `rm` is an explicit request
+to delete exactly one document: the CLI resolves its current revision and the
+device rejects the deletion if that revision changes. `rmdir` rejects the
+device root and non-empty folders. It both checks for children beforehand and
+sends `force_delete_flag: "false"`, so a child created concurrently also stops
+the operation. There is no recursive or force option.
+
+No command silently invokes `rm` or `rmdir`. A successful command reports the
+removed root-relative path only after a metadata lookup confirms that the entry
+is absent. Deletion is permanent on devices that provide no trash facility.

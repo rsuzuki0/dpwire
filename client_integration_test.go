@@ -218,3 +218,55 @@ func TestSafeWriteLifecycle(t *testing.T) {
 		}
 	}
 }
+
+func TestSafeDeleteLifecycle(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := dptest.NewState("DPT-RP1", "test-p3")
+	state.RegisterClient("delete-client", &key.PublicKey)
+	state.RequireAuthentication(true)
+	folder := state.AddFolder("Document/delete-test", "delete-test", "root", time.Now())
+	document := state.AddDocument("Document/delete-test/paper.pdf", "paper.pdf", folder.ID, []byte("%PDF-1.4\noriginal\n"), time.Now())
+	simulator := dptest.Start(state)
+	defer simulator.Close()
+
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	client, err := digitalpaper.NewClient(digitalpaper.DeviceProfile{
+		Name: "delete-integration", Address: simulator.URL(), ClientID: "delete-client",
+		CertificateSHA256: simulator.CertificateSHA256(),
+	}, digitalpaper.WithCredentials(credentials.Credentials{ClientID: "delete-client", PrivateKeyPEM: keyPEM}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	if err := client.Authenticate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := client.Documents.Delete(ctx, document.ID, ""); err == nil {
+		t.Fatal("document deletion without a revision succeeded")
+	}
+	updated, _, err := client.Documents.Replace(ctx, document.ID, document.Name, document.Revision, bytes.NewReader([]byte("%PDF-1.4\nupdated\n")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := client.Documents.Delete(ctx, document.ID, document.Revision); !errors.Is(err, digitalpaper.ErrConflict) {
+		t.Fatalf("stale-revision deletion error = %#v", err)
+	}
+	if err := client.Folders.DeleteEmpty(ctx, folder.ID); !errors.Is(err, digitalpaper.ErrNotEmpty) {
+		t.Fatalf("non-empty folder deletion error = %#v", err)
+	}
+	if err := client.Documents.Delete(ctx, updated.ID, updated.Revision); err != nil {
+		t.Fatal(err)
+	}
+	if err := client.Folders.DeleteEmpty(ctx, folder.ID); err != nil {
+		t.Fatal(err)
+	}
+	if forced, ok := state.LastFolderDeleteForced(); !ok || forced {
+		t.Fatalf("folder delete force flag = %v, recorded = %v", forced, ok)
+	}
+	if err := client.Folders.DeleteEmpty(ctx, "root"); err == nil {
+		t.Fatal("device root deletion succeeded")
+	}
+}

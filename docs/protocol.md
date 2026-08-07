@@ -58,6 +58,21 @@ Native notes (`document_type: note`) and annotated documents use the normal
 document transfer endpoints. Note-template management uses separate viewer
 endpoints and remains an optional later capability.
 
+## P3 guarded deletion
+
+Document deletion uses `DELETE /documents/{document_id}` and always supplies
+the current `target_revision`; error `40017` maps to `ErrConflict`. Folder
+deletion uses `DELETE /folders/{folder_id}` and always sends
+`force_delete_flag: "false"`. This is essential because the preserved Polaris
+reference specifies recursive force deletion as the default when that property
+is omitted. The public API checks that a folder is not the root and is empty
+before sending the request, while the device-side false flag closes the race
+with a concurrently created child. Error `40018` maps to `ErrNotEmpty`.
+
+Both operations verify absence after a successful response. The library has no
+recursive-delete entry point, and no create or transfer workflow performs
+automatic cleanup by deletion.
+
 ## Recorded compatibility differences
 
 Physical DPT-RP1 firmware `1.6.50.14130` returns HTTP 406 for the PDF download

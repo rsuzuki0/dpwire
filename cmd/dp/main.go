@@ -17,7 +17,7 @@ import (
 	"github.com/rsuzuki0/digitalpaper/profiles"
 )
 
-const version = "0.2.0-p2"
+const version = "0.3.0-p3"
 
 func main() { os.Exit(run(os.Args[1:], os.Stdout, os.Stderr)) }
 
@@ -217,6 +217,38 @@ func run(arguments []string, stdout, stderr io.Writer) int {
 			return report(stderr, err)
 		}
 		return encode(stdout, presentEntry(entry))
+	case "rm", "rmdir":
+		if len(args) != 2 {
+			usage(stderr)
+			return 2
+		}
+		path, err := parseDevicePath(args[1])
+		if err != nil {
+			return report(stderr, err)
+		}
+		entry, err := client.Documents.Resolve(ctx, path)
+		if err != nil {
+			return report(stderr, err)
+		}
+		if args[0] == "rm" {
+			if entry.Type != digitalpaper.EntryDocument {
+				return report(stderr, errors.New("path is a folder; use rmdir"))
+			}
+			if err := client.Documents.Delete(ctx, entry.ID, entry.Revision); err != nil {
+				return report(stderr, err)
+			}
+		} else {
+			if path.String() == "Document" {
+				return report(stderr, errors.New("device root cannot be deleted"))
+			}
+			if entry.Type != digitalpaper.EntryFolder {
+				return report(stderr, errors.New("path is not a folder; use rm"))
+			}
+			if err := client.Folders.DeleteEmpty(ctx, entry.ID); err != nil {
+				return report(stderr, err)
+			}
+		}
+		return encode(stdout, map[string]string{"removed": devicePathString(path)})
 	case "open":
 		if len(args) < 2 || len(args) > 3 {
 			usage(stderr)
@@ -565,6 +597,8 @@ func usage(output io.Writer) {
 	fmt.Fprintln(output, "  put LOCAL_PDF [DEVICE_PATH]     create and upload without overwriting")
 	fmt.Fprintln(output, "  cp SOURCE_PATH DEST_PATH        copy a PDF within the device")
 	fmt.Fprintln(output, "  mv SOURCE_PATH DEST_PATH        move or rename a PDF within the device")
+	fmt.Fprintln(output, "  rm DEVICE_PATH                  remove one PDF with a revision guard")
+	fmt.Fprintln(output, "  rmdir DEVICE_PATH               remove one empty folder only")
 	fmt.Fprintln(output, "  open DEVICE_PATH [PAGE]         display a PDF on the device")
 	fmt.Fprintln(output, "device paths are root-relative; use . for the root, for example Codex_dp/paper.pdf")
 }

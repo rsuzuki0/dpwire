@@ -1,6 +1,6 @@
 # Testing
 
-P0 through P2 are evaluated without a physical device:
+The implemented P0 through P3 surface is evaluated without a physical device:
 
 ```sh
 go run ./tools/eval -mode=developer
@@ -44,6 +44,13 @@ cover first-import default selection, multiple profiles, explicit selection,
 refusal to overwrite, owner-only permissions, safe display redaction, legacy
 profile-file compatibility, and a complete authenticated CLI operation without
 `-profile`.
+
+P3 deletion tests cover mandatory document revisions, stale-revision rejection,
+post-delete absence verification, non-empty-folder rejection, root protection,
+and the exact `force_delete_flag: "false"` folder request. CLI tests prove that
+`rm` removes one document and `rmdir` removes an empty folder only. These are
+simulator results; physical deletion remains unverified until an expendable
+device fixture is separately approved.
 
 ## Physical-device P1 check
 
