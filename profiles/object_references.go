@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/rsuzuki0/dpwire"
@@ -39,6 +40,11 @@ type ObjectReference struct {
 type ObjectReferenceStore struct {
 	path     string
 	lockPath string
+
+	cacheMu    sync.Mutex
+	cacheValid bool
+	cacheInfo  os.FileInfo
+	cacheState objectReferenceFile
 }
 
 type objectReferenceFile struct {
@@ -72,9 +78,12 @@ func (m *Manager) ObjectReferences(profile dpwire.DeviceProfile) (*ObjectReferen
 // Assign returns references for entries, assigning persistent numbers to
 // previously unseen device objects.
 func (s *ObjectReferenceStore) Assign(entries []dpwire.Entry) (map[string]ObjectReference, error) {
+	s.cacheMu.Lock()
+	defer s.cacheMu.Unlock()
+
 	var result map[string]ObjectReference
 	err := s.withLock(func() error {
-		state, err := s.load()
+		state, err := s.loadCached()
 		if err != nil {
 			return err
 		}
@@ -104,9 +113,11 @@ func (s *ObjectReferenceStore) Assign(entries []dpwire.Entry) (map[string]Object
 		}
 		if changed {
 			if err := s.save(state); err != nil {
+				s.cacheValid = false
 				return err
 			}
 		}
+		s.remember(state)
 		all := references(state.Objects)
 		result = make(map[string]ObjectReference, len(entries))
 		for _, entry := range entries {
@@ -158,33 +169,79 @@ func (s *ObjectReferenceStore) Candidates(selector string) ([]ObjectReference, e
 }
 
 func references(records []objectReferenceRecord) map[string]ObjectReference {
-	digests := make(map[string]string, len(records))
-	for _, record := range records {
-		sum := sha256.Sum256([]byte(record.DeviceID))
-		digests[record.DeviceID] = hex.EncodeToString(sum[:])
+	type digestRecord struct {
+		record objectReferenceRecord
+		digest string
 	}
+	ordered := make([]digestRecord, len(records))
+	for index, record := range records {
+		sum := sha256.Sum256([]byte(record.DeviceID))
+		ordered[index] = digestRecord{record: record, digest: hex.EncodeToString(sum[:])}
+	}
+	sort.Slice(ordered, func(i, j int) bool { return ordered[i].digest < ordered[j].digest })
 	result := make(map[string]ObjectReference, len(records))
-	for _, record := range records {
+	for index, item := range ordered {
 		digits := minimumHexDigits
-		for digits < sha256.Size*2 {
-			prefix := digests[record.DeviceID][:digits]
-			unique := true
-			for otherID, digest := range digests {
-				if otherID != record.DeviceID && strings.HasPrefix(digest, prefix) {
-					unique = false
-					break
-				}
-			}
-			if unique {
-				break
-			}
-			digits++
+		if index > 0 {
+			digits = max(digits, commonPrefixLength(item.digest, ordered[index-1].digest)+1)
 		}
-		result[record.DeviceID] = ObjectReference{
-			Number: record.Number, Hex: "0x" + digests[record.DeviceID][:digits], DeviceID: record.DeviceID, Type: record.Type,
+		if index+1 < len(ordered) {
+			digits = max(digits, commonPrefixLength(item.digest, ordered[index+1].digest)+1)
+		}
+		if digits > sha256.Size*2 {
+			digits = sha256.Size * 2
+		}
+		result[item.record.DeviceID] = ObjectReference{
+			Number: item.record.Number, Hex: "0x" + item.digest[:digits], DeviceID: item.record.DeviceID, Type: item.record.Type,
 		}
 	}
 	return result
+}
+
+func commonPrefixLength(left, right string) int {
+	limit := min(len(left), len(right))
+	for index := 0; index < limit; index++ {
+		if left[index] != right[index] {
+			return index
+		}
+	}
+	return limit
+}
+
+func (s *ObjectReferenceStore) loadCached() (objectReferenceFile, error) {
+	info, err := os.Stat(s.path)
+	if errors.Is(err, os.ErrNotExist) {
+		if s.cacheValid && s.cacheInfo == nil {
+			return cloneObjectReferenceFile(s.cacheState), nil
+		}
+		return objectReferenceFile{SchemaVersion: objectReferenceSchema}, nil
+	}
+	if err != nil {
+		return objectReferenceFile{}, err
+	}
+	if s.cacheValid && s.cacheInfo != nil && os.SameFile(s.cacheInfo, info) && s.cacheInfo.Size() == info.Size() && s.cacheInfo.ModTime() == info.ModTime() {
+		return cloneObjectReferenceFile(s.cacheState), nil
+	}
+	return s.load()
+}
+
+func (s *ObjectReferenceStore) remember(state objectReferenceFile) {
+	info, err := os.Stat(s.path)
+	if errors.Is(err, os.ErrNotExist) {
+		info = nil
+	} else if err != nil {
+		s.cacheValid = false
+		return
+	}
+	s.cacheState = cloneObjectReferenceFile(state)
+	s.cacheInfo = info
+	s.cacheValid = true
+}
+
+func cloneObjectReferenceFile(state objectReferenceFile) objectReferenceFile {
+	copy := state
+	copy.Objects = append([]objectReferenceRecord(nil), state.Objects...)
+	return copy
 }
 
 func (s *ObjectReferenceStore) load() (objectReferenceFile, error) {

@@ -1,6 +1,7 @@
 package dpwire
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -65,7 +66,12 @@ func (s *DocumentsService) Download(ctx context.Context, id string, destination 
 		return DownloadResult{}, publicError(err)
 	}
 	defer response.Body.Close()
-	written, err := io.Copy(destination, io.LimitReader(response.Body, maxDocumentSize))
+	var magic [5]byte
+	if _, err := io.ReadFull(response.Body, magic[:]); err != nil || string(magic[:]) != "%PDF-" {
+		return DownloadResult{}, errors.New("dpwire: downloaded content is not a PDF")
+	}
+	content := io.MultiReader(bytes.NewReader(magic[:]), response.Body)
+	written, err := io.Copy(destination, io.LimitReader(content, maxDocumentSize))
 	if err != nil {
 		return DownloadResult{}, err
 	}

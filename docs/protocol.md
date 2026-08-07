@@ -63,7 +63,8 @@ device evidence; it never enables unverified trust-all TLS.
 - automatically paginated document and folder listings (100 by default, 1000 maximum)
 - metadata lookup by ID or NFC-normalized `Document/...` path; verified
   DPT-RP1 path resolution is case-insensitive
-- streaming PDF download with a 1 GiB ceiling and ETag reporting
+- streaming PDF download with `%PDF-` signature validation, a 1 GiB ceiling,
+  and ETag reporting
 
 The translated Swagger snapshot incorrectly names the battery `status` field
 `Settings - status`; the decoder accepts both spellings.

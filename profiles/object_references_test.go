@@ -1,6 +1,8 @@
 package profiles
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,6 +12,39 @@ import (
 
 	"github.com/rsuzuki0/dpwire"
 )
+
+func TestOptimizedReferencePrefixesMatchNaiveDefinition(t *testing.T) {
+	records := make([]objectReferenceRecord, 500)
+	digests := make(map[string]string, len(records))
+	for index := range records {
+		id := fmt.Sprintf("object-%04d", index)
+		records[index] = objectReferenceRecord{Number: uint64(index), DeviceID: id, Type: dpwire.EntryDocument}
+		sum := sha256.Sum256([]byte(id))
+		digests[id] = hex.EncodeToString(sum[:])
+	}
+	got := references(records)
+	for _, record := range records {
+		digits := minimumHexDigits
+		for digits < sha256.Size*2 {
+			prefix := digests[record.DeviceID][:digits]
+			unique := true
+			for otherID, digest := range digests {
+				if otherID != record.DeviceID && strings.HasPrefix(digest, prefix) {
+					unique = false
+					break
+				}
+			}
+			if unique {
+				break
+			}
+			digits++
+		}
+		want := "0x" + digests[record.DeviceID][:digits]
+		if got[record.DeviceID].Hex != want {
+			t.Fatalf("reference %q = %q, want %q", record.DeviceID, got[record.DeviceID].Hex, want)
+		}
+	}
+}
 
 func TestObjectReferencesAreStableAndNeverReused(t *testing.T) {
 	manager, err := New(filepath.Join(t.TempDir(), "config"))

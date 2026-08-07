@@ -68,6 +68,9 @@ Profiles record whether their address is a direct device connection or a local
 vendor-app relay. Loopback imports are classified as `relay`; addresses such as
 `https://digitalpaper.local:8443` are classified as `direct`. Legacy profiles
 without this field remain compatible and are classified from their address.
+Saved profile names are directory names; each directory contains a
+`profile.json`. An external profile file may use any filename. If a bare
+`-profile` value names both, DPWire reports an ambiguity instead of choosing one.
 
 For a fresh direct identity, connect the device by USB and run:
 
@@ -135,11 +138,19 @@ Commands that act on one object retain explicit `--glob` and require one match.
 A trailing `/` makes a glob directory-only: quote `'*'` for every root entry or
 `'*/'` for root folders only. Unquoted `*` is expanded by the host shell before
 `dp` starts and therefore does not express a device glob.
+An explicit `--glob` value without glob metacharacters may be the result of a
+one-item host-shell expansion, so DPWire requires `y/[N]` confirmation. A
+one-item expansion used as an ordinary positional path is indistinguishable
+from a path typed literally; quoting remains required.
 
 Recursive listing is explicit: `dp ls -R /Documents` lists that tree, and
 `dp ls -lR /Documents` adds the long columns. `-lR`, `-Rl`, `-l -R`, and
 `-R -l` are equivalent. Glob matching itself remains one level per path
 segment and never enables recursion.
+
+Listings are sorted by normalized, case-folded device name. `get` accepts a
+successful response as a PDF only when its body begins with `%PDF-`; a mismatch
+removes the newly created local file.
 
 `rm` deletes exactly one document using the revision just resolved by the CLI.
 `rmdir` deletes only an empty folder and always disables the protocol's

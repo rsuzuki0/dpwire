@@ -146,11 +146,12 @@ TLS trustは検証方式に固定し、資格情報はowner-only権限でatomic�
 
 現在の範囲は、PDFだけを日常利用するrelease candidateです。Sony DPT-RP1
 firmware `1.6.50.14130`では、新規pairing、Sony App
-終了後のdirect認証、status、listing、download、upload/replacement、本体内
-copy/move、folder作成、安全制約付きdeleteを実機検証済みです。試験中、本体は
+終了後のdirect認証、status、listing、recursive listing、download、
+upload/replacement、本体内copy/move、folder作成、安全制約付きdelete、viewer openを
+実機検証済みです。試験中、本体は
 一貫してUSB接続でした。新規pairingと独立認証はUSB Ethernet endpointへ直接接続し、
-それ以前の文書操作試験はSony Appのloopback relayを使用しました。viewer openは
-emulator試験のみです。他機種と延期機能は明示的に未検証・未実装として残します。
+それ以前の文書操作試験はSony Appのloopback relayを使用しました。他機種と延期機能は
+明示的に未検証・未実装として残します。
 
 ## 原典と謝辞
 

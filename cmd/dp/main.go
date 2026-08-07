@@ -10,6 +10,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -129,6 +131,9 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 			usage(stderr)
 			return 2
 		}
+		if err := confirmQuestionableGlob(selector, stdin, stderr); err != nil {
+			return report(stderr, err)
+		}
 		var store *profiles.ObjectReferenceStore
 		if selector.kind == selectorID || listOptions.long {
 			store, err = getReferenceStore()
@@ -157,6 +162,7 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 		if err != nil {
 			return report(stderr, err)
 		}
+		sortDeviceEntries(entries)
 		var references map[string]profiles.ObjectReference
 		if listOptions.long {
 			references, err = store.Assign(entries)
@@ -173,6 +179,9 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 			}
 			usage(stderr)
 			return 2
+		}
+		if err := confirmQuestionableGlob(selector, stdin, stderr); err != nil {
+			return report(stderr, err)
 		}
 		var store *profiles.ObjectReferenceStore
 		if selector.kind == selectorID {
@@ -198,6 +207,9 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 		if selectorErr != nil || len(remaining) > 1 {
 			usage(stderr)
 			return 2
+		}
+		if err := confirmQuestionableGlob(selector, stdin, stderr); err != nil {
+			return report(stderr, err)
 		}
 		local := ""
 		if len(remaining) == 1 {
@@ -249,6 +261,9 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 			usage(stderr)
 			return 2
 		}
+		if err := confirmQuestionableGlob(selector, stdin, stderr); err != nil {
+			return report(stderr, err)
+		}
 		var store *profiles.ObjectReferenceStore
 		if selector.kind != selectorPath {
 			store, err = getReferenceStore()
@@ -279,6 +294,9 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 		if selectorErr != nil || len(remaining) != 0 {
 			usage(stderr)
 			return 2
+		}
+		if err := confirmQuestionableGlob(selector, stdin, stderr); err != nil {
+			return report(stderr, err)
 		}
 		var store *profiles.ObjectReferenceStore
 		if selector.kind != selectorPath {
@@ -320,6 +338,9 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 			usage(stderr)
 			return 2
 		}
+		if err := confirmQuestionableGlob(selector, stdin, stderr); err != nil {
+			return report(stderr, err)
+		}
 		var store *profiles.ObjectReferenceStore
 		if selector.kind != selectorPath {
 			store, err = getReferenceStore()
@@ -333,8 +354,9 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 		}
 		page := 0
 		if len(remaining) == 1 {
-			if _, err := fmt.Sscan(remaining[0], &page); err != nil || page < 1 {
-				return report(stderr, errors.New("page must be a positive integer"))
+			page, err = parsePage(remaining[0])
+			if err != nil {
+				return report(stderr, err)
 			}
 		}
 		if err := client.Documents.Open(ctx, entry.ID, page); err != nil {
@@ -375,10 +397,25 @@ func selectedProfile(manager *profiles.Manager, selection string) (dpwire.Device
 	if filepath.IsAbs(selection) || strings.ContainsRune(selection, filepath.Separator) {
 		return dpwire.LoadProfile(selection)
 	}
-	if _, err := os.Stat(selection); err == nil {
-		return dpwire.LoadProfile(selection)
+	named, namedErr := manager.Load(selection)
+	_, fileErr := os.Stat(selection)
+	if fileErr == nil {
+		fileProfile, loadErr := dpwire.LoadProfile(selection)
+		if loadErr != nil {
+			return dpwire.DeviceProfile{}, fmt.Errorf("file %q is not a valid profile: %w", selection, loadErr)
+		}
+		if namedErr == nil {
+			return dpwire.DeviceProfile{}, fmt.Errorf("profile %q is ambiguous: both a saved profile and a file have that name; use ./%s for the file", selection, selection)
+		}
+		if !errors.Is(namedErr, os.ErrNotExist) {
+			return dpwire.DeviceProfile{}, namedErr
+		}
+		return fileProfile, nil
 	}
-	return manager.Load(selection)
+	if !errors.Is(fileErr, os.ErrNotExist) {
+		return dpwire.DeviceProfile{}, fileErr
+	}
+	return named, namedErr
 }
 
 func profileCommand(ctx context.Context, manager *profiles.Manager, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
@@ -498,7 +535,8 @@ func parseDevicePath(value string) (dpwire.RemotePath, error) {
 	if value == "" || value == "." {
 		return dpwire.MustRemotePath("Document"), nil
 	}
-	if value == "Document" || strings.HasPrefix(value, "Document/") {
+	first, _, _ := strings.Cut(value, "/")
+	if strings.EqualFold(first, "Document") {
 		return dpwire.RemotePath{}, errors.New("device paths must omit the internal Document/ prefix")
 	}
 	return dpwire.ParseRemotePath("Document/" + value)
@@ -629,6 +667,41 @@ func reportGlobQuotingHint(output io.Writer) {
 	fmt.Fprintln(output, "dp: expected one device path argument; quote glob patterns so the host shell does not expand them")
 }
 
+func confirmQuestionableGlob(selector objectSelector, input io.Reader, output io.Writer) error {
+	if selector.kind != selectorGlob || hasGlobMetachar(selector.value) {
+		return nil
+	}
+	fmt.Fprintf(output, "dp: --glob value %q contains no glob metacharacters and may have been expanded by the host shell\n", selector.value)
+	fmt.Fprintln(output, "continue? y/[N]")
+	reader := bufio.NewReader(io.LimitReader(input, 64))
+	answer, err := reader.ReadString('\n')
+	if err != nil && !errors.Is(err, io.EOF) {
+		return err
+	}
+	if strings.EqualFold(strings.TrimSpace(answer), "y") {
+		return nil
+	}
+	return errors.New("operation cancelled")
+}
+
+func parsePage(value string) (int, error) {
+	page, err := strconv.Atoi(value)
+	if err != nil || page < 1 {
+		return 0, errors.New("page must be a positive integer")
+	}
+	return page, nil
+}
+
+func sortDeviceEntries(entries []dpwire.Entry) {
+	sort.SliceStable(entries, func(i, j int) bool {
+		left, right := foldGlobString(entries[i].Name), foldGlobString(entries[j].Name)
+		if left != right {
+			return left < right
+		}
+		return devicePathString(entries[i].Path) < devicePathString(entries[j].Path)
+	})
+}
+
 func printEntries(output io.Writer, entries []dpwire.Entry, references map[string]profiles.ObjectReference, long bool) int {
 	if !long {
 		for _, entry := range entries {
@@ -665,6 +738,7 @@ func printEntries(output io.Writer, entries []dpwire.Entry, references map[strin
 }
 
 func printRecursiveEntries(ctx context.Context, client *dpwire.Client, store *profiles.ObjectReferenceStore, roots []dpwire.Entry, long bool, output io.Writer) error {
+	sortDeviceEntries(roots)
 	visited := make(map[string]bool)
 	listed := 0
 	printed := false
@@ -697,6 +771,7 @@ func printRecursiveEntries(ctx context.Context, client *dpwire.Client, store *pr
 		if err != nil {
 			return err
 		}
+		sortDeviceEntries(entries)
 		listed += len(entries)
 		if listed > maximumGlobEntries {
 			return fmt.Errorf("recursive listing exceeds the %d-object safety limit", maximumGlobEntries)
@@ -726,6 +801,7 @@ func printRecursiveEntries(ctx context.Context, client *dpwire.Client, store *pr
 		}
 	}
 	if len(documents) > 0 {
+		sortDeviceEntries(documents)
 		listed += len(documents)
 		if listed > maximumGlobEntries {
 			return fmt.Errorf("recursive listing exceeds the %d-object safety limit", maximumGlobEntries)

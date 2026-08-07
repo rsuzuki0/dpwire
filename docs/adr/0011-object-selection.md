@@ -37,11 +37,21 @@ and require exactly one compatible match.
 A trailing `/` restricts glob results to folders. Documentation quotes every
 glob so the host shell passes the pattern unchanged; multiple positional paths
 produce a quoting hint rather than being interpreted as device operands.
+An explicit `--glob` without metacharacters requires `y/[N]` confirmation
+because it may be a one-item host-shell expansion. An ordinary positional path
+cannot reveal whether the shell produced it, so quoting remains part of the
+command contract.
 
 Recursive traversal is an explicit `ls -R` operation, independent of glob
 matching. `ls -lR`, `ls -Rl`, `ls -l -R`, and `ls -R -l` are equivalent.
 Traversal lists each folder once by device ID and shares the 10,000-entry
 safety limit. `file` and `stat` do not accept a recursive option.
+
+Recursive long listing emits the first folder without waiting for the complete
+tree. The reference store memoizes its validated state for the lifetime of the
+command, invalidates that state when another process atomically replaces the
+store, and preserves interprocess locking. Hexadecimal reference calculation
+sorts digests and compares adjacent values rather than comparing every pair.
 
 ## Consequences
 
@@ -56,3 +66,5 @@ The persistent integer is DPWire metadata rather than an inode or vendor ID.
 Its scope is one configured device identity. Restoring the reference file
 preserves its numbering; losing the file causes later listings to assign new
 numbers without affecting credentials or device content.
+The store namespace includes connection address, client ID, and certificate
+fingerprint; a change to any component selects another namespace.

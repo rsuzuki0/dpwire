@@ -27,6 +27,6 @@
     "PUT /documents2/{document_id}": "device-verified",
     "PUT /folders2/{folder_id}": "device-verified",
     "PUT /register/cleanup": "device-verified",
-    "PUT /viewer/controls/open2": "emulated"
+    "PUT /viewer/controls/open2": "device-verified"
   }
 }

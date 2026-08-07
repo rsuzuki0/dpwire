@@ -75,6 +75,11 @@ func TestAuthenticatedReadOnlyClient(t *testing.T) {
 	if err != nil || !bytes.Equal(downloaded.Bytes(), firstContent) || result.Bytes != int64(len(firstContent)) || result.ETag == "" {
 		t.Fatalf("download result = %#v, content = %q, err = %v", result, downloaded.Bytes(), err)
 	}
+	state.InjectFault("GET /documents/*/file", dptest.Fault{Status: http.StatusOK, Body: "not a PDF", Once: true})
+	var invalidDownload bytes.Buffer
+	if _, err := client.Documents.Download(ctx, first.ID, &invalidDownload); err == nil || invalidDownload.Len() != 0 {
+		t.Fatalf("non-PDF download content = %q, err = %v", invalidDownload.Bytes(), err)
+	}
 	firmware, err := client.Device.Firmware(ctx)
 	if err != nil || firmware.Model != "DPT-RP1" || firmware.Version != "1.6.02" {
 		t.Fatalf("firmware = %#v, err = %v", firmware, err)

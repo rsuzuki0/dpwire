@@ -51,6 +51,12 @@ document deletion succeeded, and empty-folder deletion with
 lookups confirmed absence. The approved source PDF and retained write-test artifacts
 were read-only verified afterward and remained present.
 
+The same device and firmware later completed a direct-USB recursive CLI listing
+across a multi-level subtree, including an empty folder. Viewer open then
+selected page 1 of a previously approved PDF and returned success. Neither
+operation changed document content or organization, and the verification
+record omits document paths and IDs.
+
 The same USB-connected device was also discovered on interface-scoped mDNS as
 `Digital Paper DPT-RP1._digitalpaper._tcp.local`, with registration at
 `digitalpaper.local:8080`. Existing credentials authenticated directly against

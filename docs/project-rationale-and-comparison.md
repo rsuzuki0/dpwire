@@ -156,12 +156,11 @@ on the original development machine.
 
 The current scope is a complete PDF-only release candidate. On Sony DPT-RP1
 firmware `1.6.50.14130`, fresh pairing, independent direct authentication,
-status, listing, download, upload/replacement,
-device-side copy/move, folder creation, and guarded deletion have been
+status, listing, recursive listing, download, upload/replacement,
+device-side copy/move, folder creation, guarded deletion, and viewer open have been
 physically verified. The device was connected by USB throughout. Fresh pairing
 and independent authentication used USB Ethernet directly; the earlier
-document-operation tests used the Sony App loopback relay. Viewer open is
-emulator-tested but not physically verified. Other models and the deferred
+document-operation tests used the Sony App loopback relay. Other models and the deferred
 features remain clearly marked.
 
 ## Sources and credit

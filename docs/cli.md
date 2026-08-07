@@ -43,6 +43,13 @@ generates a new RSA-2048 identity, and stores it atomically with owner-only
 permissions. Pairing is direct-only; loopback relay addresses are rejected. If
 a profile name already exists, the command stops before contacting the device.
 
+A saved profile name is a directory name under the DPWire configuration; its
+data file is named `profile.json`. An external profile file may have any name
+or extension. A bare `-profile NAME` is rejected as ambiguous when both a saved
+profile and a current-directory file named `NAME` are valid profiles. Use
+`-profile ./NAME` to select the file explicitly. A same-named file that is not
+a valid strict profile is also an error.
+
 ```sh
 dp ls
 dp ls -l /Documents
@@ -66,7 +73,9 @@ to the device, and `get` transfers from the device to the host. When a
 destination is an existing folder, the source basename is retained. If the
 destination is omitted for `put` or `get`, the source basename is used.
 
-`ls` prints names only and marks folders with `/`. `ls -l` prints these columns:
+`ls` prints names only and marks folders with `/`. Entries are sorted by their
+Unicode-normalized, case-folded device names, with canonical paths as the tie
+breaker. `ls -l` prints these columns:
 
 ```text
 NUMBER  HEX-ID    TYPE  SIZE  MODIFIED  DEVICE-ID  NAME
@@ -121,6 +130,13 @@ an unquoted `*` is expanded against the host working directory by the shell
 before `dp` receives its arguments. When that expansion supplies multiple host
 paths, `dp` stops with a quoting hint.
 
+An explicit `--glob` value containing none of `*`, `?`, or `[` is suspicious:
+the host shell may have expanded an unquoted pattern to exactly one pathname.
+DPWire displays the value and asks `y/[N]`; EOF, an empty answer, or anything
+other than `y` cancels. A one-item shell expansion passed as an ordinary path
+cannot be distinguished from a path typed literally, so glob patterns must
+still be quoted.
+
 For a glob, `ls` prints all matching entries themselves and does not enter a
 matching folder. `file` and `stat` return a JSON array for every glob request,
 including one match. Exact paths and `--id` return the existing single JSON
@@ -137,8 +153,18 @@ for their selected object or glob results.
 
 The reference map is stored owner-only in the active DPWire configuration
 directory. It contains device object IDs and types, but no filenames or paths.
+Its namespace is derived from the connection address, client ID, and device
+certificate fingerprint. Changing any of those values starts a separate number
+sequence; restore the matching reference map to preserve old numbers. During a
+recursive long listing, the loaded map is memoized within the command while
+atomic persistence and interprocess locking remain in effect.
 `file` and `stat` are identical and return complete metadata for one or more
 entries.
+
+`get` verifies the `%PDF-` file signature before writing response bytes to the
+new local file. A mismatch is an error and the CLI removes that local file.
+`open` accepts either no page or one strictly parsed positive decimal integer;
+trailing characters are rejected.
 
 Existing destinations are protected from overwrite. `rm` is an explicit request
 to delete exactly one document: the CLI resolves its current revision and the

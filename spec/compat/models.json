@@ -194,6 +194,24 @@
         "The existing relay profile and Sony application credentials were not modified; no PIN, client ID, key, certificate fingerprint, or document metadata was recorded."
       ],
       "quirks": ["sony-dpt-rp1-certificate-without-san"]
+    },
+    {
+      "vendor": "Sony",
+      "model": "DPT-RP1",
+      "firmware": "1.6.50.14130",
+      "tested_at": "2026-08-06",
+      "transport": "direct USB Ethernet via digitalpaper.local:8443",
+      "mode": "recursive-read-and-viewer-open",
+      "verified_operations": [
+        "GET /folders/{folder_id}/entries2",
+        "PUT /viewer/controls/open2"
+      ],
+      "observations": [
+        "Recursive CLI listing completed across a multi-level subtree, including an empty folder.",
+        "Viewer open selected page 1 of a previously approved PDF and returned success.",
+        "No document content, path, ID, client ID, key, PIN, or certificate fingerprint was recorded."
+      ],
+      "quirks": []
     }
   ]
 }

@@ -19,6 +19,10 @@ library.
   `file`, and `stat`, with exact literal paths taking precedence.
 - Folder-only globs with a trailing `/`, shell-quoting diagnostics, and explicit
   bounded recursive listings through `ls -R` and `ls -lR`.
+- Confirmation for suspicious metacharacter-free `--glob` values, sorted
+  listings, memoized recursive reference assignment, strict page parsing, and
+  case-insensitive rejection of the private protocol root.
+- Downloaded PDF signature verification before local output is accepted.
 - PDF-only upload and replacement with revision conflict checks.
 - Device-side copy and move without unnecessary host round trips.
 - Revision-guarded document deletion and empty-only, non-recursive folder
@@ -32,8 +36,9 @@ library.
 
 Sony DPT-RP1 firmware `1.6.50.14130` has been physically verified for direct
 fresh pairing, authentication after quitting the Sony App, status and listing,
-PDF download/upload/replacement, folder creation, device-side copy/move, and
-guarded deletion. Decimal and `0x` persistent selectors and case-insensitive
+PDF download/upload/replacement, folder creation, device-side copy/move,
+guarded deletion, recursive listing, and viewer open. Decimal and `0x`
+persistent selectors and case-insensitive
 unique glob selection were also verified read-only. The device was connected by USB throughout. Fresh pairing and
 independent authentication used the USB Ethernet endpoint directly; earlier
 document-operation checks used the Sony App loopback relay. Exact operation
@@ -45,7 +50,6 @@ records are in `compatibility.md`.
   verification.
 - Linux arm64/amd64 binaries are built and automated tests are portable to
   Linux, but physical USB pairing on Linux has not yet been recorded.
-- Viewer `open` is emulator-tested but not yet physically verified.
 - Native note and handwritten-annotation files are preserved as PDFs; behavior
   that differs from ordinary PDFs has not been physically characterized.
 - Sync, backup automation, watchers, CUPS, Markdown, LaTeX, Pandoc, Tectonic,

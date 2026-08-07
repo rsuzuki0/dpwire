@@ -278,6 +278,13 @@ quoteし、複数のpositional pathを受けた場合はquoteを促すerrorを�
 `ls -l -R`、`ls -R -l` は同一動作とする。folder IDごとに一度だけ走査し、循環を
 防止する。走査は10,000 entryで停止する。`file/stat` は再帰optionを持たず、指定
 objectまたはglob一致objectのmetadata取得に限定する。
+CLI listingはUnicode NFC正規化とcase fold後のname順に揃える。`ls -lR` の参照番号
+処理はtree全体の収集を待たず、command内で検証済みstore stateをmemoizeする。
+他processによるatomic replacementを検出した場合はcacheを破棄し、file lockによる
+同時実行安全性を維持する。
+明示的 `--glob` にglob metacharacterがない場合は、host shellによる一件展開の疑いを
+示して `y/[N]` を要求する。通常pathとして渡された一件展開は識別不能であるため、
+globをquoteする規則は維持する。
 
 ## 7. Capability仕様
 

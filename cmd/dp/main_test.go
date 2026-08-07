@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -77,9 +78,10 @@ func TestUsageColumns(t *testing.T) {
 
 func TestUnixStyleListOutput(t *testing.T) {
 	entries := []dpwire.Entry{
-		{ID: "folder-1", Name: "Inbox", Type: dpwire.EntryFolder},
 		{ID: "doc-1", Name: "paper.pdf", Type: dpwire.EntryDocument, Size: "42", Modified: "2026-08-06T12:00:00Z"},
+		{ID: "folder-1", Name: "Inbox", Type: dpwire.EntryFolder},
 	}
+	sortDeviceEntries(entries)
 	var output bytes.Buffer
 	if code := printEntries(&output, entries, nil, false); code != 0 || output.String() != "Inbox/\npaper.pdf\n" {
 		t.Fatalf("short listing code=%d output=%q", code, output.String())
@@ -123,6 +125,14 @@ func TestUnixStyleListOutput(t *testing.T) {
 		if options.long != test.long || options.recursive != test.recursive || gotTarget != test.target || ok != test.ok {
 			t.Fatalf("parseListArguments(%q) = %+v, %q, %v", test.arguments, options, gotTarget, ok)
 		}
+	}
+	for _, value := range []string{"0", "-1", "1x", "1 2", ""} {
+		if _, err := parsePage(value); err == nil {
+			t.Fatalf("page %q was accepted", value)
+		}
+	}
+	if page, err := parsePage("23"); err != nil || page != 23 {
+		t.Fatalf("page = %d, %v", page, err)
 	}
 }
 
@@ -172,9 +182,77 @@ func TestDevicePathsHideProtocolRoot(t *testing.T) {
 	if _, err := parseDevicePath("/Document/Documents/paper.pdf"); err == nil {
 		t.Fatal("absolute protocol-internal Document path was accepted by CLI")
 	}
+	for _, value := range []string{"document/Documents/paper.pdf", "/DOCUMENT/Documents/paper.pdf", "./DoCuMeNt/Documents/paper.pdf"} {
+		if _, err := parseDevicePath(value); err == nil {
+			t.Fatalf("case-variant protocol path %q was accepted", value)
+		}
+	}
 	parent, name, err := splitRemoteTarget("Documents/new.pdf")
 	if err != nil || parent.String() != "Document/Documents" || name != "new.pdf" {
 		t.Fatalf("splitRemoteTarget = %q, %q, %v", parent.String(), name, err)
+	}
+}
+
+func TestQuestionableGlobRequiresConfirmation(t *testing.T) {
+	selector := objectSelector{kind: selectorGlob, value: "paper.pdf"}
+	var output bytes.Buffer
+	if err := confirmQuestionableGlob(selector, strings.NewReader(""), &output); err == nil || !strings.Contains(output.String(), "y/[N]") {
+		t.Fatalf("default confirmation error=%v output=%q", err, output.String())
+	}
+	output.Reset()
+	if err := confirmQuestionableGlob(selector, strings.NewReader("y\n"), &output); err != nil {
+		t.Fatalf("affirmative confirmation: %v", err)
+	}
+	output.Reset()
+	if err := confirmQuestionableGlob(objectSelector{kind: selectorGlob, value: "*.pdf"}, strings.NewReader(""), &output); err != nil || output.Len() != 0 {
+		t.Fatalf("ordinary glob confirmation error=%v output=%q", err, output.String())
+	}
+}
+
+func TestSelectedProfileRejectsBareNameAmbiguity(t *testing.T) {
+	working := t.TempDir()
+	previous, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(working); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Chdir(previous) }()
+
+	configRoot := filepath.Join(t.TempDir(), "config")
+	manager, err := profiles.New(configRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	save := func(path, name, address string) {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := dpwire.SaveProfile(path, dpwire.DeviceProfile{
+			Name: name, Address: address, ClientID: "client", CertificateSHA256: strings.Repeat("a", 64),
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	save(filepath.Join(configRoot, "profiles", "same", "profile.json"), "same", "https://saved.example")
+	save(filepath.Join(working, "same"), "external", "https://external.example")
+	if _, err := selectedProfile(manager, "same"); err == nil || !strings.Contains(err.Error(), "ambiguous") {
+		t.Fatalf("same-name profile selection: %v", err)
+	}
+	if profile, err := selectedProfile(manager, "./same"); err != nil || profile.Address != "https://external.example" {
+		t.Fatalf("explicit file profile = %#v, %v", profile, err)
+	}
+	save(filepath.Join(working, "external"), "external", "https://external-only.example")
+	if profile, err := selectedProfile(manager, "external"); err != nil || profile.Address != "https://external-only.example" {
+		t.Fatalf("bare file profile = %#v, %v", profile, err)
+	}
+	if err := os.WriteFile(filepath.Join(working, "invalid"), []byte("not JSON\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := selectedProfile(manager, "invalid"); err == nil || !strings.Contains(err.Error(), "not a valid profile") {
+		t.Fatalf("invalid bare file profile: %v", err)
 	}
 }
 
@@ -337,6 +415,17 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	invoke("file", "dOCUMENTS/SOURCE.PDF")
 	invoke("file", "Documents/source.pdf")
 	invoke("stat", "Documents/source.pdf")
+	var confirmedOutput, confirmedErrors bytes.Buffer
+	confirmedArgs := []string{"-config-dir", filepath.Join(temporary, "external-profile-config"), "-profile", profilePath, "file", "--glob", "Documents/source.pdf"}
+	if code := runWithInput(confirmedArgs, strings.NewReader("y\n"), &confirmedOutput, &confirmedErrors); code != 0 || !strings.Contains(confirmedOutput.String(), `"name": "source.pdf"`) {
+		t.Fatalf("confirmed metacharacter-free glob: code=%d stdout=%q stderr=%q", code, confirmedOutput.String(), confirmedErrors.String())
+	}
+	var cancelledOutput, cancelledErrors bytes.Buffer
+	cancelledArgs := []string{"-config-dir", filepath.Join(temporary, "external-profile-config"), "-profile", profilePath, "rm", "--glob", "Documents/source.pdf"}
+	if code := runWithInput(cancelledArgs, strings.NewReader(""), &cancelledOutput, &cancelledErrors); code == 0 || !strings.Contains(cancelledErrors.String(), "operation cancelled") {
+		t.Fatalf("default-cancelled metacharacter-free glob: code=%d stdout=%q stderr=%q", code, cancelledOutput.String(), cancelledErrors.String())
+	}
+	invoke("file", "Documents/source.pdf")
 	invoke("mkdir", "Documents/Write")
 	writeNumber, _ := referenceFor(invoke("ls", "-l", "Documents"), "Write/")
 	invoke("cp", "--id", number, "Documents/Write/")
@@ -351,9 +440,19 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	if err := os.WriteFile(localUpload, uploadContent, 0o600); err != nil {
 		t.Fatal(err)
 	}
+	invalidDownloadPath := filepath.Join(temporary, "invalid-download.pdf")
+	state.InjectFault("GET /documents/*/file", dptest.Fault{Status: 200, Body: "not a PDF", Once: true})
+	var invalidOutput, invalidErrors bytes.Buffer
+	invalidArgs := []string{"-config-dir", filepath.Join(temporary, "external-profile-config"), "-profile", profilePath, "get", "Documents/source.pdf", invalidDownloadPath}
+	if code := run(invalidArgs, &invalidOutput, &invalidErrors); code == 0 || !strings.Contains(invalidErrors.String(), "not a PDF") {
+		t.Fatalf("invalid PDF download: code=%d stdout=%q stderr=%q", code, invalidOutput.String(), invalidErrors.String())
+	}
+	if _, err := os.Stat(invalidDownloadPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("invalid PDF local file remains: %v", err)
+	}
 	invoke("put", localUpload, "Documents/Write/")
 	downloadPath := filepath.Join(temporary, "download.pdf")
-	invoke("get", "--glob", "Documents/Write/local.pdf", downloadPath)
+	invoke("get", "Documents/Write/local.pdf", downloadPath)
 	if downloaded, err := os.ReadFile(downloadPath); err != nil || !bytes.Equal(downloaded, uploadContent) {
 		t.Fatalf("downloaded = %q, err = %v", downloaded, err)
 	}

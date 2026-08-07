@@ -79,6 +79,11 @@ both generated folders. All deletion targets were created specifically for the
 test. The approved source PDF and retained write-test artifacts were verified present
 afterward.
 
+The installed CLI also completed a direct-USB recursive listing of a
+multi-level subtree, including an empty folder, and opened page 1 of a
+previously approved PDF. The committed record contains only model, firmware,
+transport, operations, and outcome; it omits the selected path and object ID.
+
 ## Physical-device read-only check
 
 `tools/device-check` performs a redacted read-only check. It never selects a

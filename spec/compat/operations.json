@@ -904,7 +904,7 @@
       "method": "PUT",
       "path": "/viewer/controls/open2",
       "tag": "viewer management",
-      "status": "emulated",
+      "status": "device-verified",
       "deprecated": false
     }
   ]

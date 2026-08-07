@@ -59,6 +59,10 @@ filesystem permissions are restrictive.
 Restoring `object-references/` preserves familiar `--id` numbers. Omitting it
 does not affect credentials or device content; new numbers are assigned by
 later `dp ls -l` commands.
+Reference-store filenames are derived from the profile address, client ID, and
+certificate fingerprint. If an otherwise identical profile uses another
+address, it has a separate number sequence unless the corresponding reference
+store is also restored or deliberately migrated.
 
 ## Restore on a new machine
 
