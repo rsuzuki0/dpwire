@@ -4,6 +4,15 @@ This is the first PDF-only daily-use release candidate. It provides a verified
 DPT-RP1 direct-USB workflow and an independently reusable Go communication
 library.
 
+## Downloads
+
+- `dpwire-v0.3.0-darwin-amd64.tar.gz`: Intel Mac, macOS 12 Monterey or newer.
+- `dpwire-v0.3.0-darwin-arm64.tar.gz`: Apple silicon, macOS 12 or newer.
+- `dpwire-v0.3.0-linux-amd64.tar.gz`: Intel/AMD 64-bit Linux.
+- `dpwire-v0.3.0-linux-arm64.tar.gz`: 64-bit ARM Linux.
+
+The Intel Mac binary uses the baseline x86-64 target (`GOAMD64=v1`).
+
 ## Included
 
 - Fresh PIN pairing with independent RSA credentials and owner-only storage.

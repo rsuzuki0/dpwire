@@ -8,7 +8,10 @@ and recovery documents. `dp-sim` is a development tool and is not installed.
 
 Use `uname -m` to select `darwin-arm64` on Apple silicon or `darwin-amd64` on
 an Intel Mac. Linux archives use the same `arm64` and `amd64` architecture
-names. Download the selected archive and `SHA256SUMS` into one directory.
+names. The macOS binaries require macOS 12 Monterey or newer, which is the
+minimum supported by the Go 1.25 runtime. The Intel binary uses the baseline
+`GOAMD64=v1` target for the widest x86-64 processor compatibility. Download the
+selected archive and `SHA256SUMS` into one directory.
 
 Verify exactly the selected file before extracting it. For example:
 

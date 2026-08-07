@@ -272,11 +272,22 @@ func buildRelease(ctx context.Context, output, version, commit string) error {
 func buildBinary(ctx context.Context, output, version string, item target) error {
 	ldflags := "-s -w -buildid= -X main.version=" + version
 	command := exec.CommandContext(ctx, "go", "build", "-mod=readonly", "-trimpath", "-buildvcs=false", "-ldflags", ldflags, "-o", output, "./cmd/dp")
-	command.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS="+item.OS, "GOARCH="+item.Arch)
+	command.Env = append(os.Environ(), targetEnvironment(item)...)
 	if output, err := command.CombinedOutput(); err != nil {
 		return fmt.Errorf("build dp for %s/%s: %w: %s", item.OS, item.Arch, err, strings.TrimSpace(string(output)))
 	}
 	return nil
+}
+
+func targetEnvironment(item target) []string {
+	environment := []string{"CGO_ENABLED=0", "GOOS=" + item.OS, "GOARCH=" + item.Arch}
+	switch item.Arch {
+	case "amd64":
+		environment = append(environment, "GOAMD64=v1")
+	case "arm64":
+		environment = append(environment, "GOARM64=v8.0")
+	}
+	return environment
 }
 
 func binaryArchiveEntries(binaryPath string) ([]archiveEntry, error) {

@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 )
@@ -27,6 +28,17 @@ func TestNormalizeVersion(t *testing.T) {
 		if _, err := normalizeVersion(input); err == nil {
 			t.Fatalf("invalid version %q accepted", input)
 		}
+	}
+}
+
+func TestTargetEnvironmentUsesBaselineArchitectures(t *testing.T) {
+	intel := targetEnvironment(target{OS: "darwin", Arch: "amd64"})
+	if !slices.Contains(intel, "CGO_ENABLED=0") || !slices.Contains(intel, "GOAMD64=v1") {
+		t.Fatalf("Intel environment = %q", intel)
+	}
+	apple := targetEnvironment(target{OS: "darwin", Arch: "arm64"})
+	if !slices.Contains(apple, "GOARM64=v8.0") {
+		t.Fatalf("Apple silicon environment = %q", apple)
 	}
 }
 

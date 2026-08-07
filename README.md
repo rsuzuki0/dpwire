@@ -213,6 +213,10 @@ arm64 and amd64, a complete tracked-source archive, `release.json`, and
 in `docs/install.md` and `docs/recovery.md`. Version-specific limits are in
 `docs/release-notes.md`.
 
+For macOS, `darwin-amd64` is the Intel x86-64 build and `darwin-arm64` is the
+Apple silicon build. Both require macOS 12 Monterey or newer. Intel releases
+explicitly use the baseline `GOAMD64=v1` target.
+
 Maintainers can validate reproducibility without publishing:
 
 ```sh
