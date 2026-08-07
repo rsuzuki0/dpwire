@@ -251,7 +251,7 @@ func (m *Manager) List() ([]Summary, error) {
 }
 
 func (m *Manager) ensureRoot() error {
-	for _, directory := range []string{m.root, filepath.Join(m.root, "profiles")} {
+	for _, directory := range []string{m.root, filepath.Join(m.root, "profiles"), filepath.Join(m.root, "object-references")} {
 		if err := os.MkdirAll(directory, 0o700); err != nil {
 			return err
 		}

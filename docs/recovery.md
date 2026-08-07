@@ -23,7 +23,9 @@ directory in place. If both names exist, `dpwire` is selected. `config.json`
 selects the default profile. Each directory below `profiles/`
 contains a redaction-safe `profile.json` and a secret `privatekey.pem`. Fresh
 pairing stores its identity here; it neither references nor changes the Sony
-Digital Paper App directory.
+Digital Paper App directory. `object-references/` contains the persistent
+numbers displayed by `dp ls -l`. It stores device object IDs and types without
+filenames or paths and is owner-only because those IDs remain diagnostic data.
 
 ## Preferred recovery order
 
@@ -53,6 +55,10 @@ ID, certificate pin, address, and default selection. The live directory and
 every profile directory must be owner-only (`0700`), and every contained file
 must be owner-only (`0600`). An unencrypted archive is sensitive even if its
 filesystem permissions are restrictive.
+
+Restoring `object-references/` preserves familiar `--id` numbers. Omitting it
+does not affect credentials or device content; new numbers are assigned by
+later `dp ls -l` commands.
 
 ## Restore on a new machine
 

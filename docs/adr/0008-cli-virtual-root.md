@@ -8,9 +8,9 @@ rejected instead of retained as a second syntax.
 
 The public Go library continues to use canonical `RemotePath` values beginning
 with `Document`, because those values model the wire protocol. The CLI alone
-performs the translation. HTTP endpoint names and device IDs are not operation
-arguments; IDs remain available through `ls -l`, `file`, and `stat` for
-diagnostics.
+performs the translation. HTTP endpoint names remain private implementation
+details. ADR 0011 defines optional DPWire object references independently of
+the hidden protocol root.
 
 ## Consequences
 

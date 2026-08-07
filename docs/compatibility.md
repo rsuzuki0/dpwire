@@ -23,6 +23,12 @@ with ETag and revision. The test used the Sony application's loopback relay and
 the device was connected by USB. It did not record document metadata or
 credential material.
 
+A second read-only path check on 2026-08-06 changed the letter case of the
+folder name, filename, and `.pdf` extension in one request. Firmware
+`1.6.50.14130` resolved it to the same entry and returned the entry's stored
+spelling. The emulator models this case-insensitive resolve behavior, and the
+CLI applies the same rule to `--glob` matching.
+
 The same device and firmware completed safe-write verification on 2026-08-06:
 folder creation, device-side PDF copy, document rename and move, folder rename,
 whole-PDF upload without the optional unspecified `file_hash`, rejection of an

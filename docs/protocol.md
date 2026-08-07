@@ -61,7 +61,8 @@ device evidence; it never enables unverified trust-all TLS.
 
 - firmware/model, battery, and storage status
 - automatically paginated document and folder listings (100 by default, 1000 maximum)
-- metadata lookup by ID or NFC-normalized `Document/...` path
+- metadata lookup by ID or NFC-normalized `Document/...` path; verified
+  DPT-RP1 path resolution is case-insensitive
 - streaming PDF download with a 1 GiB ceiling and ETag reporting
 
 The translated Swagger snapshot incorrectly names the battery `status` field

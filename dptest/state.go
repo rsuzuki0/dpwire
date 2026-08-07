@@ -194,16 +194,16 @@ func (s *State) document(id string) (Document, []byte, bool) {
 func (s *State) documentByPath(path string) (Document, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if path == "Document" {
+	if strings.EqualFold(path, "Document") {
 		return rootDocument(), true
 	}
 	for _, document := range s.documents {
-		if document.Path == path {
+		if strings.EqualFold(document.Path, path) {
 			return document, true
 		}
 	}
 	for _, folder := range s.folders {
-		if folder.Path == path {
+		if strings.EqualFold(folder.Path, path) {
 			return folder, true
 		}
 	}

@@ -77,6 +77,18 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 	if err := client.Authenticate(ctx); err != nil {
 		return report(stderr, err)
 	}
+	var referenceStore *profiles.ObjectReferenceStore
+	getReferenceStore := func() (*profiles.ObjectReferenceStore, error) {
+		if referenceStore != nil {
+			return referenceStore, nil
+		}
+		store, storeErr := manager.ObjectReferences(profile)
+		if storeErr != nil {
+			return nil, storeErr
+		}
+		referenceStore = store
+		return referenceStore, nil
+	}
 
 	switch args[0] {
 	case "auth":
@@ -109,61 +121,79 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 			Storage  dpwire.StorageStatus  `json:"storage"`
 		}{firmware, battery, storage})
 	case "ls":
-		long, target, ok := parseListArguments(args[1:])
+		long, selector, ok := parseListArguments(args[1:])
 		if !ok {
 			usage(stderr)
 			return 2
 		}
+		var store *profiles.ObjectReferenceStore
+		if selector.kind != selectorPath || long {
+			store, err = getReferenceStore()
+			if err != nil {
+				return report(stderr, err)
+			}
+		}
+		target, resolveErr := resolveObject(ctx, client, store, selector, "")
+		if resolveErr != nil {
+			return report(stderr, resolveErr)
+		}
 		var entries []dpwire.Entry
-		if target != "" {
-			path, pathErr := parseDevicePath(target)
-			if pathErr != nil {
-				return report(stderr, pathErr)
-			}
-			folder, resolveErr := client.Documents.Resolve(ctx, path)
-			if resolveErr != nil {
-				return report(stderr, resolveErr)
-			}
-			if folder.Type == dpwire.EntryDocument {
-				entries = []dpwire.Entry{folder}
-			} else {
-				entries, err = client.Folders.List(ctx, folder.ID, dpwire.ListOptions{})
-			}
+		if target.Type == dpwire.EntryDocument {
+			entries = []dpwire.Entry{target}
 		} else {
-			root, resolveErr := client.Documents.Resolve(ctx, dpwire.MustRemotePath("Document"))
-			if resolveErr != nil {
-				return report(stderr, resolveErr)
-			}
-			entries, err = client.Folders.List(ctx, root.ID, dpwire.ListOptions{})
+			entries, err = client.Folders.List(ctx, target.ID, dpwire.ListOptions{})
 		}
 		if err != nil {
 			return report(stderr, err)
 		}
-		return printEntries(stdout, entries, long)
+		var references map[string]profiles.ObjectReference
+		if long {
+			references, err = store.Assign(entries)
+			if err != nil {
+				return report(stderr, err)
+			}
+		}
+		return printEntries(stdout, entries, references, long)
 	case "stat", "file":
-		if len(args) != 2 {
+		selector, remaining, selectorErr := parseObjectSelector(args[1:])
+		if selectorErr != nil || len(remaining) != 0 {
 			usage(stderr)
 			return 2
 		}
-		path, err := parseDevicePath(args[1])
-		if err != nil {
-			return report(stderr, err)
+		var store *profiles.ObjectReferenceStore
+		if selector.kind != selectorPath {
+			store, err = getReferenceStore()
+			if err != nil {
+				return report(stderr, err)
+			}
 		}
-		entry, err := client.Documents.Resolve(ctx, path)
+		entry, err := resolveObject(ctx, client, store, selector, "")
 		if err != nil {
 			return report(stderr, err)
 		}
 		return encode(stdout, presentEntry(entry))
 	case "get":
-		if len(args) < 2 || len(args) > 3 {
+		selector, remaining, selectorErr := parseObjectSelector(args[1:])
+		if selectorErr != nil || len(remaining) > 1 {
 			usage(stderr)
 			return 2
 		}
 		local := ""
-		if len(args) == 3 {
-			local = args[2]
+		if len(remaining) == 1 {
+			local = remaining[0]
 		}
-		return get(ctx, client, args[1], local, stdout, stderr)
+		var store *profiles.ObjectReferenceStore
+		if selector.kind != selectorPath {
+			store, err = getReferenceStore()
+			if err != nil {
+				return report(stderr, err)
+			}
+		}
+		entry, resolveErr := resolveObject(ctx, client, store, selector, dpwire.EntryDocument)
+		if resolveErr != nil {
+			return report(stderr, resolveErr)
+		}
+		return get(ctx, client, entry, local, stdout, stderr)
 	case "mkdir":
 		if len(args) != 2 {
 			usage(stderr)
@@ -193,22 +223,23 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 		}
 		return put(ctx, client, args[1], remote, stdout, stderr)
 	case "cp", "mv":
-		if len(args) != 3 {
+		selector, remaining, selectorErr := parseObjectSelector(args[1:])
+		if selectorErr != nil || len(remaining) != 1 {
 			usage(stderr)
 			return 2
 		}
-		sourcePath, err := parseDevicePath(args[1])
+		var store *profiles.ObjectReferenceStore
+		if selector.kind != selectorPath {
+			store, err = getReferenceStore()
+			if err != nil {
+				return report(stderr, err)
+			}
+		}
+		source, err := resolveObject(ctx, client, store, selector, dpwire.EntryDocument)
 		if err != nil {
 			return report(stderr, err)
 		}
-		source, err := client.Documents.Resolve(ctx, sourcePath)
-		if err != nil {
-			return report(stderr, err)
-		}
-		if source.Type != dpwire.EntryDocument {
-			return report(stderr, errors.New("source path is not a PDF"))
-		}
-		parentEntry, name, err := resolveDestination(ctx, client, args[2], source.Name)
+		parentEntry, name, err := resolveDestination(ctx, client, remaining[0], source.Name)
 		if err != nil {
 			return report(stderr, err)
 		}
@@ -223,15 +254,23 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 		}
 		return encode(stdout, presentEntry(entry))
 	case "rm", "rmdir":
-		if len(args) != 2 {
+		selector, remaining, selectorErr := parseObjectSelector(args[1:])
+		if selectorErr != nil || len(remaining) != 0 {
 			usage(stderr)
 			return 2
 		}
-		path, err := parseDevicePath(args[1])
-		if err != nil {
-			return report(stderr, err)
+		var store *profiles.ObjectReferenceStore
+		if selector.kind != selectorPath {
+			store, err = getReferenceStore()
+			if err != nil {
+				return report(stderr, err)
+			}
 		}
-		entry, err := client.Documents.Resolve(ctx, path)
+		expected := dpwire.EntryDocument
+		if args[0] == "rmdir" {
+			expected = dpwire.EntryFolder
+		}
+		entry, err := resolveObject(ctx, client, store, selector, expected)
 		if err != nil {
 			return report(stderr, err)
 		}
@@ -243,7 +282,7 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 				return report(stderr, err)
 			}
 		} else {
-			if path.String() == "Document" {
+			if entry.Path.String() == "Document" {
 				return report(stderr, errors.New("device root cannot be deleted"))
 			}
 			if entry.Type != dpwire.EntryFolder {
@@ -253,30 +292,34 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 				return report(stderr, err)
 			}
 		}
-		return encode(stdout, map[string]string{"removed": devicePathString(path)})
+		return encode(stdout, map[string]string{"removed": devicePathString(entry.Path)})
 	case "open":
-		if len(args) < 2 || len(args) > 3 {
+		selector, remaining, selectorErr := parseObjectSelector(args[1:])
+		if selectorErr != nil || len(remaining) > 1 {
 			usage(stderr)
 			return 2
 		}
-		path, err := parseDevicePath(args[1])
-		if err != nil {
-			return report(stderr, err)
+		var store *profiles.ObjectReferenceStore
+		if selector.kind != selectorPath {
+			store, err = getReferenceStore()
+			if err != nil {
+				return report(stderr, err)
+			}
 		}
-		entry, err := client.Documents.Resolve(ctx, path)
+		entry, err := resolveObject(ctx, client, store, selector, dpwire.EntryDocument)
 		if err != nil {
 			return report(stderr, err)
 		}
 		page := 0
-		if len(args) == 3 {
-			if _, err := fmt.Sscan(args[2], &page); err != nil || page < 1 {
+		if len(remaining) == 1 {
+			if _, err := fmt.Sscan(remaining[0], &page); err != nil || page < 1 {
 				return report(stderr, errors.New("page must be a positive integer"))
 			}
 		}
 		if err := client.Documents.Open(ctx, entry.ID, page); err != nil {
 			return report(stderr, err)
 		}
-		return encode(stdout, map[string]any{"opened": devicePathString(path), "page": page})
+		return encode(stdout, map[string]any{"opened": devicePathString(entry.Path), "page": page})
 	default:
 		usage(stderr)
 		return 2
@@ -506,27 +549,19 @@ func presentEntry(entry dpwire.Entry) entryOutput {
 	}
 }
 
-func parseListArguments(arguments []string) (long bool, target string, ok bool) {
-	switch len(arguments) {
-	case 0:
-		return false, "", true
-	case 1:
-		if arguments[0] == "-l" {
-			return true, "", true
-		}
-		if strings.HasPrefix(arguments[0], "-") {
-			return false, "", false
-		}
-		return false, arguments[0], true
-	case 2:
-		if arguments[0] == "-l" {
-			return true, arguments[1], true
-		}
+func parseListArguments(arguments []string) (long bool, selector objectSelector, ok bool) {
+	if len(arguments) > 0 && arguments[0] == "-l" {
+		long = true
+		arguments = arguments[1:]
 	}
-	return false, "", false
+	if len(arguments) == 0 {
+		return long, objectSelector{kind: selectorPath, value: "."}, true
+	}
+	selector, remaining, err := parseObjectSelector(arguments)
+	return long, selector, err == nil && len(remaining) == 0
 }
 
-func printEntries(output io.Writer, entries []dpwire.Entry, long bool) int {
+func printEntries(output io.Writer, entries []dpwire.Entry, references map[string]profiles.ObjectReference, long bool) int {
 	if !long {
 		for _, entry := range entries {
 			name := entry.Name
@@ -549,7 +584,11 @@ func printEntries(output io.Writer, entries []dpwire.Entry, long bool) int {
 		if modified == "" {
 			modified = "-"
 		}
-		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\n", kind, size, modified, entry.ID, name)
+		reference, exists := references[entry.ID]
+		if !exists {
+			return 1
+		}
+		fmt.Fprintf(writer, "%d\t%s\t%s\t%s\t%s\t%s\t%s\n", reference.Number, reference.Hex, kind, size, modified, entry.ID, name)
 	}
 	if err := writer.Flush(); err != nil {
 		return 1
@@ -557,15 +596,7 @@ func printEntries(output io.Writer, entries []dpwire.Entry, long bool) int {
 	return 0
 }
 
-func get(ctx context.Context, client *dpwire.Client, remote, local string, stdout, stderr io.Writer) int {
-	path, err := parseDevicePath(remote)
-	if err != nil {
-		return report(stderr, err)
-	}
-	entry, err := client.Documents.Resolve(ctx, path)
-	if err != nil {
-		return report(stderr, err)
-	}
+func get(ctx context.Context, client *dpwire.Client, entry dpwire.Entry, local string, stdout, stderr io.Writer) int {
 	if entry.Type != dpwire.EntryDocument {
 		return report(stderr, errors.New("remote path is not a document"))
 	}
@@ -615,16 +646,17 @@ func usage(output io.Writer) {
 	fmt.Fprintln(output, "  profile show [NAME]             show safe connection details")
 	fmt.Fprintln(output, "  auth                            verify profile authentication")
 	fmt.Fprintln(output, "  device                          show firmware, battery, and storage")
-	fmt.Fprintln(output, "  ls [-l] [DEVICE_PATH]           list the root, a folder, or one PDF")
-	fmt.Fprintln(output, "  stat DEVICE_PATH                show complete entry metadata")
-	fmt.Fprintln(output, "  file DEVICE_PATH                alias for stat")
-	fmt.Fprintln(output, "  get DEVICE_PATH [LOCAL_FILE]    download PDF without overwriting")
+	fmt.Fprintln(output, "  ls [-l] [OBJECT]                list the root, a folder, or one PDF")
+	fmt.Fprintln(output, "  stat OBJECT                     show complete entry metadata")
+	fmt.Fprintln(output, "  file OBJECT                     alias for stat")
+	fmt.Fprintln(output, "  get OBJECT [LOCAL_FILE]         download PDF without overwriting")
 	fmt.Fprintln(output, "  mkdir DEVICE_PATH               create one folder")
 	fmt.Fprintln(output, "  put LOCAL_PDF [DEVICE_PATH]     create and upload without overwriting")
-	fmt.Fprintln(output, "  cp SOURCE_PATH DEST_PATH        copy a PDF within the device")
-	fmt.Fprintln(output, "  mv SOURCE_PATH DEST_PATH        move or rename a PDF within the device")
-	fmt.Fprintln(output, "  rm DEVICE_PATH                  remove one PDF with a revision guard")
-	fmt.Fprintln(output, "  rmdir DEVICE_PATH               remove one empty folder only")
-	fmt.Fprintln(output, "  open DEVICE_PATH [PAGE]         display a PDF on the device")
+	fmt.Fprintln(output, "  cp OBJECT DEST_PATH             copy a PDF within the device")
+	fmt.Fprintln(output, "  mv OBJECT DEST_PATH             move or rename a PDF within the device")
+	fmt.Fprintln(output, "  rm OBJECT                       remove one PDF with a revision guard")
+	fmt.Fprintln(output, "  rmdir OBJECT                    remove one empty folder only")
+	fmt.Fprintln(output, "  open OBJECT [PAGE]              display a PDF on the device")
 	fmt.Fprintln(output, "device paths are root-relative; use . for the root, for example Documents/paper.pdf")
+	fmt.Fprintln(output, "OBJECT is a device path, --id NUMBER|0xHEX, or --glob PATTERN")
 }

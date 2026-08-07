@@ -13,6 +13,8 @@ library.
 - Authenticated model, firmware, battery, and storage status.
 - Unix/FTP-style `ls`, `ls -l`, `file`/`stat`, `get`, `put`, `cp`, `mv`,
   `mkdir`, `rm`, `rmdir`, and `open` commands in a filesystem-like CLI UI.
+- Persistent nonnegative object numbers, collision-safe `0x` references, and
+  single-result Unix glob selection for paths that are difficult to type.
 - PDF-only upload and replacement with revision conflict checks.
 - Device-side copy and move without unnecessary host round trips.
 - Revision-guarded document deletion and empty-only, non-recursive folder

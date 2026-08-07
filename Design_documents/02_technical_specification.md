@@ -260,6 +260,11 @@ type RemotePath struct {
 `RemotePath` はプロトコル内部の正規形として `Document` ルートを保持する。
 CLIはこれを公開せず、常にルート相対の `Documents/paper.pdf` 形式を受け取る。
 `.` は端末ルートを表し、`Document/...` 形式は混乱防止のためCLIで拒否する。
+globは大文字・小文字を区別しない。DPT-RP1のexact path解決も実機では
+大文字・小文字を区別しない。他機種のexact path解決は個別に検証する。`ls -l` が割り当てるprofile単位の
+永続的な非負整数、または `0x` で始まる短縮参照も、既存objectの指定に使える。
+`--glob` は一致が一件のときだけ処理を実行し、複数一致では番号と完全なpathを
+表示して中止する。
 
 ## 7. Capability仕様
 

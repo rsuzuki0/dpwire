@@ -14,6 +14,7 @@ import (
 
 	"github.com/rsuzuki0/dpwire"
 	"github.com/rsuzuki0/dpwire/dptest"
+	"github.com/rsuzuki0/dpwire/profiles"
 )
 
 func TestVersionAndUsage(t *testing.T) {
@@ -34,14 +35,18 @@ func TestUnixStyleListOutput(t *testing.T) {
 		{ID: "doc-1", Name: "paper.pdf", Type: dpwire.EntryDocument, Size: "42", Modified: "2026-08-06T12:00:00Z"},
 	}
 	var output bytes.Buffer
-	if code := printEntries(&output, entries, false); code != 0 || output.String() != "Inbox/\npaper.pdf\n" {
+	if code := printEntries(&output, entries, nil, false); code != 0 || output.String() != "Inbox/\npaper.pdf\n" {
 		t.Fatalf("short listing code=%d output=%q", code, output.String())
 	}
 	output.Reset()
-	if code := printEntries(&output, entries, true); code != 0 {
+	references := map[string]profiles.ObjectReference{
+		"folder-1": {Number: 0, Hex: "0x123456"},
+		"doc-1":    {Number: 1, Hex: "0xabcdef"},
+	}
+	if code := printEntries(&output, entries, references, true); code != 0 {
 		t.Fatalf("long listing code=%d", code)
 	}
-	if value := output.String(); !strings.Contains(value, "folder-1") || !strings.Contains(value, "doc-1") || !strings.Contains(value, "paper.pdf") {
+	if value := output.String(); !strings.Contains(value, "0  0x123456") || !strings.Contains(value, "1  0xabcdef") || !strings.Contains(value, "folder-1") || !strings.Contains(value, "doc-1") || !strings.Contains(value, "paper.pdf") {
 		t.Fatalf("long listing = %q", value)
 	}
 	for _, test := range []struct {
@@ -54,11 +59,17 @@ func TestUnixStyleListOutput(t *testing.T) {
 		{[]string{"-l"}, true, "", true},
 		{[]string{"Documents"}, false, "Documents", true},
 		{[]string{"-l", "Documents"}, true, "Documents", true},
+		{[]string{"--id", "23"}, false, "23", true},
+		{[]string{"-l", "--glob", "*.pdf"}, true, "*.pdf", true},
 		{[]string{"-x"}, false, "", false},
 	} {
 		long, target, ok := parseListArguments(test.arguments)
-		if long != test.long || target != test.target || ok != test.ok {
-			t.Fatalf("parseListArguments(%q) = %v, %q, %v", test.arguments, long, target, ok)
+		gotTarget := target.value
+		if gotTarget == "." && test.target == "" {
+			gotTarget = ""
+		}
+		if long != test.long || gotTarget != test.target || ok != test.ok {
+			t.Fatalf("parseListArguments(%q) = %v, %q, %v", test.arguments, long, gotTarget, ok)
 		}
 	}
 }
@@ -128,6 +139,7 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	root := state.AddFolder("Document/Documents", "Documents", "root", time.Now())
 	sourceContent := []byte("%PDF-1.4\nsource\n")
 	state.AddDocument("Document/Documents/source.pdf", "source.pdf", root.ID, sourceContent, time.Now())
+	state.AddDocument("Document/Documents/年次 報告 2026.pdf", "年次 報告 2026.pdf", root.ID, sourceContent, time.Now())
 	simulator := dptest.Start(state)
 	defer simulator.Close()
 
@@ -148,7 +160,7 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	invoke := func(arguments ...string) string {
 		t.Helper()
 		var stdout, stderr bytes.Buffer
-		all := append([]string{"-profile", profilePath}, arguments...)
+		all := append([]string{"-config-dir", filepath.Join(temporary, "external-profile-config"), "-profile", profilePath}, arguments...)
 		if code := run(all, &stdout, &stderr); code != 0 {
 			t.Fatalf("dp %s: code=%d stdout=%q stderr=%q", strings.Join(arguments, " "), code, stdout.String(), stderr.String())
 		}
@@ -157,20 +169,55 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 		}
 		return stdout.String()
 	}
+	referenceFor := func(listing, name string) (string, string) {
+		t.Helper()
+		for _, line := range strings.Split(listing, "\n") {
+			if !strings.HasSuffix(strings.TrimSpace(line), name) {
+				continue
+			}
+			fields := strings.Fields(line)
+			if len(fields) >= 2 {
+				return fields[0], fields[1]
+			}
+		}
+		t.Fatalf("no reference for %q in %q", name, listing)
+		return "", ""
+	}
 
 	invoke("auth")
 	invoke("device")
 	if output := invoke("ls"); !strings.Contains(output, "Documents/") {
 		t.Fatalf("root ls = %q", output)
 	}
-	if output := invoke("ls", "-l", "Documents/"); !strings.Contains(output, "source.pdf") || !strings.Contains(output, "doc-") {
+	longListing := invoke("ls", "-l", "Documents/")
+	if !strings.Contains(longListing, "source.pdf") || !strings.Contains(longListing, "doc-") {
+		output := longListing
 		t.Fatalf("long ls = %q", output)
 	}
+	number, hexID := referenceFor(longListing, "source.pdf")
+	if number != "0" || !strings.HasPrefix(hexID, "0x") {
+		t.Fatalf("long ls references = %q", longListing)
+	}
+	invoke("file", "--id", number)
+	invoke("stat", "--id", hexID)
+	invoke("file", "--glob", "Documents/*source.pdf")
+	invoke("file", "--glob", "*報告*2026.PDF")
+	invoke("file", "dOCUMENTS/SOURCE.PDF")
 	invoke("file", "Documents/source.pdf")
 	invoke("stat", "Documents/source.pdf")
 	invoke("mkdir", "Documents/Write")
-	invoke("cp", "Documents/source.pdf", "Documents/Write/")
-	invoke("mv", "Documents/Write/source.pdf", "Documents/Write/renamed.pdf")
+	writeNumber, _ := referenceFor(invoke("ls", "-l", "Documents"), "Write/")
+	invoke("cp", "--id", number, "Documents/Write/")
+	var ambiguousOutput, ambiguousErrors bytes.Buffer
+	ambiguousArgs := []string{"-config-dir", filepath.Join(temporary, "external-profile-config"), "-profile", profilePath, "file", "--glob", "source.pdf"}
+	if code := run(ambiguousArgs, &ambiguousOutput, &ambiguousErrors); code == 0 || !strings.Contains(ambiguousErrors.String(), "multiple device objects") || !strings.Contains(ambiguousErrors.String(), "Documents/source.pdf") || !strings.Contains(ambiguousErrors.String(), "Documents/Write/source.pdf") {
+		t.Fatalf("ambiguous glob: code=%d stdout=%q stderr=%q", code, ambiguousOutput.String(), ambiguousErrors.String())
+	}
+	copyNumber, _ := referenceFor(invoke("ls", "-l", "Documents/Write"), "source.pdf")
+	invoke("mv", "--id", copyNumber, "Documents/Write/renamed.pdf")
+	if output := invoke("file", "--id", copyNumber); !strings.Contains(output, "Documents/Write/renamed.pdf") {
+		t.Fatalf("reference did not survive move: %q", output)
+	}
 
 	localUpload := filepath.Join(temporary, "local.pdf")
 	uploadContent := []byte("%PDF-1.7\nupload\n")
@@ -179,7 +226,7 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	}
 	invoke("put", localUpload, "Documents/Write/")
 	downloadPath := filepath.Join(temporary, "download.pdf")
-	invoke("get", "Documents/Write/local.pdf", downloadPath)
+	invoke("get", "--glob", "Documents/Write/local.pdf", downloadPath)
 	if downloaded, err := os.ReadFile(downloadPath); err != nil || !bytes.Equal(downloaded, uploadContent) {
 		t.Fatalf("downloaded = %q, err = %v", downloaded, err)
 	}
@@ -195,7 +242,7 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	}
 	invoke("rm", "Documents/Write/local.pdf")
 	invoke("rm", "Documents/Write/renamed.pdf")
-	invoke("rmdir", "Documents/Write")
+	invoke("rmdir", "--id", writeNumber)
 	if output := invoke("ls", "Documents"); strings.Contains(output, "Write/") {
 		t.Fatalf("deleted folder remains in listing: %q", output)
 	}

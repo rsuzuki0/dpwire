@@ -87,6 +87,8 @@ dp device
 dp ls
 dp ls -l Documents
 dp file Documents/paper.pdf
+dp file --id 23
+dp get --glob '*report*2026*.pdf'
 dp get Documents/paper.pdf
 dp put paper.pdf Documents
 dp cp Documents/paper.pdf Documents/copy.pdf
@@ -105,8 +107,13 @@ The CLI provides a filesystem-like UI with familiar Unix and FTP commands; it
 does not mount a filesystem. Device paths are always relative to the device
 root; `.` denotes that root and the protocol-internal `Document/` prefix is
 rejected. A trailing `/` is accepted on directory paths. `ls` prints names,
-while `ls -l` includes type, byte size,
-modification time, device ID, and name. `cp` and `mv` operate within the device;
+while `ls -l` begins each entry with a persistent nonnegative number and a
+`0x` hexadecimal reference, followed by type, byte size, modification time,
+the full device ID, and name. A number or hexadecimal reference can be supplied
+with `--id`. `--glob` selects a basename, or a complete root-relative path when
+the pattern contains `/`; quote the pattern to prevent local shell expansion.
+Glob matching is case-insensitive. The verified DPT-RP1 also resolves exact
+paths case-insensitively. Exactly one matching object is required. `cp` and `mv` operate within the device;
 `put` and `get` transfer between the host and device. Existing destinations are
 never overwritten. See `docs/cli.md`.
 
