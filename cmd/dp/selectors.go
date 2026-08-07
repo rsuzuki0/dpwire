@@ -147,6 +147,10 @@ func isNotFound(err error) bool {
 }
 
 func globDevice(ctx context.Context, client *dpwire.Client, pattern string) ([]dpwire.Entry, error) {
+	pattern = trimRootRelativePrefix(pattern)
+	if pattern == "" {
+		return nil, errors.New("glob pattern must name a device object")
+	}
 	segments := strings.Split(pattern, "/")
 	for _, segment := range segments {
 		if segment == "" || segment == "." || segment == ".." {

@@ -466,6 +466,7 @@ func splitRemoteTarget(value string) (dpwire.RemotePath, string, error) {
 // parseDevicePath keeps the protocol's Document root out of the CLI.
 func parseDevicePath(value string) (dpwire.RemotePath, error) {
 	value = strings.TrimRight(value, "/")
+	value = trimRootRelativePrefix(value)
 	if value == "" {
 		return dpwire.RemotePath{}, errors.New("device root must be written as .")
 	}
@@ -476,6 +477,13 @@ func parseDevicePath(value string) (dpwire.RemotePath, error) {
 		return dpwire.RemotePath{}, errors.New("device paths must omit the internal Document/ prefix")
 	}
 	return dpwire.ParseRemotePath("Document/" + value)
+}
+
+func trimRootRelativePrefix(value string) string {
+	for strings.HasPrefix(value, "./") {
+		value = strings.TrimPrefix(value, "./")
+	}
+	return value
 }
 
 func devicePathString(path dpwire.RemotePath) string {

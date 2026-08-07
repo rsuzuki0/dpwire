@@ -110,8 +110,8 @@ rejected. A trailing `/` is accepted on directory paths. `ls` prints names,
 while `ls -l` begins each entry with a persistent nonnegative number and a
 `0x` hexadecimal reference, followed by type, byte size, modification time,
 the full device ID, and name. A number or hexadecimal reference can be supplied
-with `--id`. `--glob` follows root-relative shell pathname expansion: `E*`
-examines the device root only, while `Documents/E*` examines that directory.
+with `--id`. `--glob` follows root-relative shell pathname expansion: `E*` and
+`./E*` examine the device root only, while `Documents/E*` examines that directory.
 Each `/` advances exactly one directory level; quote the pattern to prevent
 local shell expansion. Glob matching is case-insensitive. The verified DPT-RP1 also resolves exact
 paths case-insensitively. Exactly one matching object is required. `cp` and `mv` operate within the device;

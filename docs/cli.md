@@ -86,7 +86,7 @@ dp mv --glob 'Documents/Inbox/*draft*.pdf' Documents/Archive/
 ```
 
 A glob is expanded one root-relative path segment at a time, like a shell
-pathname. `E*` examines only entries directly under the device root;
+pathname. `E*` and `./E*` examine only entries directly under the device root;
 `Documents/E*` examines only direct children of `Documents`; and `*/E*`
 examines direct children of each matching root folder. There is no implicit
 recursive search, and `**` has no special recursive meaning. Matching uses Unix
@@ -98,6 +98,10 @@ one object of the type required by the command must match. Zero
 matches stop with an error; multiple matches stop and list each persistent
 number, hexadecimal reference, and exact path. No matching object is modified
 in either case. Expansion stops at a 10,000-object safety limit.
+
+An optional leading `./` is accepted for both exact paths and globs. It denotes
+the device root and may be repeated, as in `././Documents/paper.pdf`. It never
+exposes or enables the protocol-internal `Document/` prefix.
 
 The reference map is stored owner-only in the active DPWire configuration
 directory. It contains device object IDs and types, but no filenames or paths.

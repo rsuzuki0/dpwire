@@ -125,6 +125,10 @@ func TestDevicePathsHideProtocolRoot(t *testing.T) {
 	if err != nil || directory.String() != "Document/Documents" {
 		t.Fatalf("trailing slash path = %q, %v", directory.String(), err)
 	}
+	prefixed, err := parseDevicePath("././Documents/paper.pdf")
+	if err != nil || prefixed.String() != "Document/Documents/paper.pdf" {
+		t.Fatalf("root-prefixed path = %q, %v", prefixed.String(), err)
+	}
 	root, err := parseDevicePath("./")
 	if err != nil || root.String() != "Document" {
 		t.Fatalf("trailing slash root = %q, %v", root.String(), err)
@@ -137,6 +141,9 @@ func TestDevicePathsHideProtocolRoot(t *testing.T) {
 	}
 	if _, err := parseDevicePath("Document/"); err == nil {
 		t.Fatal("protocol-internal Document root with slash was accepted by CLI")
+	}
+	if _, err := parseDevicePath("./Document/Documents/paper.pdf"); err == nil {
+		t.Fatal("root-prefixed internal Document path was accepted by CLI")
 	}
 	parent, name, err := splitRemoteTarget("Documents/new.pdf")
 	if err != nil || parent.String() != "Document/Documents" || name != "new.pdf" {
@@ -243,6 +250,9 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	invoke("file", "--glob", "Documents/*報告*2026.PDF")
 	if output := invoke("file", "--glob", "e*"); !strings.Contains(output, `"path": "Examples"`) {
 		t.Fatalf("root-scoped glob = %q", output)
+	}
+	if output := invoke("file", "--glob", "./E*"); !strings.Contains(output, `"path": "Examples"`) {
+		t.Fatalf("dot-prefixed root glob = %q", output)
 	}
 	var ambiguousOutput, ambiguousErrors bytes.Buffer
 	ambiguousArgs := []string{"-config-dir", filepath.Join(temporary, "external-profile-config"), "-profile", profilePath, "file", "--glob", "Documents/z*.pdf"}

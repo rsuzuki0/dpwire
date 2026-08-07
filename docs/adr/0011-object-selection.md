@@ -18,7 +18,8 @@ atomic replacement.
 
 `--glob` uses Unix pathname glob syntax and Unicode NFC normalization. Matching
 starts at the device root and advances one directory level per `/`. A pattern
-without `/` examines only direct children of the root. There is no implicit
+without `/`, or with only a leading `./`, examines direct children of the root.
+The same optional leading `./` is accepted by exact CLI paths. There is no implicit
 recursive search, and `**` has no special recursive meaning. Exact path resolution and glob matching are
 case-insensitive on the verified DPT-RP1. DPWire applies the same case folding
 to glob matching on every device; exact path resolution remains a device API

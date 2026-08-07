@@ -266,6 +266,7 @@ globは大文字・小文字を区別しない。DPT-RP1のexact path解決も�
 `--glob` は一致が一件のときだけ処理を実行し、複数一致では番号と完全なpathを
 表示して中止する。globは端末rootからpath segmentごとに展開し、`E*`はroot
 直下だけ、`Documents/E*`はそのdirectory直下だけを調べる。暗黙の再帰検索はしない。
+先頭の `./` はexact pathとglobの両方で端末rootを表し、複数回の指定も許容する。
 
 ## 7. Capability仕様
 
