@@ -4,16 +4,32 @@
 protocol's `Document` root and HTTP endpoint names are private implementation
 details. Device paths are always root-relative; `.` means the device root.
 
+The first imported profile becomes the default:
+
 ```sh
-dp -profile device.json ls
-dp -profile device.json ls -l Codex_dp
-dp -profile device.json file Codex_dp/paper.pdf
-dp -profile device.json mkdir Codex_dp/Archive
-dp -profile device.json cp Codex_dp/paper.pdf Codex_dp/Archive
-dp -profile device.json mv Codex_dp/old.pdf Codex_dp/new.pdf
-dp -profile device.json put local.pdf Codex_dp
-dp -profile device.json get Codex_dp/paper.pdf
-dp -profile device.json open Codex_dp/paper.pdf 3
+dp inspect-cert https://127.0.0.1:58443
+dp profile import-sony rp1 https://127.0.0.1:58443 VERIFIED_SHA256 /path/to/sony/workspace
+dp profile list
+dp profile use rp1
+dp profile show
+```
+
+`import-sony` requires the credential directory to contain the explicitly
+selected `deviceid.dat` and `privatekey.dat` pair. It validates the key and
+connection settings, copies them into an owner-private profile directory, and
+never overwrites an existing profile. `list` and `show` omit credential IDs and
+key paths.
+
+```sh
+dp ls
+dp ls -l Codex_dp
+dp file Codex_dp/paper.pdf
+dp mkdir Codex_dp/Archive
+dp cp Codex_dp/paper.pdf Codex_dp/Archive
+dp mv Codex_dp/old.pdf Codex_dp/new.pdf
+dp put local.pdf Codex_dp
+dp get Codex_dp/paper.pdf
+dp open Codex_dp/paper.pdf 3
 ```
 
 `cp` and `mv` operate entirely within the device. `put` transfers from the host

@@ -19,3 +19,8 @@ packages. Workflow packages must use the public API rather than importing
 
 Future source locations are reserved with documentation, not functions that
 return false success.
+
+Named profile management is a separate public support package. It may depend on
+the core `digitalpaper` and `credentials` packages, while the core library must
+not depend on profile storage. Profile files and copied private keys are written
+through owner-private persistence primitives in `internal/atomicfile`.

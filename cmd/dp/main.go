@@ -14,6 +14,7 @@ import (
 
 	"github.com/rsuzuki0/digitalpaper"
 	"github.com/rsuzuki0/digitalpaper/credentials"
+	"github.com/rsuzuki0/digitalpaper/profiles"
 )
 
 const version = "0.2.0-p2"
@@ -23,7 +24,8 @@ func main() { os.Exit(run(os.Args[1:], os.Stdout, os.Stderr)) }
 func run(arguments []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("dp", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	profilePath := flags.String("profile", "", "device profile JSON file")
+	profileSelection := flags.String("profile", "", "named profile or profile JSON file")
+	configDirectory := flags.String("config-dir", "", "profile configuration directory")
 	flags.Usage = func() { usage(stderr) }
 	if err := flags.Parse(arguments); err != nil {
 		return 2
@@ -51,11 +53,14 @@ func run(arguments []string, stdout, stderr io.Writer) int {
 		}
 		return encode(stdout, candidates)
 	}
-	if *profilePath == "" {
-		fmt.Fprintln(stderr, "dp: -profile is required")
-		return 2
+	manager, err := profileManager(*configDirectory)
+	if err != nil {
+		return report(stderr, err)
 	}
-	profile, err := digitalpaper.LoadProfile(*profilePath)
+	if args[0] == "profile" {
+		return profileCommand(manager, args, stdout, stderr)
+	}
+	profile, err := selectedProfile(manager, *profileSelection)
 	if err != nil {
 		return report(stderr, err)
 	}
@@ -239,6 +244,94 @@ func run(arguments []string, stdout, stderr io.Writer) int {
 		usage(stderr)
 		return 2
 	}
+}
+
+func profileManager(directory string) (*profiles.Manager, error) {
+	if directory == "" {
+		var err error
+		directory, err = profiles.DefaultRoot()
+		if err != nil {
+			return nil, err
+		}
+	} else if !filepath.IsAbs(directory) {
+		absolute, err := filepath.Abs(directory)
+		if err != nil {
+			return nil, err
+		}
+		directory = absolute
+	}
+	return profiles.New(directory)
+}
+
+func selectedProfile(manager *profiles.Manager, selection string) (digitalpaper.DeviceProfile, error) {
+	if selection == "" {
+		_, profile, err := manager.Current()
+		if errors.Is(err, os.ErrNotExist) {
+			return digitalpaper.DeviceProfile{}, errors.New("no default profile; run 'dp profile import-sony' or select -profile")
+		}
+		return profile, err
+	}
+	if filepath.IsAbs(selection) || strings.ContainsRune(selection, filepath.Separator) {
+		return digitalpaper.LoadProfile(selection)
+	}
+	if _, err := os.Stat(selection); err == nil {
+		return digitalpaper.LoadProfile(selection)
+	}
+	return manager.Load(selection)
+}
+
+func profileCommand(manager *profiles.Manager, args []string, stdout, stderr io.Writer) int {
+	if len(args) == 2 && args[1] == "list" {
+		items, err := manager.List()
+		if err != nil {
+			return report(stderr, err)
+		}
+		writer := tabwriter.NewWriter(stdout, 0, 4, 2, ' ', 0)
+		for _, item := range items {
+			marker := " "
+			if item.Current {
+				marker = "*"
+			}
+			fmt.Fprintf(writer, "%s\t%s\t%s\n", marker, item.Name, item.Address)
+		}
+		if err := writer.Flush(); err != nil {
+			return 1
+		}
+		return 0
+	}
+	if len(args) == 3 && args[1] == "use" {
+		if err := manager.Use(args[2]); err != nil {
+			return report(stderr, err)
+		}
+		fmt.Fprintln(stdout, args[2])
+		return 0
+	}
+	if (len(args) == 2 || len(args) == 3) && args[1] == "show" {
+		name := ""
+		var profile digitalpaper.DeviceProfile
+		var err error
+		if len(args) == 3 {
+			name = args[2]
+			profile, err = manager.Load(name)
+		} else {
+			name, profile, err = manager.Current()
+		}
+		if err != nil {
+			return report(stderr, err)
+		}
+		currentName, _, currentErr := manager.Current()
+		return encode(stdout, profiles.Summary{Name: name, Address: profile.Address, Current: currentErr == nil && currentName == name})
+	}
+	if len(args) == 6 && args[1] == "import-sony" {
+		profile, err := manager.ImportSony(args[2], args[3], args[4], args[5])
+		if err != nil {
+			return report(stderr, err)
+		}
+		fmt.Fprintln(stdout, profile.Name)
+		return 0
+	}
+	usage(stderr)
+	return 2
 }
 
 func put(ctx context.Context, client *digitalpaper.Client, local, remote string, stdout, stderr io.Writer) int {
@@ -453,11 +546,15 @@ func report(stderr io.Writer, err error) int {
 }
 
 func usage(output io.Writer) {
-	fmt.Fprintln(output, "usage: dp [-profile FILE] COMMAND [ARG...]")
+	fmt.Fprintln(output, "usage: dp [-profile NAME|FILE] COMMAND [ARG...]")
 	fmt.Fprintln(output, "commands:")
 	fmt.Fprintln(output, "  version                         print version")
 	fmt.Fprintln(output, "  inspect-cert ADDRESS            inspect untrusted first-contact certificate")
 	fmt.Fprintln(output, "  credentials find ROOT           list existing Sony credential pairs")
+	fmt.Fprintln(output, "  profile import-sony NAME ADDRESS SHA256 CREDENTIAL_DIR")
+	fmt.Fprintln(output, "  profile list                    list configured devices")
+	fmt.Fprintln(output, "  profile use NAME                select the default device")
+	fmt.Fprintln(output, "  profile show [NAME]             show safe connection details")
 	fmt.Fprintln(output, "  auth                            verify profile authentication")
 	fmt.Fprintln(output, "  device                          show firmware, battery, and storage")
 	fmt.Fprintln(output, "  ls [-l] [DEVICE_PATH]           list the root, a folder, or one PDF")

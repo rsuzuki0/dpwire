@@ -175,4 +175,36 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	if code := run([]string{"-profile", profilePath, "put", localUpload, "Codex_dp/P2"}, &stdout, &stderr); code == 0 || !strings.Contains(stderr.String(), "write conflict") {
 		t.Fatalf("duplicate put: code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 	}
+
+	sonyDirectory := filepath.Join(temporary, "sony-credentials")
+	if err := os.Mkdir(sonyDirectory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sonyDirectory, "deviceid.dat"), []byte("cli-client\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sonyDirectory, "privatekey.dat"), keyPEM, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	configRoot := filepath.Join(temporary, "managed-config")
+	profileInvoke := func(arguments ...string) string {
+		t.Helper()
+		var output, errorsOutput bytes.Buffer
+		all := append([]string{"-config-dir", configRoot}, arguments...)
+		if code := run(all, &output, &errorsOutput); code != 0 {
+			t.Fatalf("dp %s: code=%d stdout=%q stderr=%q", strings.Join(arguments, " "), code, output.String(), errorsOutput.String())
+		}
+		return output.String()
+	}
+	profileInvoke("profile", "import-sony", "rp1", simulator.URL(), simulator.CertificateSHA256(), sonyDirectory)
+	if output := profileInvoke("profile", "list"); !strings.Contains(output, "*  rp1") || strings.Contains(output, "cli-client") {
+		t.Fatalf("profile list = %q", output)
+	}
+	if output := profileInvoke("profile", "show"); !strings.Contains(output, simulator.URL()) || strings.Contains(output, "privatekey") || strings.Contains(output, "cli-client") {
+		t.Fatalf("profile show = %q", output)
+	}
+	profileInvoke("profile", "use", "rp1")
+	if output := profileInvoke("ls", "Codex_dp"); !strings.Contains(output, "source.pdf") {
+		t.Fatalf("default-profile ls = %q", output)
+	}
 }

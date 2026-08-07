@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/rsuzuki0/digitalpaper/internal/atomicfile"
 )
 
 const maxProfileSize = 1 << 20
@@ -68,15 +70,7 @@ func SaveProfile(path string, profile DeviceProfile) error {
 		return err
 	}
 	encoded = append(encoded, '\n')
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
-	if err != nil {
-		return err
-	}
-	if _, err := file.Write(encoded); err != nil {
-		file.Close()
-		return err
-	}
-	return file.Close()
+	return atomicfile.WriteNew(path, encoded, 0o600)
 }
 
 func (p DeviceProfile) validate() error {

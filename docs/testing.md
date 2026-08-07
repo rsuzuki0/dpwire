@@ -39,6 +39,12 @@ move, upload, conflict rejection, guarded replacement, and download verification
 It performed no delete and no viewer-open operation. Test copies were retained
 on the device so the run was recoverable and inspectable.
 
+P3 profile tests use generated RSA keys and temporary configuration roots. They
+cover first-import default selection, multiple profiles, explicit selection,
+refusal to overwrite, owner-only permissions, safe display redaction, legacy
+profile-file compatibility, and a complete authenticated CLI operation without
+`-profile`.
+
 ## Physical-device P1 check
 
 `tools/device-check` performs a redacted read-only check. It never selects a

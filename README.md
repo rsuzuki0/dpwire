@@ -34,18 +34,35 @@ required for P0 through the automated P2 suite.
 
 ## Command line
 
+Import an explicitly selected Sony credential directory after verifying the
+certificate fingerprint:
+
 ```sh
-dp -profile device.json auth
-dp -profile device.json device
-dp -profile device.json ls
-dp -profile device.json ls -l Codex_dp
-dp -profile device.json file Codex_dp/paper.pdf
-dp -profile device.json get Codex_dp/paper.pdf
-dp -profile device.json put paper.pdf Codex_dp
-dp -profile device.json cp Codex_dp/paper.pdf Codex_dp/copy.pdf
-dp -profile device.json mv Codex_dp/copy.pdf Codex_dp/Archive
-dp -profile device.json mkdir Codex_dp/New
+dp inspect-cert https://127.0.0.1:58443
+dp profile import-sony rp1 https://127.0.0.1:58443 VERIFIED_SHA256 /path/to/sony/workspace
+dp profile list
 ```
+
+The first imported profile becomes the default. Daily commands therefore need
+no profile flag:
+
+```sh
+dp auth
+dp device
+dp ls
+dp ls -l Codex_dp
+dp file Codex_dp/paper.pdf
+dp get Codex_dp/paper.pdf
+dp put paper.pdf Codex_dp
+dp cp Codex_dp/paper.pdf Codex_dp/copy.pdf
+dp mv Codex_dp/copy.pdf Codex_dp/Archive
+dp mkdir Codex_dp/New
+```
+
+Use `dp profile use NAME` to change the default or `-profile NAME` for one
+command. A legacy profile JSON file remains accepted through `-profile FILE`.
+Profile listing and display omit client IDs and private-key paths. Imported
+keys and configuration files use owner-only permissions and are not overwritten.
 
 The CLI presents a Unix-like virtual filesystem. Device paths are always
 relative to its root; `.` denotes the root and the protocol-internal
