@@ -30,6 +30,14 @@ cleanup, repeated registration, fresh RSA identity generation, and immediate
 nonce-signature authentication with the new identity. Emulator success does
 not promote registration to physical-device verified.
 
+The 2026-08-06 physical pairing check registered a fresh RSA identity on a Sony
+DPT-RP1 running firmware `1.6.50.14130`. The device displayed an eight-digit
+PIN. All registration messages and cleanup succeeded, and the resulting
+owner-private `rp1-direct` profile authenticated immediately. After the Sony
+Digital Paper App was quit, the new profile again authenticated directly and
+read firmware, battery, storage, and the root folder listing. No PIN, client ID,
+private key, certificate fingerprint, or document metadata was recorded.
+
 The P2 integration test covers root and folder resolution, duplicate names,
 folder creation and rename, device-side copy, document move/rename, multipart
 PDF upload without the unspecified `file_hash` query, local SHA-256, guarded

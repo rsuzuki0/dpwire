@@ -512,7 +512,7 @@
       "method": "POST",
       "path": "/register",
       "tag": "Client registration",
-      "status": "emulated",
+      "status": "device-verified",
       "deprecated": false
     },
     {
@@ -520,7 +520,7 @@
       "method": "POST",
       "path": "/register/ca",
       "tag": "Client registration",
-      "status": "emulated",
+      "status": "device-verified",
       "deprecated": false
     },
     {
@@ -560,7 +560,7 @@
       "method": "POST",
       "path": "/register/hash",
       "tag": "Client registration",
-      "status": "emulated",
+      "status": "device-verified",
       "deprecated": false
     },
     {
@@ -568,7 +568,7 @@
       "method": "POST",
       "path": "/register/pin",
       "tag": "Client registration",
-      "status": "emulated",
+      "status": "device-verified",
       "deprecated": false
     },
     {
@@ -720,7 +720,7 @@
       "method": "PUT",
       "path": "/register/cleanup",
       "tag": "Client registration",
-      "status": "emulated",
+      "status": "device-verified",
       "deprecated": false
     },
     {

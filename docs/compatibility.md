@@ -47,3 +47,11 @@ The same USB-connected device was also discovered on interface-scoped mDNS as
 `https://digitalpaper.local:8443`, and firmware, battery, and storage requests
 succeeded without using the loopback relay. The direct TLS certificate
 fingerprint matched the relay-visible device certificate.
+
+The same device then completed fresh client registration directly on port 8080
+using the eight-digit PIN displayed by the device. The newly generated RSA
+identity authenticated on port 8443 immediately. After the Sony Digital Paper
+App was quit, the new profile still authenticated and read firmware, battery,
+storage, and the root listing. This verifies that freshly paired credentials
+are stored and used independently of the vendor application. No credential or
+PIN values were retained in the repository.

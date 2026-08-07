@@ -9,8 +9,8 @@ provides reproducible checks, compatibility catalogs, crypto test vectors, and
 a stateful HTTPS simulator. P1 adds authenticated, read-only device access. P2
 adds verified folder creation, PDF upload, device-side copy, move/rename, and
 viewer control. P3 has added named profile onboarding, guarded deletion, direct
-connection, and fresh pairing. Physical pairing validation and release
-packaging remain in progress.
+connection, and fresh pairing. Fresh pairing and Sony-App-independent direct
+use are physically verified on a DPT-RP1; release packaging remains in progress.
 
 P3 targets a complete PDF-only daily-use release: profile onboarding, fresh
 pairing, guarded deletion, packaging, installation, and recovery. Document

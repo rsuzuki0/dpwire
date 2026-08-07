@@ -10,7 +10,7 @@
       "verification": "device-required",
       "capabilities": {
         "documents": "target",
-        "pairing": "phase-p3",
+        "pairing": "device-verified-dpt-rp1-only",
         "split-upload": "documented-unverified",
         "screen-capture": "optional-unverified",
         "whiteboard": "optional-unverified",
@@ -165,6 +165,35 @@
         "The temporary direct-test credential copy was owner-only and removed after verification."
       ],
       "quirks": []
+    },
+    {
+      "vendor": "Sony",
+      "model": "DPT-RP1",
+      "firmware": "1.6.50.14130",
+      "tested_at": "2026-08-06",
+      "transport": "direct USB Ethernet via digitalpaper.local:8080 and :8443",
+      "mode": "fresh-pairing-and-vendor-app-independent-read",
+      "verified_operations": [
+        "PUT /register/cleanup",
+        "POST /register/pin",
+        "POST /register/hash",
+        "POST /register/ca",
+        "POST /register",
+        "GET /auth/nonce/{client_id}",
+        "PUT /auth",
+        "GET /system/status/firmware_version",
+        "GET /system/status/battery",
+        "GET /system/status/storage",
+        "GET /folders/{folder_id}/entries2"
+      ],
+      "observations": [
+        "The device displayed an eight-digit registration PIN.",
+        "A wrong PIN was rejected with HTTP 403 and error_code 40301; cleanup removed the incomplete local profile before a new sequence was started.",
+        "A fresh RSA-2048 identity registered successfully and authenticated immediately over the direct API.",
+        "After the Sony Digital Paper App was quit, the fresh profile independently authenticated and read device status and the root folder listing.",
+        "The existing relay profile and Sony application credentials were not modified; no PIN, client ID, key, certificate fingerprint, or document metadata was recorded."
+      ],
+      "quirks": ["sony-dpt-rp1-certificate-without-san"]
     }
   ]
 }
