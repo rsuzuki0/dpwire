@@ -10,5 +10,11 @@ MIT-licensed DPT-RP1/DigitalPaperApp repository. It is described upstream as a
 community translation of official endpoint documentation. Its source,
 revision, checksum, and classification are recorded in provenance.json.
 
+The registration and protocol behavior of the MIT-licensed dpt-rp1-py project
+was also studied as a community reference implementation. Its authorship,
+source repository, and inspected revision are recorded in provenance.json and
+the project comparison documents. This project is not a line-by-line port and
+does not vendor dpt-rp1-py source code.
+
 Sony, Digital Paper, Fujitsu, and QUADERNO may be trademarks of their
 respective owners.

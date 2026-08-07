@@ -53,7 +53,9 @@ dp device
 ```
 
 Enter the PIN displayed by the device only when prompted. Do not put it on the
-command line. Existing profile names are never overwritten.
+command line. Existing profile names are never overwritten. This fresh setup
+does not require the Sony App to be installed or running and does not reuse any
+Sony App client ID, private key, or certificate file.
 
 ## Upgrade and rollback
 

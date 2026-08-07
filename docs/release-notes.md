@@ -7,10 +7,13 @@ Go communication library independently reusable.
 ## Included
 
 - Fresh PIN pairing with independent RSA credentials and owner-only storage.
+- No Sony App installation, running process, client ID, private key, or
+  certificate file is needed for fresh pairing; the device supplies the
+  certificate that `dp` validates and pins.
 - Named direct and Sony-relay profiles with explicit default selection.
 - Authenticated model, firmware, battery, and storage status.
 - Unix/FTP-style `ls`, `ls -l`, `file`/`stat`, `get`, `put`, `cp`, `mv`,
-  `mkdir`, `rm`, `rmdir`, and `open` commands with a user-visible virtual root.
+  `mkdir`, `rm`, `rmdir`, and `open` commands in a filesystem-like CLI UI.
 - PDF-only upload and replacement with revision conflict checks.
 - Device-side copy and move without unnecessary host round trips.
 - Revision-guarded document deletion and empty-only, non-recursive folder
@@ -25,12 +28,17 @@ Go communication library independently reusable.
 Sony DPT-RP1 firmware `1.6.50.14130` has been physically verified for direct
 fresh pairing, authentication after quitting the Sony App, status and listing,
 PDF download/upload/replacement, folder creation, device-side copy/move, and
-guarded deletion. Exact operation records are in `compatibility.md`.
+guarded deletion. The device was connected by USB throughout. Fresh pairing and
+independent authentication used the USB Ethernet endpoint directly; earlier
+document-operation checks used the Sony App loopback relay. Exact operation
+records are in `compatibility.md`.
 
 ## Known limits
 
 - DPT-CP1 and every Fujitsu QUADERNO generation remain explicitly unverified by
   this project. Similar names and community reports are not treated as proof.
+- Linux arm64/amd64 binaries are built and automated tests are portable to
+  Linux, but physical USB pairing on Linux has not yet been recorded.
 - Viewer `open` is emulator-tested but not yet physically verified.
 - Native note and handwritten-annotation files are preserved as PDFs; behavior
   that differs from ordinary PDFs has not been physically characterized.

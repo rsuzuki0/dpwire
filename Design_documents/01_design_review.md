@@ -2,7 +2,7 @@
 
 ## 1. 目的
 
-Sony Digital Paper DPT-RP1 / DPT-CP1は、純正Digital Paper Appの更新停止により、将来のmacOS更新、証明書処理、ネットワーク探索、Electronランタイム、OS権限制御などの変化で利用不能になる可能性が高い。
+Sonyは2026年3月31日にDigital Paper DPT-RP1 / DPT-CP1の修理・サポート、Digital Paper App、および本体firmwareの提供を終了した。純正アプリだけに依存すると、将来のmacOS更新、証明書処理、ネットワーク探索、desktop runtime、OS権限制御などの変化で、動作する本体を利用できなくなる可能性が高い。公式告知は <https://www.sony.jp/digital-paper/info2/20240628.html> を参照。
 
 本プロジェクトの目的は、純正アプリへの依存を除去し、Sony Digital Paper本体の文書管理APIへ直接アクセスする、長期保守可能なクライアント基盤を構築することである。
 

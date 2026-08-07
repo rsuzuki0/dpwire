@@ -18,6 +18,29 @@ pairing, guarded deletion, packaging, installation, and recovery. Document
 renderers and Markdown/LaTeX/Tectonic workflows are deliberately deferred until
 after a real-use soak period.
 
+## Why another client?
+
+Sony [ended DPT-RP1/DPT-CP1 support and provision of the Digital Paper App and
+firmware](https://www.sony.jp/digital-paper/info2/20240628.html) on 2026-03-31.
+The community `dpt-rp1-py` project remains important and active; it
+also has broader features today, including sync, FUSE mounting, and Wi-Fi
+management. This project does not claim to supersede it in every dimension.
+
+Digital Paper addresses a different operational need: an embeddable Go library
+and dependency-free `dp` binary with verified TLS identity, guarded deletion,
+a stateful protocol emulator, explicit hardware evidence, and reproducible
+releases. See the full fair comparison and design rationale in
+[English](docs/project-rationale-and-comparison.md) or
+[日本語](docs/project-rationale-and-comparison.ja.md).
+
+Fresh setup is fully independent of the Sony App. It requires no Sony App
+installation or running process and no client ID, private key, or certificate
+file previously created or stored by that app. `dp` generates its own client
+identity and pins the certificate returned by the device during pairing. Linux
+is a supported build target even though Sony documented only Windows and macOS
+versions of its desktop app; physical USB pairing on Linux remains to be
+validated separately.
+
 ## Names
 
 - Go module: `github.com/rsuzuki0/digitalpaper`
@@ -83,12 +106,13 @@ command. A legacy profile JSON file remains accepted through `-profile FILE`.
 Profile listing and display omit client IDs and private-key paths. Imported
 keys and configuration files use owner-only permissions and are not overwritten.
 
-The CLI presents a Unix-like virtual filesystem. Device paths are always
-relative to its root; `.` denotes the root and the protocol-internal
-`Document/` prefix is rejected. `ls` prints names, while `ls -l` includes type,
-byte size, modification time, device ID, and name. `cp` and `mv` operate within
-the device; `put` and `get` transfer between the host and device. Existing
-destinations are never overwritten. See `docs/cli.md`.
+The CLI provides a filesystem-like UI with familiar Unix and FTP commands; it
+does not mount a filesystem. Device paths are always relative to the device
+root; `.` denotes that root and the protocol-internal `Document/` prefix is
+rejected. `ls` prints names, while `ls -l` includes type, byte size,
+modification time, device ID, and name. `cp` and `mv` operate within the device;
+`put` and `get` transfer between the host and device. Existing destinations are
+never overwritten. See `docs/cli.md`.
 
 `rm` deletes exactly one document using the revision just resolved by the CLI.
 `rmdir` deletes only an empty folder and always disables the protocol's

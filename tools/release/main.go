@@ -48,6 +48,8 @@ var distributionFiles = []string{
 	"docs/cli.md",
 	"docs/compatibility.md",
 	"docs/install.md",
+	"docs/project-rationale-and-comparison.ja.md",
+	"docs/project-rationale-and-comparison.md",
 	"docs/recovery.md",
 	"docs/release-notes.md",
 }

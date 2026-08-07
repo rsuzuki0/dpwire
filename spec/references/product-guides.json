@@ -4,12 +4,32 @@
   "sources": [
     {
       "publisher": "Sony",
+      "title": "Digital Paper and Digital Paper App support termination notice",
+      "url": "https://www.sony.jp/digital-paper/info2/20240628.html",
+      "classification": "official support notice",
+      "facts": [
+        "Sony ended repair and support for DPT-RP1 and DPT-CP1 on March 31, 2026.",
+        "Sony ended provision of the Digital Paper App and device firmware with that support."
+      ]
+    },
+    {
+      "publisher": "Sony",
       "title": "DPT-RP1/DPT-CP1 Help Guide: Transferring a document from a computer",
       "url": "https://helpguide.sony.net/dpt/rp1/v1/en/contents/TP0001178322.html",
       "classification": "official product documentation",
       "facts": [
         "Only PDF files can be transferred.",
         "Maximum transfer size is 1 GB per file."
+      ]
+    },
+    {
+      "publisher": "Sony",
+      "title": "Digital Paper App update history: version 1.4.7.01202",
+      "url": "https://www.sony.jp/digital-paper/update/#20240628",
+      "classification": "official application update notice",
+      "facts": [
+        "Sony documented separate Windows and macOS versions of the Digital Paper App.",
+        "The official application material does not list a Linux version."
       ]
     },
     {

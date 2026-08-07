@@ -76,7 +76,7 @@
       "model": "DPT-RP1",
       "firmware": "1.6.50.14130",
       "tested_at": "2026-08-06",
-      "transport": "Sony Digital Paper App loopback relay",
+      "transport": "Sony Digital Paper App loopback relay to USB-connected device",
       "mode": "read-only",
       "verified_operations": [
         "GET /auth/nonce/{client_id}",
@@ -103,7 +103,7 @@
       "model": "DPT-RP1",
       "firmware": "1.6.50.14130",
       "tested_at": "2026-08-06",
-      "transport": "Sony Digital Paper App loopback relay",
+      "transport": "Sony Digital Paper App loopback relay to USB-connected device",
       "mode": "safe-write-without-delete-or-viewer-open",
       "verified_operations": [
         "GET /folders2/{folder_id}",
@@ -129,7 +129,7 @@
       "model": "DPT-RP1",
       "firmware": "1.6.50.14130",
       "tested_at": "2026-08-06",
-      "transport": "Sony Digital Paper App loopback relay",
+      "transport": "Sony Digital Paper App loopback relay to USB-connected device",
       "mode": "guarded-delete-random-fixtures",
       "verified_operations": [
         "DELETE /documents/{document_id}",

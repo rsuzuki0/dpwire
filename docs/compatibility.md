@@ -23,7 +23,8 @@ Sony DPT-RP1 firmware `1.6.50.14130` completed the P1 read-only verification on
 2026-08-06: RSA nonce authentication, firmware/battery/storage, pagination,
 folder listing, ID metadata, Unicode path resolution, and streamed PDF download
 with ETag and revision. The test used the Sony application's loopback relay and
-did not record document metadata or credential material.
+the device was connected by USB. It did not record document metadata or
+credential material.
 
 The same device and firmware completed P2 safe-write verification on 2026-08-06:
 folder creation, device-side PDF copy, document rename and move, folder rename,

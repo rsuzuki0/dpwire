@@ -25,7 +25,12 @@
       "repository": "https://github.com/janten/dpt-rp1-py",
       "commit": "9dda9d9a16c20477bd19374866e2095705765f96",
       "license": "MIT",
-      "authoritative": false
+      "authoritative": false,
+      "notes": [
+        "The inspected commit was the upstream default-branch head on 2026-08-06.",
+        "It was committed on 2026-07-13 and fixes intermittent registration failures caused by Java BigInteger sign-byte encoding.",
+        "It is credited as an active community reference, not treated as official protocol authority."
+      ]
     }
   ]
 }

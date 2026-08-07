@@ -1,8 +1,9 @@
 # Command-line interface
 
-`dp` presents the device as a small Unix-like virtual filesystem. The
-protocol's `Document` root and HTTP endpoint names are private implementation
-details. Device paths are always root-relative; `.` means the device root.
+`dp` provides a filesystem-like CLI UI with familiar Unix and FTP commands; it
+does not mount a filesystem. The protocol's `Document` root and HTTP endpoint
+names are private implementation details. Device paths are always
+root-relative; `.` means the device root.
 
 The first imported profile becomes the default:
 
@@ -29,12 +30,13 @@ running. Existing profiles without an explicit connection field are inferred
 from the address.
 
 `profile pair` performs fresh registration without reading or changing Sony
-application credentials. It requests the PIN only after verifying the first
-authenticated registration transcript, validates every later transcript HMAC
-and the returned X.509 certificate, generates a new RSA-2048 identity, and
-stores it atomically with owner-only permissions. Pairing is direct-only;
-loopback relay addresses are rejected. If a profile name already exists, the
-command stops before contacting the device.
+application credentials. The Sony App need not be installed or running, and no
+client ID, key, or certificate file from it is required. `dp` requests the PIN
+only after verifying the first authenticated registration transcript, validates
+every later transcript HMAC and the X.509 certificate returned by the device,
+generates a new RSA-2048 identity, and stores it atomically with owner-only
+permissions. Pairing is direct-only; loopback relay addresses are rejected. If
+a profile name already exists, the command stops before contacting the device.
 
 ```sh
 dp ls

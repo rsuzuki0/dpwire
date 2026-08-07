@@ -53,11 +53,12 @@ responses, server errors, partial failure, and revision conflict. The simulator
 supports deterministic wildcard fault injection. Automated success means
 internal consistency, not physical-device compatibility.
 
-The 2026-08-06 physical P2 check used one explicitly approved source PDF and a
-new child folder in an approved namespace. It exercised create, copy, rename,
-move, upload, conflict rejection, guarded replacement, and download verification.
-It performed no delete and no viewer-open operation. Test copies were retained
-on the device so the run was recoverable and inspectable.
+The 2026-08-06 physical P2 check used a USB-connected device through the Sony
+application's loopback relay, one explicitly approved source PDF, and a new
+child folder in an approved namespace. It exercised create, copy, rename, move,
+upload, conflict rejection, guarded replacement, and download verification. It
+performed no delete and no viewer-open operation. Test copies were retained on
+the device so the run was recoverable and inspectable.
 
 P3 profile tests use generated RSA keys and temporary configuration roots. They
 cover first-import default selection, multiple profiles, explicit selection,
