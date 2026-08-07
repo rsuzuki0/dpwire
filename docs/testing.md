@@ -12,7 +12,8 @@ go run ./tools/eval -mode=ci
 spec checks, unit/protocol tests, coverage, and CLI smoke tests. `ci` adds the
 race detector and cross-builds. `nightly` additionally fuzzes cryptographic
 code. `release` adds two complete deterministic archive builds and requires
-their files to be byte-identical. CI also runs a pinned Staticcheck release.
+their files to be byte-identical. CI and the release gate also run pinned
+Staticcheck and `govulncheck` releases.
 Every mode enforces at least 60% aggregate statement coverage.
 
 `tools/release` creates four user binary archives, a tracked-source archive,

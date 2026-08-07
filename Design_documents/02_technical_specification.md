@@ -43,9 +43,9 @@ github.com/rsuzuki0/dpwire
 
 ## 3. 対象プラットフォーム
 
-module language version：Go 1.24
+module language version：Go 1.25
 
-CIではGo 1.24に加え、その時点の新しいサポート版でも試験する。
+CIではGo 1.25に加え、その時点の新しいサポート版でも試験する。
 
 必須：
 

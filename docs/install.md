@@ -93,4 +93,4 @@ go test ./...
 go build -trimpath -buildvcs=false -o dp ./cmd/dp
 ```
 
-Go 1.24 or a newer supported Go release is required only for a source build.
+Go 1.25 or a newer supported Go release is required only for a source build.
