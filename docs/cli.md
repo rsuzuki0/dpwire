@@ -53,6 +53,7 @@ a valid strict profile is also an error.
 ```sh
 dp ls
 dp ls -l /Documents
+dp ls -lt '/Documents/*.pdf' | head -n 20
 dp ls -lR /
 dp file /Documents/paper.pdf
 dp file --id 23
@@ -88,6 +89,15 @@ numbers increase monotonically and deleted numbers are not reused. `HEX-ID` is
 a shortened SHA-256 reference derived from the device's opaque ID; DPWire
 lengthens it when needed to avoid a collision. The full device ID remains in
 the listing for diagnostics.
+
+`ls -t` sorts one listing by device modification time, newest first. It works
+with either short or long output, so the newest 20 entries in one folder can be
+shown with `dp ls -lt /Documents | head -n 20`; use the quoted
+`'/Documents/*.pdf'` form to include PDFs only. Entries with a missing or
+invalid modification time follow dated entries; equal times use the normal name
+order. `-t`, `-l`, and `-R` may be grouped in any order or supplied as separate
+options. With `-R`, time ordering applies independently inside each listed
+directory rather than globally across the tree.
 
 Commands that accept an existing object accept any one of these forms:
 
@@ -145,7 +155,8 @@ explicit `--glob` and exactly one compatible match.
 
 `ls -R /Documents` recursively lists the contents of `/Documents` and every
 folder below it. Add the long columns with `ls -lR`; `-lR`, `-Rl`, `-l -R`,
-and `-R -l` are equivalent. Each folder requires one logical, automatically
+and `-R -l` are equivalent. Time sorting composes with them, for example
+`ls -ltR` or `ls -l -t -R`. Each folder requires one logical, automatically
 paginated device listing. Traversal stops at 10,000 observed entries and skips
 an already visited folder ID, preventing an anomalous cycle from running
 indefinitely. `-R` belongs to `ls`; `file` and `stat` remain metadata commands

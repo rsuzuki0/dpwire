@@ -93,6 +93,7 @@ dp auth
 dp device
 dp ls
 dp ls -l /Documents
+dp ls -lt '/Documents/*.pdf' | head -n 20
 dp ls -lR /
 dp file /Documents/paper.pdf
 dp file --id 23
@@ -143,14 +144,21 @@ one-item host-shell expansion, so DPWire requires `y/[N]` confirmation. A
 one-item expansion used as an ordinary positional path is indistinguishable
 from a path typed literally; quoting remains required.
 
+`dp ls -t /Documents` sorts that listing by modification time with the newest
+entry first; combine it with `-l`, a quoted PDF glob, and standard tools such as
+`dp ls -lt '/Documents/*.pdf' | head -n 20`. Entries without a valid device
+modification time sort after dated entries. Equal times retain the normalized
+name order.
+
 Recursive listing is explicit: `dp ls -R /Documents` lists that tree, and
 `dp ls -lR /Documents` adds the long columns. `-lR`, `-Rl`, `-l -R`, and
-`-R -l` are equivalent. Glob matching itself remains one level per path
+`-R -l` are equivalent. `-t` can be combined in the same forms; it sorts each
+directory listing separately. Glob matching itself remains one level per path
 segment and never enables recursion.
 
-Listings are sorted by normalized, case-folded device name. `get` accepts a
-successful response as a PDF only when its body begins with `%PDF-`; a mismatch
-removes the newly created local file.
+Without `-t`, listings are sorted by normalized, case-folded device name. `get`
+accepts a successful response as a PDF only when its body begins with `%PDF-`;
+a mismatch removes the newly created local file.
 
 `rm` deletes exactly one document using the revision just resolved by the CLI.
 `rmdir` deletes only an empty folder and always disables the protocol's

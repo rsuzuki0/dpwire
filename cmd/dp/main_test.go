@@ -9,6 +9,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -81,7 +82,7 @@ func TestUnixStyleListOutput(t *testing.T) {
 		{ID: "doc-1", Name: "paper.pdf", Type: dpwire.EntryDocument, Size: "42", Modified: "2026-08-06T12:00:00Z"},
 		{ID: "folder-1", Name: "Inbox", Type: dpwire.EntryFolder},
 	}
-	sortDeviceEntries(entries)
+	sortDeviceEntries(entries, false)
 	var output bytes.Buffer
 	if code := printEntries(&output, entries, nil, false); code != 0 || output.String() != "Inbox/\npaper.pdf\n" {
 		t.Fatalf("short listing code=%d output=%q", code, output.String())
@@ -97,32 +98,53 @@ func TestUnixStyleListOutput(t *testing.T) {
 	if value := output.String(); !strings.Contains(value, "0  0x123456") || !strings.Contains(value, "1  0xabcdef") || !strings.Contains(value, "folder-1") || !strings.Contains(value, "doc-1") || !strings.Contains(value, "paper.pdf") {
 		t.Fatalf("long listing = %q", value)
 	}
+	timed := []dpwire.Entry{
+		{ID: "old", Name: "old.pdf", Modified: "2026-08-05T12:00:00Z"},
+		{ID: "missing", Name: "missing.pdf"},
+		{ID: "invalid", Name: "broken.pdf", Modified: "not-a-time"},
+		{ID: "tie-b", Name: "bravo.pdf", Modified: "2026-08-07T12:00:00Z"},
+		{ID: "new", Name: "new.pdf", Modified: "2026-08-08T12:00:00Z"},
+		{ID: "offset", Name: "offset.pdf", Modified: "2026-08-08T10:00:00-05:00"},
+		{ID: "tie-a", Name: "alpha.pdf", Modified: "2026-08-07T12:00:00Z"},
+	}
+	sortDeviceEntries(timed, true)
+	got := make([]string, len(timed))
+	for index := range timed {
+		got[index] = timed[index].Name
+	}
+	if !slices.Equal(got, []string{"offset.pdf", "new.pdf", "alpha.pdf", "bravo.pdf", "old.pdf", "broken.pdf", "missing.pdf"}) {
+		t.Fatalf("time-sorted listing = %q", got)
+	}
 	for _, test := range []struct {
 		arguments []string
 		long      bool
 		recursive bool
+		newest    bool
 		target    string
 		ok        bool
 	}{
-		{nil, false, false, "", true},
-		{[]string{"-l"}, true, false, "", true},
-		{[]string{"-R"}, false, true, "", true},
-		{[]string{"-lR", "Documents"}, true, true, "Documents", true},
-		{[]string{"-Rl", "Documents"}, true, true, "Documents", true},
-		{[]string{"-l", "-R", "Documents"}, true, true, "Documents", true},
-		{[]string{"-R", "-l", "Documents"}, true, true, "Documents", true},
-		{[]string{"Documents"}, false, false, "Documents", true},
-		{[]string{"-l", "Documents"}, true, false, "Documents", true},
-		{[]string{"--id", "23"}, false, false, "23", true},
-		{[]string{"-l", "--glob", "*.pdf"}, true, false, "*.pdf", true},
-		{[]string{"-x"}, false, false, "", false},
+		{nil, false, false, false, "", true},
+		{[]string{"-l"}, true, false, false, "", true},
+		{[]string{"-t"}, false, false, true, "", true},
+		{[]string{"-lt", "Documents"}, true, false, true, "Documents", true},
+		{[]string{"-tl", "Documents"}, true, false, true, "Documents", true},
+		{[]string{"-R"}, false, true, false, "", true},
+		{[]string{"-lRt", "Documents"}, true, true, true, "Documents", true},
+		{[]string{"-Rl", "Documents"}, true, true, false, "Documents", true},
+		{[]string{"-l", "-R", "Documents"}, true, true, false, "Documents", true},
+		{[]string{"-R", "-l", "Documents"}, true, true, false, "Documents", true},
+		{[]string{"Documents"}, false, false, false, "Documents", true},
+		{[]string{"-l", "Documents"}, true, false, false, "Documents", true},
+		{[]string{"--id", "23"}, false, false, false, "23", true},
+		{[]string{"-l", "--glob", "*.pdf"}, true, false, false, "*.pdf", true},
+		{[]string{"-x"}, false, false, false, "", false},
 	} {
 		options, target, ok := parseListArguments(test.arguments)
 		gotTarget := target.value
 		if gotTarget == "." && test.target == "" {
 			gotTarget = ""
 		}
-		if options.long != test.long || options.recursive != test.recursive || gotTarget != test.target || ok != test.ok {
+		if options.long != test.long || options.recursive != test.recursive || options.newest != test.newest || gotTarget != test.target || ok != test.ok {
 			t.Fatalf("parseListArguments(%q) = %+v, %q, %v", test.arguments, options, gotTarget, ok)
 		}
 	}
@@ -284,17 +306,18 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	state := dptest.NewState("DPT-RP1", "test-write")
 	state.RegisterClient("cli-client", &key.PublicKey)
 	state.RequireAuthentication(true)
-	root := state.AddFolder("Document/Documents", "Documents", "root", time.Now())
-	archive := state.AddFolder("Document/Documents/Archive", "Archive", root.ID, time.Now())
-	state.AddFolder("Document/Examples", "Examples", "root", time.Now())
+	baseTime := time.Date(2026, 8, 6, 12, 0, 0, 0, time.UTC)
+	root := state.AddFolder("Document/Documents", "Documents", "root", baseTime)
+	archive := state.AddFolder("Document/Documents/Archive", "Archive", root.ID, baseTime)
+	state.AddFolder("Document/Examples", "Examples", "root", baseTime)
 	sourceContent := []byte("%PDF-1.4\nsource\n")
-	state.AddDocument("Document/root.pdf", "root.pdf", "root", sourceContent, time.Now())
-	state.AddDocument("Document/Documents/source.pdf", "source.pdf", root.ID, sourceContent, time.Now())
-	state.AddDocument("Document/Documents/Archive/old.pdf", "old.pdf", archive.ID, sourceContent, time.Now())
-	state.AddDocument("Document/Documents/年次 報告 2026.pdf", "年次 報告 2026.pdf", root.ID, sourceContent, time.Now())
-	state.AddDocument("Document/Documents/zebra.pdf", "zebra.pdf", root.ID, sourceContent, time.Now())
-	state.AddDocument("Document/Documents/zenith.pdf", "zenith.pdf", root.ID, sourceContent, time.Now())
-	state.AddDocument("Document/Documents/literal*.pdf", "literal*.pdf", root.ID, sourceContent, time.Now())
+	state.AddDocument("Document/root.pdf", "root.pdf", "root", sourceContent, baseTime)
+	state.AddDocument("Document/Documents/source.pdf", "source.pdf", root.ID, sourceContent, baseTime.Add(-4*time.Hour))
+	state.AddDocument("Document/Documents/Archive/old.pdf", "old.pdf", archive.ID, sourceContent, baseTime.Add(-6*time.Hour))
+	state.AddDocument("Document/Documents/年次 報告 2026.pdf", "年次 報告 2026.pdf", root.ID, sourceContent, baseTime.Add(-3*time.Hour))
+	state.AddDocument("Document/Documents/zebra.pdf", "zebra.pdf", root.ID, sourceContent, baseTime.Add(-2*time.Hour))
+	state.AddDocument("Document/Documents/zenith.pdf", "zenith.pdf", root.ID, sourceContent, baseTime.Add(-1*time.Hour))
+	state.AddDocument("Document/Documents/literal*.pdf", "literal*.pdf", root.ID, sourceContent, baseTime.Add(-5*time.Hour))
 	simulator := dptest.Start(state)
 	defer simulator.Close()
 
@@ -353,7 +376,19 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	if output := invoke("ls", "*"); strings.Contains(output, "source.pdf") || strings.Contains(output, "old.pdf") {
 		t.Fatalf("ordinary glob recursed unexpectedly = %q", output)
 	}
-	for _, flags := range [][]string{{"-R"}, {"-lR"}, {"-Rl"}, {"-l", "-R"}, {"-R", "-l"}} {
+	for _, flags := range [][]string{{"-t"}, {"-lt"}, {"-tl"}} {
+		arguments := append(append([]string{"ls"}, flags...), "/Documents")
+		output := invoke(arguments...)
+		previous := -1
+		for _, name := range []string{"zenith.pdf", "zebra.pdf", "年次 報告 2026.pdf", "source.pdf", "literal*.pdf"} {
+			index := strings.Index(output, name)
+			if index <= previous {
+				t.Fatalf("time-sorted ls %v at %q: %q", flags, name, output)
+			}
+			previous = index
+		}
+	}
+	for _, flags := range [][]string{{"-R"}, {"-lR"}, {"-Rl"}, {"-l", "-R"}, {"-R", "-l"}, {"-ltR"}, {"-Rtl"}, {"-l", "-t", "-R"}} {
 		arguments := append(append([]string{"ls"}, flags...), "/Documents")
 		output := invoke(arguments...)
 		if !strings.Contains(output, "/Documents:\n") || !strings.Contains(output, "/Documents/Archive:\n") || !strings.Contains(output, "old.pdf") {

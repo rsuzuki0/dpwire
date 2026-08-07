@@ -19,6 +19,8 @@ library.
   `file`, and `stat`, with exact literal paths taking precedence.
 - Folder-only globs with a trailing `/`, shell-quoting diagnostics, and explicit
   bounded recursive listings through `ls -R` and `ls -lR`.
+- Unix-style `ls -t` modification-time sorting, including combined short,
+  long, and recursive option forms.
 - Confirmation for suspicious metacharacter-free `--glob` values, sorted
   listings, memoized recursive reference assignment, strict page parsing, and
   case-insensitive rejection of the private protocol root.

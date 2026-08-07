@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/rsuzuki0/dpwire"
 	"github.com/rsuzuki0/dpwire/credentials"
@@ -146,7 +147,7 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 			return report(stderr, resolveErr)
 		}
 		if listOptions.recursive {
-			if err := printRecursiveEntries(ctx, client, store, resolved, listOptions.long, stdout); err != nil {
+			if err := printRecursiveEntries(ctx, client, store, resolved, listOptions, stdout); err != nil {
 				return report(stderr, err)
 			}
 			return 0
@@ -162,14 +163,15 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 		if err != nil {
 			return report(stderr, err)
 		}
-		sortDeviceEntries(entries)
 		var references map[string]profiles.ObjectReference
 		if listOptions.long {
+			sortDeviceEntries(entries, false)
 			references, err = store.Assign(entries)
 			if err != nil {
 				return report(stderr, err)
 			}
 		}
+		sortDeviceEntries(entries, listOptions.newest)
 		return printEntries(stdout, entries, references, listOptions.long)
 	case "stat", "file":
 		selector, remaining, selectorErr := parseObjectSelector(args[1:])
@@ -623,6 +625,7 @@ func presentEntry(entry dpwire.Entry) entryOutput {
 type listCommandOptions struct {
 	long      bool
 	recursive bool
+	newest    bool
 }
 
 func parseListArguments(arguments []string) (options listCommandOptions, selector objectSelector, ok bool) {
@@ -633,6 +636,8 @@ func parseListArguments(arguments []string) (options listCommandOptions, selecto
 				options.long = true
 			case 'R':
 				options.recursive = true
+			case 't':
+				options.newest = true
 			}
 		}
 		arguments = arguments[1:]
@@ -649,7 +654,7 @@ func isListOption(argument string) bool {
 		return false
 	}
 	for _, flag := range argument[1:] {
-		if flag != 'l' && flag != 'R' {
+		if flag != 'l' && flag != 'R' && flag != 't' {
 			return false
 		}
 	}
@@ -692,14 +697,41 @@ func parsePage(value string) (int, error) {
 	return page, nil
 }
 
-func sortDeviceEntries(entries []dpwire.Entry) {
-	sort.SliceStable(entries, func(i, j int) bool {
-		left, right := foldGlobString(entries[i].Name), foldGlobString(entries[j].Name)
-		if left != right {
-			return left < right
+func sortDeviceEntries(entries []dpwire.Entry, newestFirst bool) {
+	if !newestFirst {
+		sort.SliceStable(entries, func(i, j int) bool { return deviceEntryNameLess(entries[i], entries[j]) })
+		return
+	}
+	type timedEntry struct {
+		entry    dpwire.Entry
+		modified time.Time
+		valid    bool
+	}
+	timed := make([]timedEntry, len(entries))
+	for index, entry := range entries {
+		modified, err := time.Parse(time.RFC3339Nano, entry.Modified)
+		timed[index] = timedEntry{entry: entry, modified: modified, valid: err == nil}
+	}
+	sort.SliceStable(timed, func(i, j int) bool {
+		if timed[i].valid != timed[j].valid {
+			return timed[i].valid
 		}
-		return devicePathString(entries[i].Path) < devicePathString(entries[j].Path)
+		if timed[i].valid && !timed[i].modified.Equal(timed[j].modified) {
+			return timed[i].modified.After(timed[j].modified)
+		}
+		return deviceEntryNameLess(timed[i].entry, timed[j].entry)
 	})
+	for index := range timed {
+		entries[index] = timed[index].entry
+	}
+}
+
+func deviceEntryNameLess(leftEntry, rightEntry dpwire.Entry) bool {
+	left, right := foldGlobString(leftEntry.Name), foldGlobString(rightEntry.Name)
+	if left != right {
+		return left < right
+	}
+	return devicePathString(leftEntry.Path) < devicePathString(rightEntry.Path)
 }
 
 func printEntries(output io.Writer, entries []dpwire.Entry, references map[string]profiles.ObjectReference, long bool) int {
@@ -737,8 +769,8 @@ func printEntries(output io.Writer, entries []dpwire.Entry, references map[strin
 	return 0
 }
 
-func printRecursiveEntries(ctx context.Context, client *dpwire.Client, store *profiles.ObjectReferenceStore, roots []dpwire.Entry, long bool, output io.Writer) error {
-	sortDeviceEntries(roots)
+func printRecursiveEntries(ctx context.Context, client *dpwire.Client, store *profiles.ObjectReferenceStore, roots []dpwire.Entry, options listCommandOptions, output io.Writer) error {
+	sortDeviceEntries(roots, options.newest)
 	visited := make(map[string]bool)
 	listed := 0
 	printed := false
@@ -746,7 +778,7 @@ func printRecursiveEntries(ctx context.Context, client *dpwire.Client, store *pr
 	printList := func(entries []dpwire.Entry) error {
 		var references map[string]profiles.ObjectReference
 		var err error
-		if long {
+		if options.long {
 			if store == nil {
 				return errors.New("object reference store is unavailable")
 			}
@@ -755,7 +787,7 @@ func printRecursiveEntries(ctx context.Context, client *dpwire.Client, store *pr
 				return err
 			}
 		}
-		if printEntries(output, entries, references, long) != 0 {
+		if printEntries(output, entries, references, options.long) != 0 {
 			return errors.New("could not write recursive listing")
 		}
 		return nil
@@ -771,7 +803,7 @@ func printRecursiveEntries(ctx context.Context, client *dpwire.Client, store *pr
 		if err != nil {
 			return err
 		}
-		sortDeviceEntries(entries)
+		sortDeviceEntries(entries, options.newest)
 		listed += len(entries)
 		if listed > maximumGlobEntries {
 			return fmt.Errorf("recursive listing exceeds the %d-object safety limit", maximumGlobEntries)
@@ -801,7 +833,7 @@ func printRecursiveEntries(ctx context.Context, client *dpwire.Client, store *pr
 		}
 	}
 	if len(documents) > 0 {
-		sortDeviceEntries(documents)
+		sortDeviceEntries(documents, options.newest)
 		listed += len(documents)
 		if listed > maximumGlobEntries {
 			return fmt.Errorf("recursive listing exceeds the %d-object safety limit", maximumGlobEntries)
@@ -864,7 +896,7 @@ func usage(output io.Writer) {
 	fmt.Fprintln(output, "commands:")
 	fmt.Fprintln(output)
 	commands := [][2]string{
-		{"ls [-lR] [OBJECT]", "list the root, a folder, or matching objects"},
+		{"ls [-lRt] [OBJECT]", "list the root, a folder, or matching objects"},
 		{"stat OBJECT", "show complete entry metadata"},
 		{"file OBJECT", "alias for stat"},
 		{"get OBJECT [LOCAL_FILE]", "download PDF without overwriting"},
@@ -898,4 +930,5 @@ func usage(output io.Writer) {
 	fmt.Fprintln(output, "ls, file, and stat also expand quoted glob characters in a device path")
 	fmt.Fprintln(output, "a trailing / on a glob matches folders only")
 	fmt.Fprintln(output, "ls -R recursively lists folders; glob matching itself is not recursive")
+	fmt.Fprintln(output, "ls -t sorts each listing by modification time, newest first")
 }
