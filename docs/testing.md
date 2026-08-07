@@ -10,8 +10,15 @@ go run ./tools/eval -mode=ci
 `developer` runs formatting, static analysis with `go vet`, architecture and
 spec checks, unit/protocol tests, coverage, and CLI smoke tests. `ci` adds the
 race detector and cross-builds. `nightly` additionally fuzzes cryptographic
-code. CI also runs a pinned Staticcheck release. Every mode enforces at least
-60% aggregate statement coverage; P0 currently exceeds that floor.
+code. `release` adds two complete deterministic archive builds and requires
+their files to be byte-identical. CI also runs a pinned Staticcheck release.
+Every mode enforces at least 60% aggregate statement coverage.
+
+`tools/release` creates four user binary archives, a tracked-source archive,
+`release.json`, and `SHA256SUMS`. Production generation refuses a dirty
+worktree, an existing output directory, or an exact tag/version mismatch. The
+binary archives normalize timestamps, ownership, file order, and permissions;
+the linker omits paths, VCS metadata, and a variable build ID.
 
 The simulator uses an ephemeral TLS certificate. Tests must use the client or
 CA material returned by `dptest.Simulator`; disabling TLS verification is not

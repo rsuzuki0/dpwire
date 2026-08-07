@@ -10,7 +10,8 @@ a stateful HTTPS simulator. P1 adds authenticated, read-only device access. P2
 adds verified folder creation, PDF upload, device-side copy, move/rename, and
 viewer control. P3 has added named profile onboarding, guarded deletion, direct
 connection, and fresh pairing. Fresh pairing and Sony-App-independent direct
-use are physically verified on a DPT-RP1; release packaging remains in progress.
+use are physically verified on a DPT-RP1. Deterministic release packaging,
+installation, upgrade, and credential recovery are implemented.
 
 P3 targets a complete PDF-only daily-use release: profile onboarding, fresh
 pairing, guarded deletion, packaging, installation, and recovery. Document
@@ -111,6 +112,24 @@ dp credentials find "$HOME/Library/Application Support"
 Maintainers can run the redacted read-only physical-device verification with
 `go run ./tools/device-check`. A PDF is downloaded only when an explicit,
 user-approved `-download-path` is supplied; see `docs/testing.md`.
+
+## Releases
+
+Tagged releases produce deterministic `dp` archives for macOS and Linux on
+arm64 and amd64, a complete tracked-source archive, `release.json`, and
+`SHA256SUMS`. Install, upgrade, rollback, and credential recovery are described
+in `docs/install.md` and `docs/recovery.md`. Version-specific limits are in
+`docs/release-notes.md`.
+
+Maintainers can validate reproducibility without publishing:
+
+```sh
+go run ./tools/eval -mode=release
+```
+
+An exact version tag is required by the release workflow. The archive builder
+refuses a dirty worktree, an existing output directory, and a tag/version
+mismatch.
 
 ## Status
 

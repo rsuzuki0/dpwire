@@ -18,7 +18,7 @@ import (
 	"github.com/rsuzuki0/digitalpaper/profiles"
 )
 
-const version = "0.3.0-p3"
+var version = "0.3.0-p3"
 
 func main() { os.Exit(runWithInput(os.Args[1:], os.Stdin, os.Stdout, os.Stderr)) }
 

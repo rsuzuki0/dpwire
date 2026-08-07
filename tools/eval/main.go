@@ -138,6 +138,9 @@ func steps(mode string) []step {
 	if mode == "nightly" {
 		items = append(items, step{name: "fuzz-aeskw", command: "go", args: []string{"test", "-run=^$", "-fuzz=FuzzWrapRoundTrip", "-fuzztime=30s", "./internal/crypto/aeskw"}})
 	}
+	if mode == "release" {
+		items = append(items, step{name: "release-reproducibility", command: "go", args: []string{"run", "./tools/release", "-version", "0.0.0-eval", "-allow-dirty", "-check-reproducible"}})
+	}
 	return items
 }
 

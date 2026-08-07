@@ -1,6 +1,8 @@
-name: Release validation
+name: Release
 
 on:
+  push:
+    tags: ["v[0-9]*.[0-9]*.[0-9]*"]
   workflow_dispatch:
 
 permissions:
@@ -11,13 +13,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24.x"
           cache: true
+      - name: Pinned staticcheck
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@v0.6.1
+          staticcheck ./...
       - run: go run ./tools/eval -mode=release
+      - name: Require an exact version tag
+        run: test "${GITHUB_REF_TYPE}" = tag
+      - name: Build deterministic release archives
+        run: go run ./tools/release -version "${GITHUB_REF_NAME}" -output dist -verify-tag
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: release-validation
-          path: artifacts/eval/
+          name: digitalpaper-${{ github.ref_name }}
+          path: |
+            dist/
+            artifacts/eval/
