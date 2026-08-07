@@ -40,16 +40,16 @@ a profile name already exists, the command stops before contacting the device.
 
 ```sh
 dp ls
-dp ls -l Codex_dp
-dp file Codex_dp/paper.pdf
-dp mkdir Codex_dp/Archive
-dp cp Codex_dp/paper.pdf Codex_dp/Archive
-dp mv Codex_dp/old.pdf Codex_dp/new.pdf
-dp put local.pdf Codex_dp
-dp get Codex_dp/paper.pdf
-dp rm Codex_dp/old.pdf
-dp rmdir Codex_dp/Empty
-dp open Codex_dp/paper.pdf 3
+dp ls -l Documents
+dp file Documents/paper.pdf
+dp mkdir Documents/Archive
+dp cp Documents/paper.pdf Documents/Archive
+dp mv Documents/old.pdf Documents/new.pdf
+dp put local.pdf Documents
+dp get Documents/paper.pdf
+dp rm Documents/old.pdf
+dp rmdir Documents/Empty
+dp open Documents/paper.pdf 3
 ```
 
 `cp` and `mv` operate entirely within the device. `put` transfers from the host

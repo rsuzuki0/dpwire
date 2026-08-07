@@ -258,7 +258,7 @@ type RemotePath struct {
 - ローカルpath APIとの混用を禁止
 
 `RemotePath` はプロトコル内部の正規形として `Document` ルートを保持する。
-CLIはこれを公開せず、常にルート相対の `Codex_dp/paper.pdf` 形式を受け取る。
+CLIはこれを公開せず、常にルート相対の `Documents/paper.pdf` 形式を受け取る。
 `.` は端末ルートを表し、`Document/...` 形式は混乱防止のためCLIで拒否する。
 
 ## 7. Capability仕様

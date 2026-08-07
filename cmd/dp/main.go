@@ -622,5 +622,5 @@ func usage(output io.Writer) {
 	fmt.Fprintln(output, "  rm DEVICE_PATH                  remove one PDF with a revision guard")
 	fmt.Fprintln(output, "  rmdir DEVICE_PATH               remove one empty folder only")
 	fmt.Fprintln(output, "  open DEVICE_PATH [PAGE]         display a PDF on the device")
-	fmt.Fprintln(output, "device paths are root-relative; use . for the root, for example Codex_dp/paper.pdf")
+	fmt.Fprintln(output, "device paths are root-relative; use . for the root, for example Documents/paper.pdf")
 }

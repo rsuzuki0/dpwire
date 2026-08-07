@@ -52,8 +52,8 @@ func TestUnixStyleListOutput(t *testing.T) {
 	}{
 		{nil, false, "", true},
 		{[]string{"-l"}, true, "", true},
-		{[]string{"Codex_dp"}, false, "Codex_dp", true},
-		{[]string{"-l", "Codex_dp"}, true, "Codex_dp", true},
+		{[]string{"Documents"}, false, "Documents", true},
+		{[]string{"-l", "Documents"}, true, "Documents", true},
 		{[]string{"-x"}, false, "", false},
 	} {
 		long, target, ok := parseListArguments(test.arguments)
@@ -64,21 +64,21 @@ func TestUnixStyleListOutput(t *testing.T) {
 }
 
 func TestDevicePathsHideProtocolRoot(t *testing.T) {
-	path, err := parseDevicePath("Codex_dp/paper.pdf")
+	path, err := parseDevicePath("Documents/paper.pdf")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := path.String(); got != "Document/Codex_dp/paper.pdf" {
+	if got := path.String(); got != "Document/Documents/paper.pdf" {
 		t.Fatalf("path = %q", got)
 	}
-	if got := devicePathString(path); got != "Codex_dp/paper.pdf" {
+	if got := devicePathString(path); got != "Documents/paper.pdf" {
 		t.Fatalf("devicePathString = %q", got)
 	}
-	if _, err := parseDevicePath("Document/Codex_dp/paper.pdf"); err == nil {
+	if _, err := parseDevicePath("Document/Documents/paper.pdf"); err == nil {
 		t.Fatal("protocol-internal Document prefix was accepted by CLI")
 	}
-	parent, name, err := splitRemoteTarget("Codex_dp/new.pdf")
-	if err != nil || parent.String() != "Document/Codex_dp" || name != "new.pdf" {
+	parent, name, err := splitRemoteTarget("Documents/new.pdf")
+	if err != nil || parent.String() != "Document/Documents" || name != "new.pdf" {
 		t.Fatalf("splitRemoteTarget = %q, %q, %v", parent.String(), name, err)
 	}
 }
@@ -111,9 +111,9 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	state := dptest.NewState("DPT-RP1", "test-write")
 	state.RegisterClient("cli-client", &key.PublicKey)
 	state.RequireAuthentication(true)
-	root := state.AddFolder("Document/Codex_dp", "Codex_dp", "root", time.Now())
+	root := state.AddFolder("Document/Documents", "Documents", "root", time.Now())
 	sourceContent := []byte("%PDF-1.4\nsource\n")
-	state.AddDocument("Document/Codex_dp/source.pdf", "source.pdf", root.ID, sourceContent, time.Now())
+	state.AddDocument("Document/Documents/source.pdf", "source.pdf", root.ID, sourceContent, time.Now())
 	simulator := dptest.Start(state)
 	defer simulator.Close()
 
@@ -146,43 +146,43 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 
 	invoke("auth")
 	invoke("device")
-	if output := invoke("ls"); !strings.Contains(output, "Codex_dp/") {
+	if output := invoke("ls"); !strings.Contains(output, "Documents/") {
 		t.Fatalf("root ls = %q", output)
 	}
-	if output := invoke("ls", "-l", "Codex_dp"); !strings.Contains(output, "source.pdf") || !strings.Contains(output, "doc-") {
+	if output := invoke("ls", "-l", "Documents"); !strings.Contains(output, "source.pdf") || !strings.Contains(output, "doc-") {
 		t.Fatalf("long ls = %q", output)
 	}
-	invoke("file", "Codex_dp/source.pdf")
-	invoke("stat", "Codex_dp/source.pdf")
-	invoke("mkdir", "Codex_dp/Write")
-	invoke("cp", "Codex_dp/source.pdf", "Codex_dp/Write")
-	invoke("mv", "Codex_dp/Write/source.pdf", "Codex_dp/Write/renamed.pdf")
+	invoke("file", "Documents/source.pdf")
+	invoke("stat", "Documents/source.pdf")
+	invoke("mkdir", "Documents/Write")
+	invoke("cp", "Documents/source.pdf", "Documents/Write")
+	invoke("mv", "Documents/Write/source.pdf", "Documents/Write/renamed.pdf")
 
 	localUpload := filepath.Join(temporary, "local.pdf")
 	uploadContent := []byte("%PDF-1.7\nupload\n")
 	if err := os.WriteFile(localUpload, uploadContent, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	invoke("put", localUpload, "Codex_dp/Write")
+	invoke("put", localUpload, "Documents/Write")
 	downloadPath := filepath.Join(temporary, "download.pdf")
-	invoke("get", "Codex_dp/Write/local.pdf", downloadPath)
+	invoke("get", "Documents/Write/local.pdf", downloadPath)
 	if downloaded, err := os.ReadFile(downloadPath); err != nil || !bytes.Equal(downloaded, uploadContent) {
 		t.Fatalf("downloaded = %q, err = %v", downloaded, err)
 	}
-	invoke("open", "Codex_dp/Write/renamed.pdf", "1")
+	invoke("open", "Documents/Write/renamed.pdf", "1")
 
 	var stdout, stderr bytes.Buffer
-	if code := run([]string{"-profile", profilePath, "put", localUpload, "Codex_dp/Write"}, &stdout, &stderr); code == 0 || !strings.Contains(stderr.String(), "write conflict") {
+	if code := run([]string{"-profile", profilePath, "put", localUpload, "Documents/Write"}, &stdout, &stderr); code == 0 || !strings.Contains(stderr.String(), "write conflict") {
 		t.Fatalf("duplicate put: code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 	}
 	var removeOutput, removeErrors bytes.Buffer
-	if code := run([]string{"-profile", profilePath, "rmdir", "Codex_dp/Write"}, &removeOutput, &removeErrors); code == 0 || !strings.Contains(removeErrors.String(), "folder not empty") {
+	if code := run([]string{"-profile", profilePath, "rmdir", "Documents/Write"}, &removeOutput, &removeErrors); code == 0 || !strings.Contains(removeErrors.String(), "folder not empty") {
 		t.Fatalf("non-empty rmdir: code=%d stdout=%q stderr=%q", code, removeOutput.String(), removeErrors.String())
 	}
-	invoke("rm", "Codex_dp/Write/local.pdf")
-	invoke("rm", "Codex_dp/Write/renamed.pdf")
-	invoke("rmdir", "Codex_dp/Write")
-	if output := invoke("ls", "Codex_dp"); strings.Contains(output, "Write/") {
+	invoke("rm", "Documents/Write/local.pdf")
+	invoke("rm", "Documents/Write/renamed.pdf")
+	invoke("rmdir", "Documents/Write")
+	if output := invoke("ls", "Documents"); strings.Contains(output, "Write/") {
 		t.Fatalf("deleted folder remains in listing: %q", output)
 	}
 
@@ -214,7 +214,7 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 		t.Fatalf("profile show = %q", output)
 	}
 	profileInvoke("profile", "use", "rp1")
-	if output := profileInvoke("ls", "Codex_dp"); !strings.Contains(output, "source.pdf") {
+	if output := profileInvoke("ls", "Documents"); !strings.Contains(output, "source.pdf") {
 		t.Fatalf("default-profile ls = %q", output)
 	}
 }

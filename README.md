@@ -85,15 +85,15 @@ no profile flag:
 dp auth
 dp device
 dp ls
-dp ls -l Codex_dp
-dp file Codex_dp/paper.pdf
-dp get Codex_dp/paper.pdf
-dp put paper.pdf Codex_dp
-dp cp Codex_dp/paper.pdf Codex_dp/copy.pdf
-dp mv Codex_dp/copy.pdf Codex_dp/Archive
-dp mkdir Codex_dp/New
-dp rm Codex_dp/old.pdf
-dp rmdir Codex_dp/Empty
+dp ls -l Documents
+dp file Documents/paper.pdf
+dp get Documents/paper.pdf
+dp put paper.pdf Documents
+dp cp Documents/paper.pdf Documents/copy.pdf
+dp mv Documents/copy.pdf Documents/Archive
+dp mkdir Documents/New
+dp rm Documents/old.pdf
+dp rmdir Documents/Empty
 ```
 
 Use `dp profile use NAME` to change the default or `-profile NAME` for one

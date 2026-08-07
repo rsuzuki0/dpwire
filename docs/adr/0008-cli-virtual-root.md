@@ -2,7 +2,7 @@
 
 ## Decision
 
-The CLI accepts only root-relative device paths such as `Codex_dp/paper.pdf`.
+The CLI accepts only root-relative device paths such as `Documents/paper.pdf`.
 `.` represents the device root. The protocol-internal `Document/...` form is
 rejected instead of retained as a second syntax.
 

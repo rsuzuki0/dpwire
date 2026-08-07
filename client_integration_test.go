@@ -103,9 +103,9 @@ func TestSafeWriteLifecycle(t *testing.T) {
 	state.RegisterClient("write-client", &key.PublicKey)
 	state.RequireAuthentication(true)
 	state.RejectUploadFileHash(true)
-	root := state.AddFolder("Document/Codex_dp", "Codex_dp", "root", time.Now())
+	root := state.AddFolder("Document/Documents", "Documents", "root", time.Now())
 	baselineContent := []byte("%PDF-1.4\nbaseline\n")
-	baseline := state.AddDocument("Document/Codex_dp/baseline.pdf", "baseline.pdf", root.ID, baselineContent, time.Now())
+	baseline := state.AddDocument("Document/Documents/baseline.pdf", "baseline.pdf", root.ID, baselineContent, time.Now())
 	simulator := dptest.Start(state)
 	defer simulator.Close()
 	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
@@ -180,7 +180,7 @@ func TestSafeWriteLifecycle(t *testing.T) {
 	if err != nil || renamedFolder.Name != "write-renamed" {
 		t.Fatalf("renamed folder = %#v, err = %v", renamedFolder, err)
 	}
-	resolved, err := client.Documents.Resolve(ctx, dpwire.MustRemotePath("Document/Codex_dp/write-renamed/renamed.pdf"))
+	resolved, err := client.Documents.Resolve(ctx, dpwire.MustRemotePath("Document/Documents/write-renamed/renamed.pdf"))
 	if err != nil || resolved.ID != copy.ID {
 		t.Fatalf("resolved moved child = %#v, err = %v", resolved, err)
 	}
