@@ -26,6 +26,11 @@ Go library and dependency-free `dp` binary with strict TLS identity checks,
 guarded destructive operations, a hardware-independent protocol emulator,
 reproducible releases, and explicit device/firmware verification records.
 
+The CLI is deliberately designed so users familiar with Unix file operations
+and FTP can use the device's core capabilities through familiar commands and
+path conventions, with as little friction as practical. This filesystem-like
+interface remains a command UI rather than a mounted filesystem.
+
 Fresh pairing connects directly to the device. `dp` generates a new RSA client
 identity, receives the device certificate from the device itself, validates it,
 and records an exact pin. This enables operation on Linux as well as macOS;

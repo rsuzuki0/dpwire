@@ -10,6 +10,10 @@ copy and move, folder management, guarded deletion, deterministic packaging,
 and credential recovery. Fresh pairing and operation without the Sony App are
 physically verified on a DPT-RP1. See the release notes for current limits.
 
+The `dp` CLI is deliberately designed so users familiar with Unix file
+operations and FTP can use the device's core capabilities through familiar
+commands and path conventions, with as little friction as practical.
+
 ## Why another client?
 
 Sony [ended DPT-RP1/DPT-CP1 support and provision of the Digital Paper App and

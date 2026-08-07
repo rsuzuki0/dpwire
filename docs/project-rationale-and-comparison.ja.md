@@ -24,6 +24,11 @@ DPWireは、長期保守可能で他のGoアプリへ組み込める通信ライ
 破壊的操作の安全制約、実機なしで動くprotocol emulator、再現可能な配布、
 機種・firmware別の実機検証記録を提供するための独立実装です。
 
+`dp` CLIは、UNIXのfile操作やFTPに慣れた利用者が、新しい独自操作体系を覚える
+負担を抑え、既知のcommandとpath表現で本体の基本機能をできるだけ違和感なく
+活用できるように設計しています。このfilesystem-like interfaceはcommand UIで
+あり、filesystem mountではありません。
+
 新規pairingでは`dp`が本体へ直接接続し、新しいRSA client identityを生成します。
 本体自身が返すdevice certificateを検証して完全一致pinとして保存します。これに
 よりmacOSとLinuxで運用できます。Sonyが公開したdesktop AppはWindows版とmacOS版

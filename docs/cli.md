@@ -1,7 +1,9 @@
 # Command-line interface
 
 `dp` provides a filesystem-like CLI UI with familiar Unix and FTP commands; it
-does not mount a filesystem. The protocol's `Document` root and HTTP endpoint
+is designed so experienced Unix and FTP users can apply familiar commands and
+path conventions to the device's core capabilities with as little friction as
+practical. It does not mount a filesystem. The protocol's `Document` root and HTTP endpoint
 names are private implementation details. Every command resolves device paths
 from the fixed root `/`; directory position is not retained between commands.
 The absolute form `/Documents/paper.pdf` and root-relative form
