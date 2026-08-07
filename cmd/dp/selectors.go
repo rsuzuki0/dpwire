@@ -147,6 +147,10 @@ func isNotFound(err error) bool {
 }
 
 func globDevice(ctx context.Context, client *dpwire.Client, pattern string) ([]dpwire.Entry, error) {
+	if strings.HasPrefix(pattern, "//") {
+		return nil, errors.New("device globs may have only one leading /")
+	}
+	pattern = strings.TrimPrefix(pattern, "/")
 	pattern = trimRootRelativePrefix(pattern)
 	if pattern == "" {
 		return nil, errors.New("glob pattern must name a device object")

@@ -2,8 +2,8 @@
 
 ## Decision
 
-Commands that operate on an existing device object accept its exact
-root-relative path, `--id NUMBER|0xHEX`, or `--glob PATTERN`.
+Commands that operate on an existing device object accept its exact absolute
+or root-relative path, `--id NUMBER|0xHEX`, or `--glob PATTERN`.
 
 `dp ls -l` assigns each observed object a profile-local, persistent,
 nonnegative integer. Numbers increase monotonically and are never reused. A
@@ -18,9 +18,9 @@ atomic replacement.
 
 `--glob` uses Unix pathname glob syntax and Unicode NFC normalization. Matching
 starts at the device root and advances one directory level per `/`. A pattern
-without `/`, or with only a leading `./`, examines direct children of the root.
-The same optional leading `./` is accepted by exact CLI paths. There is no implicit
-recursive search, and `**` has no special recursive meaning. Exact path resolution and glob matching are
+without `/` examines direct children of the root; a single leading `/` makes
+the fixed root explicit. There is no implicit recursive search, and `**` has no
+special recursive meaning. Exact path resolution and glob matching are
 case-insensitive on the verified DPT-RP1. DPWire applies the same case folding
 to glob matching on every device; exact path resolution remains a device API
 behavior to verify on other families. A command proceeds only when exactly one compatible

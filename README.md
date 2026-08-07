@@ -85,17 +85,17 @@ no profile flag:
 dp auth
 dp device
 dp ls
-dp ls -l Documents
-dp file Documents/paper.pdf
+dp ls -l /Documents
+dp file /Documents/paper.pdf
 dp file --id 23
-dp get --glob 'Documents/*report*2026*.pdf'
-dp get Documents/paper.pdf
-dp put paper.pdf Documents
-dp cp Documents/paper.pdf Documents/copy.pdf
-dp mv Documents/copy.pdf Documents/Archive
-dp mkdir Documents/New
-dp rm Documents/old.pdf
-dp rmdir Documents/Empty
+dp get --glob '/Documents/*report*2026*.pdf'
+dp get /Documents/paper.pdf
+dp put paper.pdf /Documents
+dp cp /Documents/paper.pdf /Documents/copy.pdf
+dp mv /Documents/copy.pdf /Documents/Archive
+dp mkdir /Documents/New
+dp rm /Documents/old.pdf
+dp rmdir /Documents/Empty
 ```
 
 Use `dp profile use NAME` to change the default or `-profile NAME` for one
@@ -104,14 +104,17 @@ Profile listing and display omit client IDs and private-key paths. Imported
 keys and configuration files use owner-only permissions and are not overwritten.
 
 The CLI provides a filesystem-like UI with familiar Unix and FTP commands; it
-does not mount a filesystem. Device paths are always relative to the device
-root; `.` denotes that root and the protocol-internal `Document/` prefix is
-rejected. A trailing `/` is accepted on directory paths. `ls` prints names,
+does not mount a filesystem. Every command resolves paths from the fixed device
+root `/`; directory position is not retained between commands. Both the
+absolute form `/Documents/paper.pdf` and the root-relative form
+`Documents/paper.pdf` are expressly accepted. Output uses the absolute form.
+The protocol-internal `Document/` prefix is rejected. A trailing `/` is
+accepted on directory paths. `ls` prints names,
 while `ls -l` begins each entry with a persistent nonnegative number and a
 `0x` hexadecimal reference, followed by type, byte size, modification time,
 the full device ID, and name. A number or hexadecimal reference can be supplied
-with `--id`. `--glob` follows root-relative shell pathname expansion: `E*` and
-`./E*` examine the device root only, while `Documents/E*` examines that directory.
+with `--id`. `--glob` follows root-relative shell pathname expansion: `E*`
+examines the device root only, while `/Documents/E*` examines that directory.
 Each `/` advances exactly one directory level; quote the pattern to prevent
 local shell expansion. Glob matching is case-insensitive. The verified DPT-RP1 also resolves exact
 paths case-insensitively. Exactly one matching object is required. `cp` and `mv` operate within the device;

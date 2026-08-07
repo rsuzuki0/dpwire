@@ -465,12 +465,16 @@ func splitRemoteTarget(value string) (dpwire.RemotePath, string, error) {
 
 // parseDevicePath keeps the protocol's Document root out of the CLI.
 func parseDevicePath(value string) (dpwire.RemotePath, error) {
-	value = strings.TrimRight(value, "/")
-	value = trimRootRelativePrefix(value)
 	if value == "" {
-		return dpwire.RemotePath{}, errors.New("device root must be written as .")
+		return dpwire.RemotePath{}, errors.New("device path is empty")
 	}
-	if value == "." {
+	if strings.HasPrefix(value, "//") {
+		return dpwire.RemotePath{}, errors.New("device paths may have only one leading /")
+	}
+	value = strings.TrimPrefix(value, "/")
+	value = trimRootRelativePrefix(value)
+	value = strings.TrimRight(value, "/")
+	if value == "" || value == "." {
 		return dpwire.MustRemotePath("Document"), nil
 	}
 	if value == "Document" || strings.HasPrefix(value, "Document/") {
@@ -488,9 +492,9 @@ func trimRootRelativePrefix(value string) string {
 
 func devicePathString(path dpwire.RemotePath) string {
 	if path.String() == "Document" {
-		return "."
+		return "/"
 	}
-	return strings.TrimPrefix(path.String(), "Document/")
+	return "/" + strings.TrimPrefix(path.String(), "Document/")
 }
 
 func resolveDestination(ctx context.Context, client *dpwire.Client, value, defaultName string) (dpwire.Entry, string, error) {
@@ -675,6 +679,7 @@ func usage(output io.Writer) {
 	}
 	_ = writer.Flush()
 	fmt.Fprintln(output)
-	fmt.Fprintln(output, "device paths are root-relative; use . for the root, for example Documents/paper.pdf")
+	fmt.Fprintln(output, "device paths use the fixed root /; both /Documents/paper.pdf and Documents/paper.pdf are accepted")
+	fmt.Fprintln(output, "dp does not retain a current directory between commands")
 	fmt.Fprintln(output, "OBJECT is a device path, --id NUMBER|0xHEX, or --glob PATTERN")
 }
