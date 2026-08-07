@@ -16,8 +16,8 @@ jobs:
       matrix:
         go: ["1.25.x", "stable"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go }}
           cache: true
@@ -33,7 +33,7 @@ jobs:
           govulncheck ./...
       - name: Evaluate
         run: go run ./tools/eval -mode=ci
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: eval-${{ matrix.go }}
