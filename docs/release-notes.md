@@ -29,7 +29,8 @@ library.
 Sony DPT-RP1 firmware `1.6.50.14130` has been physically verified for direct
 fresh pairing, authentication after quitting the Sony App, status and listing,
 PDF download/upload/replacement, folder creation, device-side copy/move, and
-guarded deletion. The device was connected by USB throughout. Fresh pairing and
+guarded deletion. Decimal and `0x` persistent selectors and case-insensitive
+unique glob selection were also verified read-only. The device was connected by USB throughout. Fresh pairing and
 independent authentication used the USB Ethernet endpoint directly; earlier
 document-operation checks used the Sony App loopback relay. Exact operation
 records are in `compatibility.md`.
