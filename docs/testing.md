@@ -48,9 +48,14 @@ profile-file compatibility, and a complete authenticated CLI operation without
 P3 deletion tests cover mandatory document revisions, stale-revision rejection,
 post-delete absence verification, non-empty-folder rejection, root protection,
 and the exact `force_delete_flag: "false"` folder request. CLI tests prove that
-`rm` removes one document and `rmdir` removes an empty folder only. These are
-simulator results; physical deletion remains unverified until an expendable
-device fixture is separately approved.
+`rm` removes one document and `rmdir` removes an empty folder only.
+
+The 2026-08-06 physical P3 deletion check created a new UUID-named root folder,
+a UUID-named child folder, and a UUID-named PDF copy. It confirmed local
+non-empty rejection, revision-guarded PDF deletion, and empty-only deletion of
+both generated folders. All deletion targets were created specifically for the
+test. The approved source PDF and retained P2 artifacts were verified present
+afterward.
 
 ## Physical-device P1 check
 

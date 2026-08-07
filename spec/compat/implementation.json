@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "operations": {
-    "DELETE /documents/{document_id}": "emulated",
-    "DELETE /folders/{folder_id}": "emulated",
+    "DELETE /documents/{document_id}": "device-verified",
+    "DELETE /folders/{folder_id}": "device-verified",
     "GET /api_version": "emulated",
     "GET /auth/nonce/{client_id}": "device-verified",
     "GET /documents/{document_id}/file": "device-verified",

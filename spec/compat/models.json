@@ -123,6 +123,26 @@
         "Test copies were retained in the approved namespace for recovery and inspection; no document names, paths, IDs, client IDs, keys, or certificate fingerprints were recorded."
       ],
       "quirks": []
+    },
+    {
+      "vendor": "Sony",
+      "model": "DPT-RP1",
+      "firmware": "1.6.50.14130",
+      "tested_at": "2026-08-06",
+      "transport": "Sony Digital Paper App loopback relay",
+      "mode": "guarded-delete-random-fixtures",
+      "verified_operations": [
+        "DELETE /documents/{document_id}",
+        "DELETE /folders/{folder_id}"
+      ],
+      "observations": [
+        "A UUID-named folder tree and UUID-named PDF copy were created specifically for destructive testing; no pre-existing entry was selected as a deletion target.",
+        "The CLI refused rmdir while the generated child folder contained the generated PDF.",
+        "Document deletion with the resolved current target_revision succeeded and post-delete metadata lookup confirmed absence.",
+        "Empty child-folder and top-level test-folder deletion with force_delete_flag false succeeded and post-delete metadata lookup confirmed absence.",
+        "The approved source PDF and retained P2 artifacts were read-only verified after the test and remained present."
+      ],
+      "quirks": []
     }
   ]
 }
