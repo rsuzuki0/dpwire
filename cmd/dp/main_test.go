@@ -29,6 +29,42 @@ func TestVersionAndUsage(t *testing.T) {
 	}
 }
 
+func TestUsageColumns(t *testing.T) {
+	var output bytes.Buffer
+	usage(&output)
+	if !strings.HasPrefix(output.String(), "usage: dp [-profile NAME|FILE] COMMAND [ARG...]\n\ncommands:\n\n") {
+		t.Fatalf("usage section spacing:\n%s", output.String())
+	}
+	if !strings.Contains(output.String(), "display a PDF on the device\n\ndevice paths are root-relative") {
+		t.Fatalf("usage block spacing:\n%s", output.String())
+	}
+	lines := strings.Split(output.String(), "\n")
+	descriptions := []string{"print version", "import an existing Sony credential pair", "display a PDF on the device"}
+	column := -1
+	for _, description := range descriptions {
+		found := false
+		for _, line := range lines {
+			index := strings.Index(line, description)
+			if index < 0 {
+				continue
+			}
+			found = true
+			if column < 0 {
+				column = index
+			} else if index != column {
+				t.Fatalf("description %q starts at column %d, want %d:\n%s", description, index, column, output.String())
+			}
+		}
+		if !found {
+			t.Fatalf("missing usage description %q", description)
+		}
+	}
+	longestCommand := "  profile import-sony NAME ADDRESS SHA256 CREDENTIAL_DIR"
+	if column-len(longestCommand) < 4 {
+		t.Fatalf("usage description gap = %d, want at least 4:\n%s", column-len(longestCommand), output.String())
+	}
+}
+
 func TestUnixStyleListOutput(t *testing.T) {
 	entries := []dpwire.Entry{
 		{ID: "folder-1", Name: "Inbox", Type: dpwire.EntryFolder},
@@ -137,9 +173,12 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	state.RegisterClient("cli-client", &key.PublicKey)
 	state.RequireAuthentication(true)
 	root := state.AddFolder("Document/Documents", "Documents", "root", time.Now())
+	state.AddFolder("Document/Examples", "Examples", "root", time.Now())
 	sourceContent := []byte("%PDF-1.4\nsource\n")
 	state.AddDocument("Document/Documents/source.pdf", "source.pdf", root.ID, sourceContent, time.Now())
 	state.AddDocument("Document/Documents/年次 報告 2026.pdf", "年次 報告 2026.pdf", root.ID, sourceContent, time.Now())
+	state.AddDocument("Document/Documents/zebra.pdf", "zebra.pdf", root.ID, sourceContent, time.Now())
+	state.AddDocument("Document/Documents/zenith.pdf", "zenith.pdf", root.ID, sourceContent, time.Now())
 	simulator := dptest.Start(state)
 	defer simulator.Close()
 
@@ -201,18 +240,21 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	invoke("file", "--id", number)
 	invoke("stat", "--id", hexID)
 	invoke("file", "--glob", "Documents/*source.pdf")
-	invoke("file", "--glob", "*報告*2026.PDF")
+	invoke("file", "--glob", "Documents/*報告*2026.PDF")
+	if output := invoke("file", "--glob", "e*"); !strings.Contains(output, `"path": "Examples"`) {
+		t.Fatalf("root-scoped glob = %q", output)
+	}
+	var ambiguousOutput, ambiguousErrors bytes.Buffer
+	ambiguousArgs := []string{"-config-dir", filepath.Join(temporary, "external-profile-config"), "-profile", profilePath, "file", "--glob", "Documents/z*.pdf"}
+	if code := run(ambiguousArgs, &ambiguousOutput, &ambiguousErrors); code == 0 || !strings.Contains(ambiguousErrors.String(), "multiple device objects") || !strings.Contains(ambiguousErrors.String(), "Documents/zebra.pdf") || !strings.Contains(ambiguousErrors.String(), "Documents/zenith.pdf") {
+		t.Fatalf("ambiguous glob: code=%d stdout=%q stderr=%q", code, ambiguousOutput.String(), ambiguousErrors.String())
+	}
 	invoke("file", "dOCUMENTS/SOURCE.PDF")
 	invoke("file", "Documents/source.pdf")
 	invoke("stat", "Documents/source.pdf")
 	invoke("mkdir", "Documents/Write")
 	writeNumber, _ := referenceFor(invoke("ls", "-l", "Documents"), "Write/")
 	invoke("cp", "--id", number, "Documents/Write/")
-	var ambiguousOutput, ambiguousErrors bytes.Buffer
-	ambiguousArgs := []string{"-config-dir", filepath.Join(temporary, "external-profile-config"), "-profile", profilePath, "file", "--glob", "source.pdf"}
-	if code := run(ambiguousArgs, &ambiguousOutput, &ambiguousErrors); code == 0 || !strings.Contains(ambiguousErrors.String(), "multiple device objects") || !strings.Contains(ambiguousErrors.String(), "Documents/source.pdf") || !strings.Contains(ambiguousErrors.String(), "Documents/Write/source.pdf") {
-		t.Fatalf("ambiguous glob: code=%d stdout=%q stderr=%q", code, ambiguousOutput.String(), ambiguousErrors.String())
-	}
 	copyNumber, _ := referenceFor(invoke("ls", "-l", "Documents/Write"), "source.pdf")
 	invoke("mv", "--id", copyNumber, "Documents/Write/renamed.pdf")
 	if output := invoke("file", "--id", copyNumber); !strings.Contains(output, "Documents/Write/renamed.pdf") {

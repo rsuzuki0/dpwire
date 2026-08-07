@@ -32,7 +32,7 @@ CLI applies the same rule to `--glob` matching.
 The installed CLI then completed read-only selector verification against the
 same device and firmware. A decimal persistent number and its displayed `0x`
 reference both resolved to the same folder ID. A root-relative `--glob` pattern
-with changed letter case recursively searched the device and uniquely resolved
+with an explicit directory segment and changed letter case uniquely resolved
 the expected PDF with its stored spelling. No device object was modified.
 
 The same device and firmware completed safe-write verification on 2026-08-06:

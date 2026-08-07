@@ -16,9 +16,10 @@ The owner-only reference file records the number, opaque device ID, and object
 type. It records no filename or path. Updates use an interprocess lock and
 atomic replacement.
 
-`--glob` uses Unix glob syntax and Unicode NFC normalization. Patterns without
-`/` match basenames throughout the device; patterns with `/` match complete
-root-relative paths. Exact path resolution and glob matching are
+`--glob` uses Unix pathname glob syntax and Unicode NFC normalization. Matching
+starts at the device root and advances one directory level per `/`. A pattern
+without `/` examines only direct children of the root. There is no implicit
+recursive search, and `**` has no special recursive meaning. Exact path resolution and glob matching are
 case-insensitive on the verified DPT-RP1. DPWire applies the same case folding
 to glob matching on every device; exact path resolution remains a device API
 behavior to verify on other families. A command proceeds only when exactly one compatible
@@ -31,7 +32,8 @@ Paths containing spaces, non-Western text, or other hard-to-enter characters
 can be selected from a short value printed by `ls -l`. Exact paths retain their
 literal meaning, including glob metacharacters in filenames. The explicit
 `--glob` option also keeps host-shell expansion distinct from device-side
-matching; examples quote patterns for this reason.
+matching; examples quote patterns for this reason. Glob scope follows familiar
+shell pathname expansion and does not unexpectedly search unrelated subtrees.
 
 The persistent integer is DPWire metadata rather than an inode or vendor ID.
 Its scope is one configured device identity. Restoring the reference file

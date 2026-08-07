@@ -91,26 +91,15 @@ func resolveObject(ctx context.Context, client *dpwire.Client, store *profiles.O
 		if _, err := path.Match(pattern, ""); err != nil {
 			return dpwire.Entry{}, fmt.Errorf("invalid glob pattern: %w", err)
 		}
-		entries, err := walkDevice(ctx, client)
+		entries, err := globDevice(ctx, client, pattern)
 		if err != nil {
 			return dpwire.Entry{}, err
 		}
-		matchPath := strings.Contains(pattern, "/")
 		for _, entry := range entries {
 			if expected != "" && entry.Type != expected {
 				continue
 			}
-			value := foldGlobString(entry.Name)
-			if matchPath {
-				value = foldGlobString(devicePathString(entry.Path))
-			}
-			matched, matchErr := path.Match(pattern, value)
-			if matchErr != nil {
-				return dpwire.Entry{}, fmt.Errorf("invalid glob pattern: %w", matchErr)
-			}
-			if matched {
-				candidates = append(candidates, entry)
-			}
+			candidates = append(candidates, entry)
 		}
 	default:
 		return dpwire.Entry{}, errors.New("invalid object selector")
@@ -157,37 +146,62 @@ func isNotFound(err error) bool {
 	return errors.As(err, &apiError) && strings.HasPrefix(apiError.Code, "404")
 }
 
-func walkDevice(ctx context.Context, client *dpwire.Client) ([]dpwire.Entry, error) {
+func globDevice(ctx context.Context, client *dpwire.Client, pattern string) ([]dpwire.Entry, error) {
+	segments := strings.Split(pattern, "/")
+	for _, segment := range segments {
+		if segment == "" || segment == "." || segment == ".." {
+			return nil, fmt.Errorf("invalid glob path segment %q", segment)
+		}
+		if _, err := path.Match(segment, ""); err != nil {
+			return nil, fmt.Errorf("invalid glob pattern: %w", err)
+		}
+	}
+	if strings.EqualFold(segments[0], "Document") {
+		return nil, errors.New("device globs must omit the internal Document/ prefix")
+	}
 	root, err := client.Documents.Resolve(ctx, dpwire.MustRemotePath("Document"))
 	if err != nil {
 		return nil, err
 	}
-	queue := []dpwire.Entry{root}
-	visited := map[string]struct{}{root.ID: {}}
-	entries := make([]dpwire.Entry, 0)
-	for len(queue) > 0 {
-		folder := queue[0]
-		queue = queue[1:]
-		children, listErr := client.Folders.List(ctx, folder.ID, dpwire.ListOptions{})
-		if listErr != nil {
-			return nil, listErr
-		}
-		if len(entries)+len(children) > maximumGlobEntries {
-			return nil, fmt.Errorf("glob search exceeds the %d-object safety limit", maximumGlobEntries)
-		}
-		entries = append(entries, children...)
-		for _, child := range children {
-			if child.Type != dpwire.EntryFolder {
-				continue
+	folders := []dpwire.Entry{root}
+	visitedEntries := 0
+	for index, segment := range segments {
+		last := index == len(segments)-1
+		var matches []dpwire.Entry
+		var nextFolders []dpwire.Entry
+		for _, folder := range folders {
+			children, listErr := client.Folders.List(ctx, folder.ID, dpwire.ListOptions{})
+			if listErr != nil {
+				return nil, listErr
 			}
-			if _, exists := visited[child.ID]; exists {
-				continue
+			visitedEntries += len(children)
+			if visitedEntries > maximumGlobEntries {
+				return nil, fmt.Errorf("glob search exceeds the %d-object safety limit", maximumGlobEntries)
 			}
-			visited[child.ID] = struct{}{}
-			queue = append(queue, child)
+			for _, child := range children {
+				matched, matchErr := path.Match(segment, foldGlobString(child.Name))
+				if matchErr != nil {
+					return nil, fmt.Errorf("invalid glob pattern: %w", matchErr)
+				}
+				if !matched {
+					continue
+				}
+				if last {
+					matches = append(matches, child)
+				} else if child.Type == dpwire.EntryFolder {
+					nextFolders = append(nextFolders, child)
+				}
+			}
+		}
+		if last {
+			return matches, nil
+		}
+		folders = nextFolders
+		if len(folders) == 0 {
+			return []dpwire.Entry{}, nil
 		}
 	}
-	return entries, nil
+	return []dpwire.Entry{}, nil
 }
 
 func ambiguousObjectError(store *profiles.ObjectReferenceStore, selector objectSelector, entries []dpwire.Entry) error {

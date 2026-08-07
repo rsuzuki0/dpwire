@@ -264,7 +264,8 @@ globは大文字・小文字を区別しない。DPT-RP1のexact path解決も�
 大文字・小文字を区別しない。他機種のexact path解決は個別に検証する。`ls -l` が割り当てるprofile単位の
 永続的な非負整数、または `0x` で始まる短縮参照も、既存objectの指定に使える。
 `--glob` は一致が一件のときだけ処理を実行し、複数一致では番号と完全なpathを
-表示して中止する。
+表示して中止する。globは端末rootからpath segmentごとに展開し、`E*`はroot
+直下だけ、`Documents/E*`はそのdirectory直下だけを調べる。暗黙の再帰検索はしない。
 
 ## 7. Capability仕様
 

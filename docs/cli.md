@@ -45,7 +45,7 @@ dp ls -l Documents
 dp file Documents/paper.pdf
 dp file --id 23
 dp stat --id 0x3a71c8
-dp get --glob '*報告*2026*.pdf'
+dp get --glob 'Documents/*報告*2026*.pdf'
 dp mkdir Documents/Archive
 dp cp Documents/paper.pdf Documents/Archive
 dp mv Documents/old.pdf Documents/new.pdf
@@ -81,20 +81,23 @@ Commands that accept an existing object accept any one of these forms:
 dp file Documents/paper.pdf
 dp file --id 23
 dp file --id 0x3a71c8
-dp get --glob '*報告*2026*.pdf'
+dp get --glob 'Documents/*報告*2026*.pdf'
 dp mv --glob 'Documents/Inbox/*draft*.pdf' Documents/Archive/
 ```
 
-A glob without `/` matches basenames throughout the device. A glob containing
-`/` matches complete root-relative paths. Matching uses Unix glob syntax after
-Unicode NFC normalization and case folding. Exact paths and glob patterns are
+A glob is expanded one root-relative path segment at a time, like a shell
+pathname. `E*` examines only entries directly under the device root;
+`Documents/E*` examines only direct children of `Documents`; and `*/E*`
+examines direct children of each matching root folder. There is no implicit
+recursive search, and `**` has no special recursive meaning. Matching uses Unix
+glob syntax after Unicode NFC normalization and case folding. Exact paths and glob patterns are
 case-insensitive on the verified DPT-RP1; `--glob` applies case-insensitive
 matching consistently. Other device families require separate path-resolution
 verification. Quote the pattern so the host shell does not expand it. Exactly
 one object of the type required by the command must match. Zero
 matches stop with an error; multiple matches stop and list each persistent
 number, hexadecimal reference, and exact path. No matching object is modified
-in either case. Searches stop at a 10,000-object safety limit.
+in either case. Expansion stops at a 10,000-object safety limit.
 
 The reference map is stored owner-only in the active DPWire configuration
 directory. It contains device object IDs and types, but no filenames or paths.

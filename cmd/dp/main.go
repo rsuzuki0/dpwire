@@ -635,28 +635,38 @@ func report(stderr io.Writer, err error) int {
 
 func usage(output io.Writer) {
 	fmt.Fprintln(output, "usage: dp [-profile NAME|FILE] COMMAND [ARG...]")
+	fmt.Fprintln(output)
 	fmt.Fprintln(output, "commands:")
-	fmt.Fprintln(output, "  version                         print version")
-	fmt.Fprintln(output, "  inspect-cert ADDRESS            inspect untrusted first-contact certificate")
-	fmt.Fprintln(output, "  credentials find ROOT           list existing Sony credential pairs")
-	fmt.Fprintln(output, "  profile import-sony NAME ADDRESS SHA256 CREDENTIAL_DIR")
-	fmt.Fprintln(output, "  profile pair NAME DIRECT_ADDRESS  register a new direct client identity")
-	fmt.Fprintln(output, "  profile list                    list configured devices")
-	fmt.Fprintln(output, "  profile use NAME                select the default device")
-	fmt.Fprintln(output, "  profile show [NAME]             show safe connection details")
-	fmt.Fprintln(output, "  auth                            verify profile authentication")
-	fmt.Fprintln(output, "  device                          show firmware, battery, and storage")
-	fmt.Fprintln(output, "  ls [-l] [OBJECT]                list the root, a folder, or one PDF")
-	fmt.Fprintln(output, "  stat OBJECT                     show complete entry metadata")
-	fmt.Fprintln(output, "  file OBJECT                     alias for stat")
-	fmt.Fprintln(output, "  get OBJECT [LOCAL_FILE]         download PDF without overwriting")
-	fmt.Fprintln(output, "  mkdir DEVICE_PATH               create one folder")
-	fmt.Fprintln(output, "  put LOCAL_PDF [DEVICE_PATH]     create and upload without overwriting")
-	fmt.Fprintln(output, "  cp OBJECT DEST_PATH             copy a PDF within the device")
-	fmt.Fprintln(output, "  mv OBJECT DEST_PATH             move or rename a PDF within the device")
-	fmt.Fprintln(output, "  rm OBJECT                       remove one PDF with a revision guard")
-	fmt.Fprintln(output, "  rmdir OBJECT                    remove one empty folder only")
-	fmt.Fprintln(output, "  open OBJECT [PAGE]              display a PDF on the device")
+	fmt.Fprintln(output)
+	commands := [][2]string{
+		{"version", "print version"},
+		{"inspect-cert ADDRESS", "inspect untrusted first-contact certificate"},
+		{"credentials find ROOT", "list existing Sony credential pairs"},
+		{"profile import-sony NAME ADDRESS SHA256 CREDENTIAL_DIR", "import an existing Sony credential pair"},
+		{"profile pair NAME DIRECT_ADDRESS", "register a new direct client identity"},
+		{"profile list", "list configured devices"},
+		{"profile use NAME", "select the default device"},
+		{"profile show [NAME]", "show safe connection details"},
+		{"auth", "verify profile authentication"},
+		{"device", "show firmware, battery, and storage"},
+		{"ls [-l] [OBJECT]", "list the root, a folder, or one PDF"},
+		{"stat OBJECT", "show complete entry metadata"},
+		{"file OBJECT", "alias for stat"},
+		{"get OBJECT [LOCAL_FILE]", "download PDF without overwriting"},
+		{"mkdir DEVICE_PATH", "create one folder"},
+		{"put LOCAL_PDF [DEVICE_PATH]", "create and upload without overwriting"},
+		{"cp OBJECT DEST_PATH", "copy a PDF within the device"},
+		{"mv OBJECT DEST_PATH", "move or rename a PDF within the device"},
+		{"rm OBJECT", "remove one PDF with a revision guard"},
+		{"rmdir OBJECT", "remove one empty folder only"},
+		{"open OBJECT [PAGE]", "display a PDF on the device"},
+	}
+	writer := tabwriter.NewWriter(output, 0, 4, 4, ' ', 0)
+	for _, command := range commands {
+		fmt.Fprintf(writer, "  %s\t%s\n", command[0], command[1])
+	}
+	_ = writer.Flush()
+	fmt.Fprintln(output)
 	fmt.Fprintln(output, "device paths are root-relative; use . for the root, for example Documents/paper.pdf")
 	fmt.Fprintln(output, "OBJECT is a device path, --id NUMBER|0xHEX, or --glob PATTERN")
 }
