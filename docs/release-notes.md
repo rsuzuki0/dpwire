@@ -48,6 +48,11 @@ independent authentication used the USB Ethernet endpoint directly; earlier
 document-operation checks used the Sony App loopback relay. Exact operation
 records are in `compatibility.md`.
 
+A later strict global traversal over direct USB also verified canonical
+metadata, flattened newest-first ordering, absolute CLI paths, and duplicate-ID
+suppression across the complete device tree without retaining document names,
+paths, or IDs.
+
 ## Known limits
 
 - DPT-CP1 and every Fujitsu QUADERNO generation require separate physical

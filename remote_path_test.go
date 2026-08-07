@@ -30,7 +30,7 @@ func TestRemotePathValidationAndNFC(t *testing.T) {
 }
 
 func TestRemotePathRejectsUnsafeValues(t *testing.T) {
-	for _, value := range []string{"", "/Document/a", "Document/", "Other/a", "Document//a", "Document/../a", "Document/./a", "Document/a\\b", "Document/a\x00b"} {
+	for _, value := range []string{"", "/Document/a", "Document/", "Other/a", "Document//a", "Document/../a", "Document/./a", "Document/a\\b", "Document/a\x00b", "Document/a\tb", "Document/a\x1bb", "Document/\xff"} {
 		if _, err := ParseRemotePath(value); err == nil {
 			t.Errorf("ParseRemotePath(%q) unexpectedly succeeded", value)
 		}

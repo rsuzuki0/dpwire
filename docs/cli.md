@@ -52,6 +52,7 @@ a valid strict profile is also an error.
 
 ```sh
 dp ls
+dp --strict ls -l /Documents
 dp ls -l /Documents
 dp ls -lt '/Documents/*.pdf' | head -n 20
 dp ls -lt --global / | head -n 20
@@ -113,6 +114,23 @@ ordinary recursive output, global output has no directory headings. It must
 read the complete selected subtree before sorting and printing, so initial
 latency and device requests scale with the tree size. The same 10,000-object
 safety limit applies, and duplicate object IDs are emitted once.
+
+This traversal is a sequence of ordinary remote directory reads rather than a
+point-in-time snapshot. Content changed during the scan may appear according to
+different moments. The command is read-only; rerun it when one contemporaneous
+view matters.
+
+`--strict` is a global option and therefore precedes the command:
+
+```sh
+dp --strict ls -lt --global /
+```
+
+It adds canonical metadata checks for timestamps, byte sizes, and agreement
+between an entry name and its path. Safe legacy metadata remains usable without
+the option. Unsafe identifiers and paths, invalid UTF-8 in identity fields, and
+control characters in operational and listing fields are rejected in every
+mode.
 
 Commands that accept an existing object accept any one of these forms:
 

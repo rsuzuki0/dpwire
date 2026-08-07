@@ -8,6 +8,10 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
+	"unicode/utf8"
+
+	"golang.org/x/text/unicode/norm"
 )
 
 // EntryType is the protocol type of an entry.
@@ -104,7 +108,7 @@ func (c *Client) listEntries(ctx context.Context, endpoint, entryType string, op
 			return nil, publicError(err)
 		}
 		for _, raw := range page.Entries {
-			entry, err := decodeEntry(raw)
+			entry, err := c.decodeEntry(raw)
 			if err != nil {
 				return nil, err
 			}
@@ -120,16 +124,71 @@ func (c *Client) listEntries(ctx context.Context, endpoint, entryType string, op
 	}
 }
 
-func decodeEntry(raw wireEntry) (Entry, error) {
+func (c *Client) decodeEntry(raw wireEntry) (Entry, error) {
+	return decodeEntry(raw, c.strict)
+}
+
+func decodeEntry(raw wireEntry, strict bool) (Entry, error) {
+	if err := validateID(raw.ID); err != nil {
+		return Entry{}, fmt.Errorf("dpwire: device returned an invalid entry ID: %w", err)
+	}
 	path, err := ParseRemotePath(strings.TrimSuffix(raw.Path, "/"))
 	if err != nil {
 		return Entry{}, fmt.Errorf("dpwire: entry %q has invalid path: %w", raw.ID, err)
+	}
+	name := raw.Name
+	if path.String() == "Document" {
+		if !utf8.ValidString(name) || containsControl(name) || strings.ContainsAny(name, "/\\") {
+			return Entry{}, fmt.Errorf("dpwire: entry %q has an unsafe root name", raw.ID)
+		}
+		name = norm.NFC.String(name)
+	} else {
+		name, err = validateEntryName(raw.Name, false)
+		if err != nil {
+			return Entry{}, fmt.Errorf("dpwire: entry %q has an invalid name: %w", raw.ID, err)
+		}
 	}
 	entryType := EntryType(raw.Type)
 	if entryType != EntryDocument && entryType != EntryFolder {
 		return Entry{}, fmt.Errorf("dpwire: entry %q has unknown type %q", raw.ID, raw.Type)
 	}
-	return Entry{ID: raw.ID, Name: raw.Name, Path: path, Type: entryType, Created: raw.Created,
+	if raw.ParentFolderID != "" {
+		if err := validateID(raw.ParentFolderID); err != nil {
+			return Entry{}, fmt.Errorf("dpwire: entry %q has an invalid parent folder ID: %w", raw.ID, err)
+		}
+	}
+	for field, value := range map[string]string{"created_date": raw.Created, "modified_date": raw.Modified, "file_size": raw.Size} {
+		if !utf8.ValidString(value) || containsControl(value) {
+			return Entry{}, fmt.Errorf("dpwire: entry %q has unsafe %s metadata", raw.ID, field)
+		}
+	}
+	if strict {
+		if path.String() != "Document" {
+			segments := strings.Split(path.String(), "/")
+			if name != norm.NFC.String(segments[len(segments)-1]) {
+				return Entry{}, fmt.Errorf("dpwire: entry %q name does not match its path", raw.ID)
+			}
+		}
+		for field, value := range map[string]string{"created_date": raw.Created, "modified_date": raw.Modified} {
+			if value != "" {
+				if _, err := time.Parse(time.RFC3339Nano, value); err != nil {
+					return Entry{}, fmt.Errorf("dpwire: entry %q has noncanonical %s", raw.ID, field)
+				}
+			}
+		}
+		if entryType == EntryDocument && raw.Modified == "" {
+			return Entry{}, fmt.Errorf("dpwire: entry %q has no modification time", raw.ID)
+		}
+		if entryType == EntryDocument && raw.Size == "" {
+			return Entry{}, fmt.Errorf("dpwire: entry %q has no file size", raw.ID)
+		}
+		if raw.Size != "" {
+			if _, err := strconv.ParseUint(raw.Size, 10, 64); err != nil {
+				return Entry{}, fmt.Errorf("dpwire: entry %q has noncanonical file_size", raw.ID)
+			}
+		}
+	}
+	return Entry{ID: raw.ID, Name: name, Path: path, Type: entryType, Created: raw.Created,
 		Modified: raw.Modified, MIMEType: raw.MIMEType, Size: raw.Size, DocumentType: raw.DocumentType,
 		Author: raw.Author, Title: raw.Title, TotalPages: raw.TotalPages, CurrentPage: raw.CurrentPage,
 		ReadingDate: raw.ReadingDate, ParentFolderID: raw.ParentFolderID, IsNew: raw.IsNew,
@@ -138,7 +197,7 @@ func decodeEntry(raw wireEntry) (Entry, error) {
 }
 
 func validateID(id string) error {
-	if id == "" || strings.ContainsAny(id, "/\\\r\n\x00") || id == "." || id == ".." {
+	if id == "" || !utf8.ValidString(id) || containsControl(id) || strings.ContainsAny(id, "/\\") || id == "." || id == ".." {
 		return errors.New("dpwire: invalid entry ID")
 	}
 	return nil

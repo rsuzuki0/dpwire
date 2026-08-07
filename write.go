@@ -70,7 +70,7 @@ func (s *FoldersService) Get(ctx context.Context, id string) (Entry, error) {
 	if err := s.client.wire.DoJSON(ctx, http.MethodGet, "/folders2/"+url.PathEscape(id), nil, nil, &raw, true); err != nil {
 		return Entry{}, publicError(err)
 	}
-	return decodeEntry(raw)
+	return s.client.decodeEntry(raw)
 }
 
 // Update renames and/or moves a folder, then verifies the resulting metadata.
@@ -401,8 +401,11 @@ func multipartBody(filename string, content io.Reader, size int64) (io.Reader, s
 }
 
 func validateEntryName(name string, document bool) (string, error) {
+	if !utf8.ValidString(name) {
+		return "", errors.New("dpwire: invalid entry name")
+	}
 	name = norm.NFC.String(name)
-	if name == "" || name == "." || name == ".." || !utf8.ValidString(name) || strings.ContainsAny(name, "/\\\r\n\x00") {
+	if name == "" || name == "." || name == ".." || containsControl(name) || strings.ContainsAny(name, "/\\") {
 		return "", errors.New("dpwire: invalid entry name")
 	}
 	if document && !strings.HasSuffix(strings.ToLower(name), ".pdf") {

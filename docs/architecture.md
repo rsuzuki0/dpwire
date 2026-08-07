@@ -17,6 +17,12 @@ The library must not import CLI, rendering, workflow, command, or simulator
 packages. Workflow packages must use the public API rather than importing
 `internal/wire` directly. Renderer adapters do not communicate with devices.
 
+Protocol identifiers, paths, and control characters in operational and listing
+fields are validated at the library boundary in every client. Applications
+that also require canonical metadata can construct a client with
+`dpwire.WithStrictValidation()`; the CLI exposes the same policy as its global
+`--strict` option.
+
 Future source locations are reserved with documentation, not functions that
 return false success.
 

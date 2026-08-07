@@ -30,7 +30,7 @@ func (s *DocumentsService) Get(ctx context.Context, id string) (Entry, error) {
 	if err := s.client.wire.DoJSON(ctx, http.MethodGet, endpoint, nil, nil, &raw, true); err != nil {
 		return Entry{}, publicError(err)
 	}
-	return decodeEntry(raw)
+	return s.client.decodeEntry(raw)
 }
 
 // Resolve retrieves document or folder metadata by normalized device path.
@@ -43,7 +43,7 @@ func (s *DocumentsService) Resolve(ctx context.Context, path RemotePath) (Entry,
 	if err := s.client.wire.DoJSON(ctx, http.MethodGet, endpoint, nil, nil, &raw, true); err != nil {
 		return Entry{}, publicError(err)
 	}
-	return decodeEntry(raw)
+	return s.client.decodeEntry(raw)
 }
 
 // DownloadResult describes one streamed PDF response.

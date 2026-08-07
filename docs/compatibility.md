@@ -71,3 +71,10 @@ App was quit, the new profile still authenticated and read firmware, battery,
 storage, and the root listing. This verifies that freshly paired credentials
 are stored and used independently of the vendor application. No credential or
 PIN values were retained in the repository.
+
+On 2026-08-07 the same firmware completed a strict, read-only global traversal
+over direct USB. Canonical timestamp, byte-size, and name/path checks accepted
+the full result, including paths with spaces and non-ASCII text. Aggregate
+validation found documents only, absolute CLI paths, newest-first timestamp
+order, and no duplicate device IDs. No document names, paths, IDs, credentials,
+or certificate fingerprints were retained.

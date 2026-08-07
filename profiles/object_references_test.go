@@ -3,6 +3,7 @@ package profiles
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -106,6 +107,22 @@ func TestObjectReferenceRejectsInvalidSelectors(t *testing.T) {
 		if _, err := store.Candidates(selector); err == nil {
 			t.Fatalf("selector %q accepted", selector)
 		}
+	}
+}
+
+func TestObjectReferenceRejectsUnsafeDeviceIDsBeforeSaving(t *testing.T) {
+	manager, _ := New(filepath.Join(t.TempDir(), "config"))
+	store, err := manager.ObjectReferences(dpwire.DeviceProfile{Address: "https://device.example", ClientID: "client"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"", ".", "..", "document/one", "document\\one", "document\none", "document\tone", string([]byte{'d', 0xff})} {
+		if _, err := store.Assign([]dpwire.Entry{{ID: id, Type: dpwire.EntryDocument}}); err == nil {
+			t.Fatalf("unsafe ID %q was accepted", id)
+		}
+	}
+	if _, err := os.Stat(store.path); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("unsafe assignment created reference file: %v", err)
 	}
 }
 

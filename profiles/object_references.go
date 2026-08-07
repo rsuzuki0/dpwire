@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/rsuzuki0/dpwire"
 	"github.com/rsuzuki0/dpwire/internal/atomicfile"
@@ -93,7 +95,7 @@ func (s *ObjectReferenceStore) Assign(entries []dpwire.Entry) (map[string]Object
 		}
 		changed := false
 		for _, entry := range entries {
-			if entry.ID == "" || (entry.Type != dpwire.EntryDocument && entry.Type != dpwire.EntryFolder) {
+			if !validObjectReferenceDeviceID(entry.ID) || (entry.Type != dpwire.EntryDocument && entry.Type != dpwire.EntryFolder) {
 				return errors.New("profiles: invalid object reference entry")
 			}
 			if index, ok := byID[entry.ID]; ok {
@@ -282,7 +284,7 @@ func validateObjectReferenceFile(state objectReferenceFile) error {
 	numbers := make(map[uint64]struct{}, len(state.Objects))
 	ids := make(map[string]struct{}, len(state.Objects))
 	for _, record := range state.Objects {
-		if record.DeviceID == "" || strings.ContainsAny(record.DeviceID, "\r\n\x00") {
+		if !validObjectReferenceDeviceID(record.DeviceID) {
 			return errors.New("profiles: invalid object reference device ID")
 		}
 		if record.Type != dpwire.EntryDocument && record.Type != dpwire.EntryFolder {
@@ -301,6 +303,18 @@ func validateObjectReferenceFile(state objectReferenceFile) error {
 		ids[record.DeviceID] = struct{}{}
 	}
 	return nil
+}
+
+func validObjectReferenceDeviceID(value string) bool {
+	if value == "" || value == "." || value == ".." || !utf8.ValidString(value) || strings.ContainsAny(value, "/\\") {
+		return false
+	}
+	for _, character := range value {
+		if unicode.IsControl(character) {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *ObjectReferenceStore) save(state objectReferenceFile) error {

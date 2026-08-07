@@ -34,6 +34,7 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 	flags.SetOutput(stderr)
 	profileSelection := flags.String("profile", "", "named profile or profile JSON file")
 	configDirectory := flags.String("config-dir", "", "profile configuration directory")
+	strictValidation := flags.Bool("strict", false, "reject noncanonical device metadata")
 	flags.Usage = func() { usage(stderr) }
 	if err := flags.Parse(arguments); err != nil {
 		return 2
@@ -73,7 +74,11 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 	if err != nil {
 		return report(stderr, err)
 	}
-	client, err := dpwire.NewClient(profile)
+	clientOptions := make([]dpwire.Option, 0, 1)
+	if *strictValidation {
+		clientOptions = append(clientOptions, dpwire.WithStrictValidation())
+	}
+	client, err := dpwire.NewClient(profile, clientOptions...)
 	if err != nil {
 		return report(stderr, err)
 	}
@@ -873,7 +878,9 @@ func printRecursiveEntries(ctx context.Context, client *dpwire.Client, store *pr
 	return nil
 }
 
-func printGlobalEntries(ctx context.Context, client *dpwire.Client, store *profiles.ObjectReferenceStore, roots []dpwire.Entry, options listCommandOptions, output io.Writer) error {
+type folderListFunc func(context.Context, string, dpwire.ListOptions) ([]dpwire.Entry, error)
+
+func collectGlobalDocuments(ctx context.Context, roots []dpwire.Entry, list folderListFunc) ([]dpwire.Entry, error) {
 	visitedFolders := make(map[string]bool)
 	seenDocuments := make(map[string]bool)
 	documents := make([]dpwire.Entry, 0)
@@ -898,7 +905,7 @@ func printGlobalEntries(ctx context.Context, client *dpwire.Client, store *profi
 			return nil
 		}
 		visitedFolders[folder.ID] = true
-		entries, err := client.Folders.List(ctx, folder.ID, dpwire.ListOptions{})
+		entries, err := list(ctx, folder.ID, dpwire.ListOptions{})
 		if err != nil {
 			return err
 		}
@@ -930,20 +937,27 @@ func printGlobalEntries(ctx context.Context, client *dpwire.Client, store *profi
 	for _, entry := range roots {
 		if entry.Type == dpwire.EntryDocument {
 			if err := addDocument(entry); err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
 	for _, entry := range roots {
 		if entry.Type == dpwire.EntryFolder {
 			if err := visit(entry); err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
+	return documents, nil
+}
+
+func printGlobalEntries(ctx context.Context, client *dpwire.Client, store *profiles.ObjectReferenceStore, roots []dpwire.Entry, options listCommandOptions, output io.Writer) error {
+	documents, err := collectGlobalDocuments(ctx, roots, client.Folders.List)
+	if err != nil {
+		return err
+	}
 
 	var references map[string]profiles.ObjectReference
-	var err error
 	if options.long {
 		if store == nil {
 			return errors.New("object reference store is unavailable")
@@ -1003,7 +1017,7 @@ func report(stderr io.Writer, err error) int {
 }
 
 func usage(output io.Writer) {
-	fmt.Fprintln(output, "usage: dp [-profile NAME|FILE] COMMAND [ARG...]")
+	fmt.Fprintln(output, "usage: dp [-profile NAME|FILE] [--strict] COMMAND [ARG...]")
 	fmt.Fprintln(output)
 	fmt.Fprintln(output, "commands:")
 	fmt.Fprintln(output)
@@ -1044,4 +1058,5 @@ func usage(output io.Writer) {
 	fmt.Fprintln(output, "ls -R recursively lists folders; glob matching itself is not recursive")
 	fmt.Fprintln(output, "ls -t sorts each listing by modification time, newest first")
 	fmt.Fprintln(output, "ls --global emits one recursive, flat, documents-only listing with full paths")
+	fmt.Fprintln(output, "--strict rejects safe but noncanonical metadata returned by the device")
 }

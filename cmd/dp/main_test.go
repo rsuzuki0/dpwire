@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -27,6 +28,11 @@ func TestVersionAndUsage(t *testing.T) {
 	}
 	stdout.Reset()
 	stderr.Reset()
+	if code := run([]string{"--strict", "version"}, &stdout, &stderr); code != 0 || strings.TrimSpace(stdout.String()) != version {
+		t.Fatalf("strict version code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
+	}
+	stdout.Reset()
+	stderr.Reset()
 	if code := run(nil, &stdout, &stderr); code != 2 || !strings.Contains(stderr.String(), "usage:") {
 		t.Fatalf("code=%d stderr=%q", code, stderr.String())
 	}
@@ -35,7 +41,7 @@ func TestVersionAndUsage(t *testing.T) {
 func TestUsageColumns(t *testing.T) {
 	var output bytes.Buffer
 	usage(&output)
-	if !strings.HasPrefix(output.String(), "usage: dp [-profile NAME|FILE] COMMAND [ARG...]\n\ncommands:\n\n") {
+	if !strings.HasPrefix(output.String(), "usage: dp [-profile NAME|FILE] [--strict] COMMAND [ARG...]\n\ncommands:\n\n") {
 		t.Fatalf("usage section spacing:\n%s", output.String())
 	}
 	if !strings.Contains(output.String(), "print version\n\ndevice paths use the fixed root /") {
@@ -74,6 +80,48 @@ func TestUsageColumns(t *testing.T) {
 	longestCommand := "  profile import-sony NAME ADDRESS SHA256 CREDENTIAL_DIR"
 	if column-len(longestCommand) < 4 {
 		t.Fatalf("usage description gap = %d, want at least 4:\n%s", column-len(longestCommand), output.String())
+	}
+}
+
+func TestCollectGlobalDocumentsHandlesCyclesDuplicatesFailuresAndLimit(t *testing.T) {
+	folderA := dpwire.Entry{ID: "folder-a", Name: "A", Type: dpwire.EntryFolder}
+	folderB := dpwire.Entry{ID: "folder-b", Name: "B", Type: dpwire.EntryFolder}
+	document := dpwire.Entry{ID: "document-1", Name: "paper.pdf", Type: dpwire.EntryDocument}
+	graph := map[string][]dpwire.Entry{
+		folderA.ID: {folderB, document},
+		folderB.ID: {folderA, document},
+	}
+	list := func(_ context.Context, id string, _ dpwire.ListOptions) ([]dpwire.Entry, error) {
+		return graph[id], nil
+	}
+	documents, err := collectGlobalDocuments(context.Background(), []dpwire.Entry{folderA, document}, list)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(documents) != 1 || documents[0].ID != document.ID {
+		t.Fatalf("documents = %+v", documents)
+	}
+
+	wantFailure := errors.New("intermediate folder failed")
+	failing := func(_ context.Context, id string, _ dpwire.ListOptions) ([]dpwire.Entry, error) {
+		if id == folderB.ID {
+			return nil, wantFailure
+		}
+		return graph[id], nil
+	}
+	if _, err := collectGlobalDocuments(context.Background(), []dpwire.Entry{folderA}, failing); !errors.Is(err, wantFailure) {
+		t.Fatalf("failure = %v, want %v", err, wantFailure)
+	}
+
+	tooMany := make([]dpwire.Entry, maximumGlobEntries+1)
+	for index := range tooMany {
+		tooMany[index] = dpwire.Entry{ID: "folder-" + strconv.Itoa(index), Type: dpwire.EntryFolder}
+	}
+	overLimit := func(context.Context, string, dpwire.ListOptions) ([]dpwire.Entry, error) {
+		return tooMany, nil
+	}
+	if _, err := collectGlobalDocuments(context.Background(), []dpwire.Entry{folderA}, overLimit); err == nil || !strings.Contains(err.Error(), "safety limit") {
+		t.Fatalf("limit error = %v", err)
 	}
 }
 
@@ -374,6 +422,11 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	invoke("device")
 	if output := invoke("ls"); !strings.Contains(output, "Documents/") {
 		t.Fatalf("root ls = %q", output)
+	}
+	var strictOutput, strictErrors bytes.Buffer
+	strictArguments := []string{"-config-dir", filepath.Join(temporary, "external-profile-config"), "-profile", profilePath, "--strict", "ls", "-l", "/Documents"}
+	if code := run(strictArguments, &strictOutput, &strictErrors); code != 0 || !strings.Contains(strictOutput.String(), "source.pdf") {
+		t.Fatalf("strict ls: code=%d stdout=%q stderr=%q", code, strictOutput.String(), strictErrors.String())
 	}
 	if output := invoke("ls", "-l", "*"); !strings.Contains(output, "Documents/") || !strings.Contains(output, "root.pdf") {
 		t.Fatalf("root wildcard ls = %q", output)

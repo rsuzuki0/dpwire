@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"golang.org/x/text/unicode/norm"
 )
@@ -16,8 +18,11 @@ type RemotePath struct{ normalized string }
 
 // ParseRemotePath validates and NFC-normalizes a device path.
 func ParseRemotePath(value string) (RemotePath, error) {
-	if strings.ContainsRune(value, 0) {
-		return RemotePath{}, errors.New("dpwire: remote path contains NUL")
+	if !utf8.ValidString(value) {
+		return RemotePath{}, errors.New("dpwire: remote path is not valid UTF-8")
+	}
+	if containsControl(value) {
+		return RemotePath{}, errors.New("dpwire: remote path contains a control character")
 	}
 	if strings.Contains(value, "\\") {
 		return RemotePath{}, errors.New("dpwire: remote path contains backslash")
@@ -36,6 +41,15 @@ func ParseRemotePath(value string) (RemotePath, error) {
 		}
 	}
 	return RemotePath{normalized: value}, nil
+}
+
+func containsControl(value string) bool {
+	for _, character := range value {
+		if unicode.IsControl(character) {
+			return true
+		}
+	}
+	return false
 }
 
 // MustRemotePath parses value and panics on error. It is intended for static

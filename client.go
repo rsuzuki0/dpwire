@@ -17,6 +17,7 @@ type Client struct {
 	wire       *transport.Client
 	clientID   string
 	privateKey *rsa.PrivateKey
+	strict     bool
 
 	Documents *DocumentsService
 	Folders   *FoldersService
@@ -26,6 +27,7 @@ type Client struct {
 type clientOptions struct {
 	credentials *credentials.Credentials
 	timeout     time.Duration
+	strict      bool
 }
 
 // Option customizes a Client.
@@ -52,6 +54,17 @@ func WithTimeout(value time.Duration) Option {
 			return errors.New("dpwire: timeout must be positive")
 		}
 		options.timeout = value
+		return nil
+	}
+}
+
+// WithStrictValidation rejects safe but noncanonical entry metadata returned
+// by the device, including malformed timestamps and sizes or a name that does
+// not match the final path segment. Unsafe identifiers and paths are rejected
+// regardless of this option.
+func WithStrictValidation() Option {
+	return func(options *clientOptions) error {
+		options.strict = true
 		return nil
 	}
 }
@@ -89,7 +102,7 @@ func NewClient(profile DeviceProfile, options ...Option) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client := &Client{wire: wire, clientID: clientID, privateKey: privateKey}
+	client := &Client{wire: wire, clientID: clientID, privateKey: privateKey, strict: settings.strict}
 	client.Documents = &DocumentsService{client: client}
 	client.Folders = &FoldersService{client: client}
 	client.Device = &DeviceService{client: client}

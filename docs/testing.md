@@ -85,6 +85,12 @@ multi-level subtree, including an empty folder, and opened page 1 of a
 previously approved PDF. The committed record contains only model, firmware,
 transport, operations, and outcome; it omits the selected path and object ID.
 
+On 2026-08-07 a direct-USB `--strict` global listing was streamed into a
+redacted aggregate checker. It verified canonical timestamps and byte sizes,
+name/path agreement, documents-only output, absolute CLI paths, descending
+modification times, and unique device IDs across the complete result. The
+checker emitted counts only and did not retain entry names, paths, or IDs.
+
 ## Physical-device read-only check
 
 `tools/device-check` performs a redacted read-only check. It never selects a

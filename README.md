@@ -92,6 +92,7 @@ no profile flag:
 dp auth
 dp device
 dp ls
+dp --strict ls -l /Documents
 dp ls -l /Documents
 dp ls -lt '/Documents/*.pdf' | head -n 20
 dp ls -lt --global / | head -n 20
@@ -158,6 +159,18 @@ and then applies the selected name or time ordering. `-R` may still be supplied,
 so `dp ls -lRt --global /` is equivalent. For example, the newest 20 PDFs on
 the device are `dp ls -lt --global / | head -n 20`. Global ordering must collect
 the complete subtree before it can print its first result.
+
+Global traversal reads folders sequentially and is not a point-in-time
+snapshot. If device contents change during a scan, one result can reflect
+different moments; rerun the read-only command when a contemporaneous view is
+important.
+
+Place the global `--strict` option before the command, as in
+`dp --strict ls -l /Documents`. Strict mode additionally rejects safe but
+noncanonical metadata returned by the device, including malformed timestamp or
+size fields and name/path disagreement. Identifier, path, and listing-field
+control-character safety checks apply in every mode. This option is also
+available to applications as `dpwire.WithStrictValidation()`.
 
 Recursive listing is explicit: `dp ls -R /Documents` lists that tree, and
 `dp ls -lR /Documents` adds the long columns. `-lR`, `-Rl`, `-l -R`, and

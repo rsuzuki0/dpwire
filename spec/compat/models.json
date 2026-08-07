@@ -212,6 +212,23 @@
         "No document content, path, ID, client ID, key, PIN, or certificate fingerprint was recorded."
       ],
       "quirks": []
+    },
+    {
+      "vendor": "Sony",
+      "model": "DPT-RP1",
+      "firmware": "1.6.50.14130",
+      "tested_at": "2026-08-07",
+      "transport": "direct USB Ethernet via digitalpaper.local:8443",
+      "mode": "strict-global-read-only",
+      "verified_operations": [
+        "GET /folders/{folder_id}/entries2"
+      ],
+      "observations": [
+        "Strict validation accepted every document returned by a complete global traversal, including paths containing spaces and non-ASCII text.",
+        "The flattened long listing contained documents only, used absolute CLI paths, had no duplicate device IDs, and was globally ordered by parsed modification time newest first.",
+        "The aggregate checker retained no document name, path, ID, client ID, key, PIN, or certificate fingerprint."
+      ],
+      "quirks": []
     }
   ]
 }
