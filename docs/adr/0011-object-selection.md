@@ -34,6 +34,15 @@ entries without entering matched folders; `file` and `stat` return a JSON array
 for inferred or explicit globs. Other object commands retain explicit `--glob`
 and require exactly one compatible match.
 
+A trailing `/` restricts glob results to folders. Documentation quotes every
+glob so the host shell passes the pattern unchanged; multiple positional paths
+produce a quoting hint rather than being interpreted as device operands.
+
+Recursive traversal is an explicit `ls -R` operation, independent of glob
+matching. `ls -lR`, `ls -Rl`, `ls -l -R`, and `ls -R -l` are equivalent.
+Traversal lists each folder once by device ID and shares the 10,000-entry
+safety limit. `file` and `stat` do not accept a recursive option.
+
 ## Consequences
 
 Paths containing spaces, non-Western text, or other hard-to-enter characters

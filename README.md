@@ -90,6 +90,7 @@ dp auth
 dp device
 dp ls
 dp ls -l /Documents
+dp ls -lR /
 dp file /Documents/paper.pdf
 dp file --id 23
 dp get --glob '/Documents/*report*2026*.pdf'
@@ -131,6 +132,14 @@ containing `*`, `?`, or `[...]` is tried as an exact path first and expanded as
 a glob only when no exact object exists. `ls` prints every match itself;
 `file` and `stat` return a JSON array for a glob, including a one-item glob.
 Commands that act on one object retain explicit `--glob` and require one match.
+A trailing `/` makes a glob directory-only: quote `'*'` for every root entry or
+`'*/'` for root folders only. Unquoted `*` is expanded by the host shell before
+`dp` starts and therefore does not express a device glob.
+
+Recursive listing is explicit: `dp ls -R /Documents` lists that tree, and
+`dp ls -lR /Documents` adds the long columns. `-lR`, `-Rl`, `-l -R`, and
+`-R -l` are equivalent. Glob matching itself remains one level per path
+segment and never enables recursion.
 
 `rm` deletes exactly one document using the revision just resolved by the CLI.
 `rmdir` deletes only an empty folder and always disables the protocol's

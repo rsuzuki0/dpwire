@@ -155,6 +155,13 @@ func resolveReadObjects(ctx context.Context, client *dpwire.Client, store *profi
 }
 
 func resolveGlobObjects(ctx context.Context, client *dpwire.Client, value string, expected dpwire.EntryType) ([]dpwire.Entry, error) {
+	directoryOnly := strings.HasSuffix(value, "/")
+	if directoryOnly {
+		value = strings.TrimRight(value, "/")
+		if value == "" {
+			return nil, errors.New("glob pattern must name a device object")
+		}
+	}
 	pattern := foldGlobString(value)
 	if _, err := path.Match(pattern, ""); err != nil {
 		return nil, fmt.Errorf("invalid glob pattern: %w", err)
@@ -165,6 +172,9 @@ func resolveGlobObjects(ctx context.Context, client *dpwire.Client, value string
 	}
 	filtered := entries[:0]
 	for _, entry := range entries {
+		if directoryOnly && entry.Type != dpwire.EntryFolder {
+			continue
+		}
 		if expected == "" || entry.Type == expected {
 			filtered = append(filtered, entry)
 		}

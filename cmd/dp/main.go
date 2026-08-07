@@ -121,13 +121,16 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 			Storage  dpwire.StorageStatus  `json:"storage"`
 		}{firmware, battery, storage})
 	case "ls":
-		long, selector, ok := parseListArguments(args[1:])
+		listOptions, selector, ok := parseListArguments(args[1:])
 		if !ok {
+			if listArgumentCount(args[1:]) > 1 {
+				reportGlobQuotingHint(stderr)
+			}
 			usage(stderr)
 			return 2
 		}
 		var store *profiles.ObjectReferenceStore
-		if selector.kind == selectorID || long {
+		if selector.kind == selectorID || listOptions.long {
 			store, err = getReferenceStore()
 			if err != nil {
 				return report(stderr, err)
@@ -136,6 +139,12 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 		resolved, globbed, resolveErr := resolveReadObjects(ctx, client, store, selector, "")
 		if resolveErr != nil {
 			return report(stderr, resolveErr)
+		}
+		if listOptions.recursive {
+			if err := printRecursiveEntries(ctx, client, store, resolved, listOptions.long, stdout); err != nil {
+				return report(stderr, err)
+			}
+			return 0
 		}
 		var entries []dpwire.Entry
 		if globbed {
@@ -149,16 +158,19 @@ func runWithInput(arguments []string, stdin io.Reader, stdout, stderr io.Writer)
 			return report(stderr, err)
 		}
 		var references map[string]profiles.ObjectReference
-		if long {
+		if listOptions.long {
 			references, err = store.Assign(entries)
 			if err != nil {
 				return report(stderr, err)
 			}
 		}
-		return printEntries(stdout, entries, references, long)
+		return printEntries(stdout, entries, references, listOptions.long)
 	case "stat", "file":
 		selector, remaining, selectorErr := parseObjectSelector(args[1:])
 		if selectorErr != nil || len(remaining) != 0 {
+			if selectorErr == nil && len(remaining) != 0 {
+				reportGlobQuotingHint(stderr)
+			}
 			usage(stderr)
 			return 2
 		}
@@ -570,16 +582,51 @@ func presentEntry(entry dpwire.Entry) entryOutput {
 	}
 }
 
-func parseListArguments(arguments []string) (long bool, selector objectSelector, ok bool) {
-	if len(arguments) > 0 && arguments[0] == "-l" {
-		long = true
+type listCommandOptions struct {
+	long      bool
+	recursive bool
+}
+
+func parseListArguments(arguments []string) (options listCommandOptions, selector objectSelector, ok bool) {
+	for len(arguments) > 0 && isListOption(arguments[0]) {
+		for _, flag := range arguments[0][1:] {
+			switch flag {
+			case 'l':
+				options.long = true
+			case 'R':
+				options.recursive = true
+			}
+		}
 		arguments = arguments[1:]
 	}
 	if len(arguments) == 0 {
-		return long, objectSelector{kind: selectorPath, value: "."}, true
+		return options, objectSelector{kind: selectorPath, value: "."}, true
 	}
 	selector, remaining, err := parseObjectSelector(arguments)
-	return long, selector, err == nil && len(remaining) == 0
+	return options, selector, err == nil && len(remaining) == 0
+}
+
+func isListOption(argument string) bool {
+	if len(argument) < 2 || argument[0] != '-' || strings.HasPrefix(argument, "--") {
+		return false
+	}
+	for _, flag := range argument[1:] {
+		if flag != 'l' && flag != 'R' {
+			return false
+		}
+	}
+	return true
+}
+
+func listArgumentCount(arguments []string) int {
+	for len(arguments) > 0 && isListOption(arguments[0]) {
+		arguments = arguments[1:]
+	}
+	return len(arguments)
+}
+
+func reportGlobQuotingHint(output io.Writer) {
+	fmt.Fprintln(output, "dp: expected one device path argument; quote glob patterns so the host shell does not expand them")
 }
 
 func printEntries(output io.Writer, entries []dpwire.Entry, references map[string]profiles.ObjectReference, long bool) int {
@@ -615,6 +662,87 @@ func printEntries(output io.Writer, entries []dpwire.Entry, references map[strin
 		return 1
 	}
 	return 0
+}
+
+func printRecursiveEntries(ctx context.Context, client *dpwire.Client, store *profiles.ObjectReferenceStore, roots []dpwire.Entry, long bool, output io.Writer) error {
+	visited := make(map[string]bool)
+	listed := 0
+	printed := false
+
+	printList := func(entries []dpwire.Entry) error {
+		var references map[string]profiles.ObjectReference
+		var err error
+		if long {
+			if store == nil {
+				return errors.New("object reference store is unavailable")
+			}
+			references, err = store.Assign(entries)
+			if err != nil {
+				return err
+			}
+		}
+		if printEntries(output, entries, references, long) != 0 {
+			return errors.New("could not write recursive listing")
+		}
+		return nil
+	}
+
+	var visit func(dpwire.Entry) error
+	visit = func(folder dpwire.Entry) error {
+		if visited[folder.ID] {
+			return nil
+		}
+		visited[folder.ID] = true
+		entries, err := client.Folders.List(ctx, folder.ID, dpwire.ListOptions{})
+		if err != nil {
+			return err
+		}
+		listed += len(entries)
+		if listed > maximumGlobEntries {
+			return fmt.Errorf("recursive listing exceeds the %d-object safety limit", maximumGlobEntries)
+		}
+		if printed {
+			fmt.Fprintln(output)
+		}
+		fmt.Fprintf(output, "%s:\n", devicePathString(folder.Path))
+		if err := printList(entries); err != nil {
+			return err
+		}
+		printed = true
+		for _, entry := range entries {
+			if entry.Type == dpwire.EntryFolder {
+				if err := visit(entry); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+
+	var documents []dpwire.Entry
+	for _, entry := range roots {
+		if entry.Type == dpwire.EntryDocument {
+			documents = append(documents, entry)
+		}
+	}
+	if len(documents) > 0 {
+		listed += len(documents)
+		if listed > maximumGlobEntries {
+			return fmt.Errorf("recursive listing exceeds the %d-object safety limit", maximumGlobEntries)
+		}
+		if err := printList(documents); err != nil {
+			return err
+		}
+		printed = true
+	}
+	for _, entry := range roots {
+		if entry.Type == dpwire.EntryFolder {
+			if err := visit(entry); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func get(ctx context.Context, client *dpwire.Client, entry dpwire.Entry, local string, stdout, stderr io.Writer) int {
@@ -660,7 +788,7 @@ func usage(output io.Writer) {
 	fmt.Fprintln(output, "commands:")
 	fmt.Fprintln(output)
 	commands := [][2]string{
-		{"ls [-l] [OBJECT]", "list the root, a folder, or matching objects"},
+		{"ls [-lR] [OBJECT]", "list the root, a folder, or matching objects"},
 		{"stat OBJECT", "show complete entry metadata"},
 		{"file OBJECT", "alias for stat"},
 		{"get OBJECT [LOCAL_FILE]", "download PDF without overwriting"},
@@ -692,4 +820,6 @@ func usage(output io.Writer) {
 	fmt.Fprintln(output, "dp does not retain a current directory between commands")
 	fmt.Fprintln(output, "OBJECT is a device path, --id NUMBER|0xHEX, or --glob PATTERN")
 	fmt.Fprintln(output, "ls, file, and stat also expand quoted glob characters in a device path")
+	fmt.Fprintln(output, "a trailing / on a glob matches folders only")
+	fmt.Fprintln(output, "ls -R recursively lists folders; glob matching itself is not recursive")
 }

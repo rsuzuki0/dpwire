@@ -272,6 +272,12 @@ globは大文字・小文字を区別しない。DPT-RP1のexact path解決も�
 場合に限って `--glob` を省略した展開を行う。複数一致を許容し、`ls`は一致
 object自体を列挙、`file/stat`は一致数にかかわらずJSON arrayを返す。他command
 では明示的な `--glob` と一意一致を要求する。
+glob末尾の `/` はfolderだけに一致する。利用例ではhost shell展開を防ぐためglobを
+quoteし、複数のpositional pathを受けた場合はquoteを促すerrorを返す。
+再帰一覧はglobと分離した `ls -R` として明示的に要求する。`ls -lR`、`ls -Rl`、
+`ls -l -R`、`ls -R -l` は同一動作とする。folder IDごとに一度だけ走査し、循環を
+防止する。走査は10,000 entryで停止する。`file/stat` は再帰optionを持たず、指定
+objectまたはglob一致objectのmetadata取得に限定する。
 
 ## 7. Capability仕様
 

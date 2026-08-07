@@ -98,24 +98,30 @@ func TestUnixStyleListOutput(t *testing.T) {
 	for _, test := range []struct {
 		arguments []string
 		long      bool
+		recursive bool
 		target    string
 		ok        bool
 	}{
-		{nil, false, "", true},
-		{[]string{"-l"}, true, "", true},
-		{[]string{"Documents"}, false, "Documents", true},
-		{[]string{"-l", "Documents"}, true, "Documents", true},
-		{[]string{"--id", "23"}, false, "23", true},
-		{[]string{"-l", "--glob", "*.pdf"}, true, "*.pdf", true},
-		{[]string{"-x"}, false, "", false},
+		{nil, false, false, "", true},
+		{[]string{"-l"}, true, false, "", true},
+		{[]string{"-R"}, false, true, "", true},
+		{[]string{"-lR", "Documents"}, true, true, "Documents", true},
+		{[]string{"-Rl", "Documents"}, true, true, "Documents", true},
+		{[]string{"-l", "-R", "Documents"}, true, true, "Documents", true},
+		{[]string{"-R", "-l", "Documents"}, true, true, "Documents", true},
+		{[]string{"Documents"}, false, false, "Documents", true},
+		{[]string{"-l", "Documents"}, true, false, "Documents", true},
+		{[]string{"--id", "23"}, false, false, "23", true},
+		{[]string{"-l", "--glob", "*.pdf"}, true, false, "*.pdf", true},
+		{[]string{"-x"}, false, false, "", false},
 	} {
-		long, target, ok := parseListArguments(test.arguments)
+		options, target, ok := parseListArguments(test.arguments)
 		gotTarget := target.value
 		if gotTarget == "." && test.target == "" {
 			gotTarget = ""
 		}
-		if long != test.long || gotTarget != test.target || ok != test.ok {
-			t.Fatalf("parseListArguments(%q) = %v, %q, %v", test.arguments, long, gotTarget, ok)
+		if options.long != test.long || options.recursive != test.recursive || gotTarget != test.target || ok != test.ok {
+			t.Fatalf("parseListArguments(%q) = %+v, %q, %v", test.arguments, options, gotTarget, ok)
 		}
 	}
 }
@@ -201,9 +207,12 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	state.RegisterClient("cli-client", &key.PublicKey)
 	state.RequireAuthentication(true)
 	root := state.AddFolder("Document/Documents", "Documents", "root", time.Now())
+	archive := state.AddFolder("Document/Documents/Archive", "Archive", root.ID, time.Now())
 	state.AddFolder("Document/Examples", "Examples", "root", time.Now())
 	sourceContent := []byte("%PDF-1.4\nsource\n")
+	state.AddDocument("Document/root.pdf", "root.pdf", "root", sourceContent, time.Now())
 	state.AddDocument("Document/Documents/source.pdf", "source.pdf", root.ID, sourceContent, time.Now())
+	state.AddDocument("Document/Documents/Archive/old.pdf", "old.pdf", archive.ID, sourceContent, time.Now())
 	state.AddDocument("Document/Documents/年次 報告 2026.pdf", "年次 報告 2026.pdf", root.ID, sourceContent, time.Now())
 	state.AddDocument("Document/Documents/zebra.pdf", "zebra.pdf", root.ID, sourceContent, time.Now())
 	state.AddDocument("Document/Documents/zenith.pdf", "zenith.pdf", root.ID, sourceContent, time.Now())
@@ -256,6 +265,33 @@ func TestUnixAndFTPCommandsEndToEnd(t *testing.T) {
 	invoke("device")
 	if output := invoke("ls"); !strings.Contains(output, "Documents/") {
 		t.Fatalf("root ls = %q", output)
+	}
+	if output := invoke("ls", "-l", "*"); !strings.Contains(output, "Documents/") || !strings.Contains(output, "root.pdf") {
+		t.Fatalf("root wildcard ls = %q", output)
+	}
+	if output := invoke("ls", "-l", "*/"); !strings.Contains(output, "Documents/") || strings.Contains(output, "root.pdf") {
+		t.Fatalf("root directory-only wildcard ls = %q", output)
+	}
+	if output := invoke("ls", "*"); strings.Contains(output, "source.pdf") || strings.Contains(output, "old.pdf") {
+		t.Fatalf("ordinary glob recursed unexpectedly = %q", output)
+	}
+	for _, flags := range [][]string{{"-R"}, {"-lR"}, {"-Rl"}, {"-l", "-R"}, {"-R", "-l"}} {
+		arguments := append(append([]string{"ls"}, flags...), "/Documents")
+		output := invoke(arguments...)
+		if !strings.Contains(output, "/Documents:\n") || !strings.Contains(output, "/Documents/Archive:\n") || !strings.Contains(output, "old.pdf") {
+			t.Fatalf("recursive ls %v = %q", flags, output)
+		}
+	}
+	if output := invoke("ls", "-lR", "/"); !strings.Contains(output, "/:\n") || !strings.Contains(output, "/Documents:\n") || !strings.Contains(output, "root.pdf") {
+		t.Fatalf("recursive root ls = %q", output)
+	}
+	if output := invoke("file", "*/"); !strings.Contains(output, `"type": "folder"`) || strings.Contains(output, `"name": "root.pdf"`) {
+		t.Fatalf("root directory-only file glob = %q", output)
+	}
+	var quotingOutput, quotingErrors bytes.Buffer
+	quotingArgs := []string{"-config-dir", filepath.Join(temporary, "external-profile-config"), "-profile", profilePath, "ls", "-l", "host-one", "host-two"}
+	if code := run(quotingArgs, &quotingOutput, &quotingErrors); code != 2 || !strings.Contains(quotingErrors.String(), "quote glob patterns") {
+		t.Fatalf("unquoted glob hint: code=%d stdout=%q stderr=%q", code, quotingOutput.String(), quotingErrors.String())
 	}
 	longListing := invoke("ls", "-l", "Documents/")
 	if !strings.Contains(longListing, "source.pdf") || !strings.Contains(longListing, "doc-") {

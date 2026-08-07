@@ -46,6 +46,7 @@ a profile name already exists, the command stops before contacting the device.
 ```sh
 dp ls
 dp ls -l /Documents
+dp ls -lR /
 dp file /Documents/paper.pdf
 dp file --id 23
 dp stat --id 0x3a71c8
@@ -88,6 +89,8 @@ dp file --id 23
 dp file --id 0x3a71c8
 dp file '/Documents/*.pdf'
 dp ls -l '/Documents/2026-*.pdf'
+dp ls -l '*'
+dp ls -l '*/'
 dp get --glob '/Documents/*報告*2026*.pdf'
 dp mv --glob '/Documents/Inbox/*draft*.pdf' /Documents/Archive/
 ```
@@ -112,11 +115,25 @@ containing `*`, `?`, or `[` remains addressable. Glob expansion occurs only
 after that exact lookup reports no object. `--glob` remains available to force
 glob interpretation.
 
+A trailing `/` restricts a glob to folders. At the fixed root, `'*'` matches
+all direct entries and `'*/'` matches direct folders only. Quotes are required:
+an unquoted `*` is expanded against the host working directory by the shell
+before `dp` receives its arguments. When that expansion supplies multiple host
+paths, `dp` stops with a quoting hint.
+
 For a glob, `ls` prints all matching entries themselves and does not enter a
 matching folder. `file` and `stat` return a JSON array for every glob request,
 including one match. Exact paths and `--id` return the existing single JSON
 object. Commands that transfer, open, copy, move, or remove one object require
 explicit `--glob` and exactly one compatible match.
+
+`ls -R /Documents` recursively lists the contents of `/Documents` and every
+folder below it. Add the long columns with `ls -lR`; `-lR`, `-Rl`, `-l -R`,
+and `-R -l` are equivalent. Each folder requires one logical, automatically
+paginated device listing. Traversal stops at 10,000 observed entries and skips
+an already visited folder ID, preventing an anomalous cycle from running
+indefinitely. `-R` belongs to `ls`; `file` and `stat` remain metadata commands
+for their selected object or glob results.
 
 The reference map is stored owner-only in the active DPWire configuration
 directory. It contains device object IDs and types, but no filenames or paths.

@@ -17,6 +17,8 @@ library.
   bounded Unix glob selection for paths that are difficult to type.
 - Direct quoted glob arguments and multiple-match output for read-only `ls`,
   `file`, and `stat`, with exact literal paths taking precedence.
+- Folder-only globs with a trailing `/`, shell-quoting diagnostics, and explicit
+  bounded recursive listings through `ls -R` and `ls -lR`.
 - PDF-only upload and replacement with revision conflict checks.
 - Device-side copy and move without unnecessary host round trips.
 - Revision-guarded document deletion and empty-only, non-recursive folder
